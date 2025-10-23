@@ -1,0 +1,33 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'IBM Plex Sans', sans-serif;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #111115;
+  color: #ededed;
+  font-size: 2rem;
+}
+
+@keyframes background-drift {
+  0% {
+    background-position: 0% center;
+  }
+
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.magic {
+  position: relative;
+  display: inline-block;
+  color: transparent;
+  background: linear-gradient(90deg, #00bfff, #0077ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: 200%;
+  animation: background-drift 3s infinite;
+}
