@@ -1,19 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PaCaLand</title>
+  <meta name="description" content="A small floating land. Every link grows a different one.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="main.css?v=2">
+  <!-- three.js r170 is vendored in vendor/three (MIT, see its LICENSE): no third-party scripts at runtime. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
 
-<p>
-  Welcome to <span class="magic">PaCaLand.</span>
-</p>
+<canvas id="world" aria-label="A small floating land. Drag to look around."></canvas>
+
+<header class="hud-top">
+  <p class="welcome">Welcome to <a class="magic" href="#" title="Back to the home land">PaCaLand.</a></p>
+  <h1 id="land-name">&nbsp;</h1>
+  <p id="land-meta"></p>
+  <p id="conditions"></p>
+</header>
+
+<div class="hud-bottom">
+  <div id="panel" class="panel" hidden>
+    <div class="row">
+      <label for="time">Time</label>
+      <input id="time" type="range" min="0" max="23.99" step="0.01">
+      <output id="time-out" for="time"></output>
+      <button id="live" type="button" class="chip">Live</button>
+    </div>
+    <div class="row chips" id="weather-chips"></div>
+  </div>
+
+  <form id="visit" class="bar">
+    <input id="seed-input" type="text" maxlength="40" autocomplete="off" spellcheck="false"
+           placeholder="Type any word to grow a land" aria-label="Land name or seed">
+    <button type="submit" class="primary">Visit</button>
+    <button type="button" id="dice" class="icon" aria-label="Visit a random land" title="Random land">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle class="pip" cx="8.5" cy="8.5" r="1.4"/><circle class="pip" cx="12" cy="12" r="1.4"/><circle class="pip" cx="15.5" cy="15.5" r="1.4"/></svg>
+    </button>
+    <button type="button" id="share" class="icon" aria-label="Copy a link to this land" title="Copy link">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>
+    </button>
+    <button type="button" id="tweak" class="icon" aria-label="Play with time and weather" aria-expanded="false" title="Time &amp; weather">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    </button>
+  </form>
+</div>
+
+<p class="fallback">Welcome to <span class="magic">PaCaLand.</span></p>
 
 </body>
 </html>
-
-
-
