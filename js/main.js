@@ -88,18 +88,19 @@ function naturalWeather() {
   return makeRandom(seed, `weather:${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`).weighted(land.biome.weather);
 }
 
-function applyWeather(instant) {
+// `mode`: 'fade', 'settle' or 'instant' (see sky.setWeather).
+function applyWeather(mode = 'fade') {
   const windKmh = isHome() && !weatherOverride ? live?.windKmh ?? null : null;
-  sky.setWeather(weatherOverride ?? naturalWeather(), instant, windKmh);
+  sky.setWeather(weatherOverride ?? naturalWeather(), mode, windKmh);
 }
 
 async function refreshLiveWeather() {
   try {
     live = await fetchWeather(place);
     if (isHome()) {
-      // If it arrives just after the land does, swap it in rather than fading
-      // from the offline guess.
-      applyWeather(clock.elapsedTime - bornAt < 4);
+      // If it arrives just after the land does, the ground takes it at once
+      // rather than slowly drying off or melting the offline guess.
+      applyWeather(clock.elapsedTime - bornAt < 4 ? 'settle' : 'fade');
       renderChips();
     }
   } catch {
@@ -114,9 +115,24 @@ function landHours() {
   return (vibe.hours + (clock.elapsedTime - vibeStart) / 3600) % 24;
 }
 
-function updateSkyState() {
-  if (isHome() && timeOverride === null) return realSky(new Date(), place, skyState);
-  return syntheticSky(landHours(), isHome() ? moonPhase(new Date()) : vibe.moonPhase, skyState);
+// After a flight the sun and moon swing over from the last land's moment to
+// this one's, instead of the sky cutting from noon to midnight.
+const glide = { from: newSkyState(), k: 1 };
+const glideArc = new THREE.Quaternion();
+const glideStep = new THREE.Quaternion();
+
+function updateSkyState(dt) {
+  const out = isHome() && timeOverride === null
+    ? realSky(new Date(), place, skyState)
+    : syntheticSky(landHours(), isHome() ? moonPhase(new Date()) : vibe.moonPhase, skyState);
+  if (glide.k >= 1) return out;
+  glide.k = Math.min(glide.k + dt / 2.6, 1);
+  const e = smoothstep(0, 1, glide.k);
+  for (const name of ['sunDir', 'moonDir']) {
+    glideArc.setFromUnitVectors(glide.from[name], out[name]);
+    out[name].copy(glide.from[name]).applyQuaternion(glideStep.identity().slerp(glideArc, e));
+  }
+  return out;
 }
 
 function dispose(root) {
@@ -126,27 +142,53 @@ function dispose(root) {
   });
 }
 
+// Moving on: the land on screen sinks into the clouds, and only once it's out
+// of sight is the next one grown, so the hitch of generating it only ever
+// holds up a view of sky. `land` and `seed` stay the land you can see.
+const SINK = 1.1, RISE = 1.6;
+let leaving = null; // { next, age, y, scale, turn } while the land on screen sinks away
+let rise = 0; // seconds the land on screen has been rising; below 0 it waits
+
 function visit(next) {
-  if (next === seed) return;
-  seed = next;
+  if (next === (leaving?.next ?? seed)) return;
+  if (focus.zoomed) focusOn(null);
+  if (!land || reducedMotion) return arrive(next);
+  // Picked again mid-flight: only the last pick gets grown.
+  if (leaving) leaving.next = next;
+  else leaving = { next, age: 0, y: land.group.position.y, scale: land.group.scale.x, turn: land.group.rotation.y };
+}
+
+function arrive(next) {
+  const flying = Boolean(land) && !reducedMotion;
   if (land) {
     scene.remove(land.group);
     dispose(land.group);
   }
+  leaving = null;
+  seed = next;
   land = generateLand(seed);
   land.setDetail(QUALITY[quality].grass);
   land.hooks.sound = (kind) => sound.play(kind);
   scene.add(land.group);
-  bornAt = clock.elapsedTime;
   vibe = isHome() ? null : landVibe(seed, land.biome);
-  vibeStart = clock.elapsedTime;
   // Every land arrives in its own time and weather; picks from the panel don't follow you.
   weatherOverride = null;
   timeOverride = null;
   setTimelapse(false);
-  // A new land arrives with its weather already settled in.
-  applyWeather(true);
-  if (focus.zoomed) focusOn(null);
+  // A new land arrives with its weather already settled on the ground; after
+  // a flight the sky still blends over from the last one.
+  applyWeather(flying ? 'settle' : 'instant');
+  if (flying) {
+    glide.from.sunDir.copy(skyState.sunDir);
+    glide.from.moonDir.copy(skyState.moonDir);
+    glide.k = 0;
+  }
+  // The clock skips the time spent growing it, and the rise waits out one
+  // (clamped) frame, as its first frame is slow too (it all goes up to the
+  // GPU): either way it rises from nothing rather than leaping ahead.
+  clock.getDelta();
+  bornAt = vibeStart = clock.elapsedTime;
+  rise = -0.05;
   perf.settleUntil = performance.now() + 3000;
   $('#land-name').textContent = land.name;
   $('#land-meta').textContent = `${land.biome.label} · #${seed}`;
@@ -431,7 +473,7 @@ function sizeRenderer() {
 const fitDistance = () => Math.max(34, 38 / camera.aspect);
 
 function resize() {
-  if (!sizeRenderer() || focus.zoomed) return;
+  if (!sizeRenderer() || focus.zoomed || intro) return;
   const offset = camera.position.clone().sub(controls.target);
   camera.position.copy(controls.target).add(offset.setLength(fitDistance()));
 }
@@ -457,6 +499,48 @@ function updateFocus(t) {
   if (k >= 1) focus.start = -1;
 }
 
+// The first visit opens high over a ring of clouds, looking out across them,
+// then tilts down and spirals in through them to the usual view while the
+// land rises to meet it, and the clouds part. Any touch, drag or scroll hands
+// the camera straight back. The orbit target never moves (the tilt is laid on
+// after the controls), so wherever the flight is cut short the controls carry
+// on from a sound orbit.
+const INTRO = 3.8, TILT = 0.25;
+let intro = null; // { age, from: Spherical, to: Spherical }
+let tilt = 0; // radians the view looks up from the target
+const introAt = new THREE.Spherical();
+function startIntro() {
+  const to = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+  const from = new THREE.Spherical(Math.min(fitDistance() * 2.6, controls.maxDistance - 2), 1.0, to.theta - 1.9);
+  intro = { age: 0, from, to };
+  sky.setVeil(18);
+  // The land waits a moment below the clouds before it rises.
+  rise = -0.9;
+  updateIntro(0);
+}
+function updateIntro(dt) {
+  if (!intro) {
+    // Done or cut short: let the view settle back onto the land rather than snap.
+    tilt = tilt > 0.001 ? tilt * Math.exp(-dt * 7) : 0;
+    sky.setVeil(0);
+    return;
+  }
+  intro.age += dt;
+  const k = Math.min(intro.age / INTRO, 1);
+  // Eases in briefly, then a long, soft landing.
+  const e = 1 - (1 - smoothstep(0, 1, k ** 0.8)) ** 2;
+  const { from, to } = intro;
+  introAt.set(THREE.MathUtils.lerp(from.radius, fitDistance(), e), THREE.MathUtils.lerp(from.phi, to.phi, e), THREE.MathUtils.lerp(from.theta, to.theta, e));
+  camera.position.setFromSpherical(introAt).add(controls.target);
+  tilt = TILT * (1 - e) ** 2;
+  // Halfway down, the extra clouds start to drift apart.
+  if (k > 0.45) sky.setVeil(0);
+  if (k >= 1) intro = null;
+}
+for (const type of ['pointerdown', 'wheel']) {
+  addEventListener(type, () => (intro = null), { passive: true });
+}
+
 // The camera drifts around the land, pausing for a while whenever you take over.
 let idleSince = -Infinity;
 controls.addEventListener('start', () => {
@@ -467,7 +551,7 @@ controls.addEventListener('end', () => {
 });
 
 const hint = $('#hint');
-const interaction = createInteraction(renderer.domElement, camera, () => land?.clickables ?? [], {
+const interaction = createInteraction(renderer.domElement, camera, () => (leaving ? [] : land?.clickables ?? []), {
   onClick: () => {
     idleSince = performance.now();
     hint.classList.add('gone');
@@ -481,6 +565,7 @@ new ResizeObserver(resize).observe(document.documentElement);
 applyQuality();
 resize();
 visit(readSeed());
+if (!reducedMotion) startIntro();
 refreshLiveWeather();
 setInterval(refreshLiveWeather, 15 * 60 * 1000);
 
@@ -514,9 +599,12 @@ renderer.setAnimationLoop(() => {
   if (innerWidth !== size.w || innerHeight !== size.h) resize();
 
   const dt = Math.min(clock.getDelta(), 0.05);
+  // Once the old land has sunk out of sight, grow the next one in its place.
+  if (!leaving) rise += dt;
+  else if ((leaving.age += dt) >= SINK) arrive(leaving.next);
   const t = clock.elapsedTime;
   updateTimelapse();
-  const env = sky.update(updateSkyState(), dt, t, camera);
+  const env = sky.update(updateSkyState(dt), dt, t, camera);
   // Eyes adjust to the dark a little; lightning flashes overexpose for an instant.
   renderer.toneMappingExposure = (1 + env.night * 0.9 + env.flash * 0.4) * (photo.on ? 2 ** photo.exposure : 1);
   fxUniforms.uTime.value = t;
@@ -527,17 +615,30 @@ renderer.setAnimationLoop(() => {
   fxUniforms.uRain.value = env.rain;
   land.update(t, dt, env);
 
-  // New lands grow up out of the clouds.
-  const grow = easeOutBack(Math.min((t - bornAt) / 1.6, 1));
-  land.group.scale.setScalar(Math.max(grow, 0.001));
-  land.group.position.y = (1 - grow) * -5;
-  land.group.rotation.y = (1 - grow) * 0.9;
+  // New lands grow up out of the clouds; old ones spin on down into them,
+  // from wherever they were, even halfway up.
+  const grow = easeOutBack(THREE.MathUtils.clamp(rise / RISE, 0, 1));
+  if (leaving) {
+    const k = Math.min(leaving.age / SINK, 1);
+    const fall = k * k;
+    land.group.scale.setScalar(Math.max(leaving.scale * (1 - 0.92 * fall), 0.001));
+    land.group.position.y = leaving.y - 22 * fall;
+    land.group.rotation.y = leaving.turn - 0.8 * fall;
+  } else {
+    land.group.scale.setScalar(Math.max(grow, 0.001));
+    land.group.position.y = (1 - grow) * -5;
+    land.group.rotation.y = (1 - grow) * 0.9;
+  }
+  // The title follows the land: gone while it's away, back as it rises.
+  document.body.classList.toggle('in-flight', Boolean(leaving) || rise < 0);
 
   // Aurora needs a cold place: a snowy or high land, fresh snow, or a freezing night at home.
   sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1));
+  updateIntro(dt);
   updateFocus(t);
-  controls.autoRotate = !reducedMotion && !photo.on && nowMs - idleSince > 8000;
+  controls.autoRotate = !intro && !reducedMotion && !photo.on && nowMs - idleSince > 8000;
   controls.update(dt);
+  if (tilt) camera.rotateX(tilt);
   interaction.update();
   aimShafts(env);
   focusPoint.copy(controls.target).add(new THREE.Vector3(0, camera.position.distanceTo(controls.target) * 0.065, 0)).project(camera);
@@ -545,12 +646,13 @@ renderer.setAnimationLoop(() => {
   finish.uniforms.uBlur.value = (photo.on ? photo.blur : QUALITY[quality].tilt ? 5 : 0) * renderer.getPixelRatio();
   finish.uniforms.uTime.value = t;
   finish.uniforms.uRainLens.value = env.rain * 0.85;
-  const mirrored = QUALITY[quality].reflect && land.water && grow >= 1 && reflection.render(scene, camera, land.waterLevel(), land.mirrorHide);
+  const mirrored = QUALITY[quality].reflect && land.water && !leaving && grow >= 1 && reflection.render(scene, camera, land.waterLevel(), land.mirrorHide);
   fxUniforms.uReflectOn.value = mirrored ? 1 : 0;
   composer.render(dt);
   sound.update(env, land.sounds, dt);
 
-  if (t - lastLabel > 0.5) {
+  // Twice a second, and straight away for a land that has just arrived.
+  if (t - lastLabel > 0.5 || lastLabel < bornAt) {
     lastLabel = t;
     const hours = landHours();
     $('#conditions').textContent = conditionsText(hours, env);

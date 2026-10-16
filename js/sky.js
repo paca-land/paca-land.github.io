@@ -597,6 +597,8 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
 
   const clouds = buildClouds();
   clouds.forEach((c) => scene.add(c));
+  let veil = 0; // extra high clouds, whatever the weather (see setVeil)
+  const cloudWanted = (c, i) => (c.userData.low ? i - 18 < target.low : i < Math.max(target.high, veil));
   const rain = buildRain();
   const snow = buildSnow();
   scene.add(rain.object, snow.object);
@@ -613,12 +615,28 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   let frame = 0;
 
   return {
-    // `instant` skips the transition, e.g. when arriving on a new land.
+    // `mode` is 'fade' (a pick from the panel), 'settle' (a land flying in: the
+    // sky still fades over, but the ground is already wet or snowed on) or
+    // 'instant' (the first land: everything, clouds too, as if always so).
     // `windKmh` comes from real weather; without it the wind follows the weather.
-    setWeather(name, instant = false, windKmh = null) {
+    setWeather(name, mode = 'fade', windKmh = null) {
       target = WEATHERS[name] ?? WEATHERS.clear;
       windBase = windKmh == null ? 1 : Math.min(3, 0.5 + windKmh / 25);
-      if (instant) Object.assign(state, target, { storm: target.storm ?? 0, wet: target.rain, snowCover: target.snow });
+      if (mode !== 'fade') Object.assign(state, { wet: target.rain, snowCover: target.snow });
+      if (mode === 'instant') {
+        Object.assign(state, target, { storm: target.storm ?? 0 });
+        clouds.forEach((c, i) => (c.userData.opacity = cloudWanted(c, i) ? 1 : 0));
+      }
+    },
+
+    // A full ring of high clouds for the camera to fly down through when the
+    // page opens: they're there at once, and part when `count` goes back to 0.
+    setVeil(count) {
+      veil = count;
+      if (!count) return;
+      clouds.forEach((c, i) => {
+        if (cloudWanted(c, i)) c.userData.opacity = 1;
+      });
     },
 
     // Cold lands (and cold nights at home) can have aurora.
@@ -741,13 +759,11 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       puffShared.uLit.value.copy(key.color).multiplyScalar(key.intensity * 0.3 * (1 - o * 0.55)).addScalar(flash * 1.4);
       puffShared.uAmbTop.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * 0.62 * gloom).lerp(pal.fog, 0.2);
       puffShared.uAmbBottom.value.copy(pal.horizon).lerp(pal.hemiSky, 0.5).multiplyScalar(0.5 * gloom);
-      const highCount = target.high, lowCount = target.low;
       shaftShared.uTime.value = t;
       shaftShared.uColor.value.copy(pal.fog).multiplyScalar(0.75);
       clouds.forEach((c, i) => {
         const u = c.userData;
-        const wanted = u.low ? i - 18 < lowCount : i < highCount;
-        u.opacity += ((wanted ? 1 : 0) - u.opacity) * k;
+        u.opacity += ((cloudWanted(c, i) ? 1 : 0) - u.opacity) * k;
         u.angle += u.speed * dt;
         c.visible = u.opacity > 0.01;
         c.material.uniforms.uOpacity.value = u.opacity;

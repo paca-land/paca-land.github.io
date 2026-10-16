@@ -122,6 +122,19 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* While a land is away (flying in, or sinking out of sight), so is its name. */
+#land-name,
+#land-meta,
+#conditions {
+  transition: opacity 0.7s ease;
+}
+
+.in-flight #land-name,
+.in-flight #land-meta,
+.in-flight #conditions {
+  opacity: 0;
+}
+
 /* Bottom controls */
 
 .hud-bottom {
