@@ -652,7 +652,8 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       strikeAge += dt;
       const flash = flashAt(strikeAge) * state.storm;
       state.wet += ((target.rain ? 1 : 0) - state.wet) * (1 - Math.exp(-dt * (target.rain ? 0.25 : 0.04)));
-      state.snowCover += ((target.snow ? 1 : 0) - state.snowCover) * (1 - Math.exp(-dt * (target.snow ? 0.05 : 0.025)));
+      // Snow settles slowly, melts slowly, and washes away faster in the rain.
+      state.snowCover += ((target.snow ? 1 : 0) - state.snowCover) * (1 - Math.exp(-dt * (target.snow ? 0.05 : target.rain ? 0.15 : 0.025)));
       const o = state.overcast;
       const mist = THREE.MathUtils.clamp((60 - state.fogNear) / 52, 0, 1);
       // Day-for-night: after dark the skylight is lifted and tinted blue, the way

@@ -97,7 +97,9 @@ async function refreshLiveWeather() {
   try {
     live = await fetchWeather(place);
     if (isHome()) {
-      applyWeather(false);
+      // If it arrives just after the land does, swap it in rather than fading
+      // from the offline guess.
+      applyWeather(clock.elapsedTime - bornAt < 4);
       renderChips();
     }
   } catch {
@@ -138,6 +140,10 @@ function visit(next) {
   bornAt = clock.elapsedTime;
   vibe = isHome() ? null : landVibe(seed, land.biome);
   vibeStart = clock.elapsedTime;
+  // Every land arrives in its own time and weather; picks from the panel don't follow you.
+  weatherOverride = null;
+  timeOverride = null;
+  setTimelapse(false);
   // A new land arrives with its weather already settled in.
   applyWeather(true);
   if (focus.zoomed) focusOn(null);
