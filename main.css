@@ -60,6 +60,24 @@ body {
   cursor: grabbing;
 }
 
+#world.can-click {
+  cursor: pointer;
+}
+
+#hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(246, 243, 236, 0.8);
+  text-shadow: 0 1px 8px rgba(5, 8, 20, 0.6);
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+#hint.gone {
+  opacity: 0;
+}
+
 /* Title block */
 
 .hud-top {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRandom, createNoise2D, fbm } from './random.js';
 
 const TAU = Math.PI * 2;
@@ -14,6 +15,7 @@ export const WEATHERS = {
   rain: { label: 'rain', high: 18, low: 12, overcast: 0.8, rain: 1, snow: 0, fogNear: 30, fogFar: 140 },
   snow: { label: 'snowfall', high: 15, low: 12, overcast: 0.55, rain: 0, snow: 1, fogNear: 30, fogFar: 150 },
   mist: { label: 'mist', high: 6, low: 12, overcast: 0.35, rain: 0, snow: 0, fogNear: 8, fogFar: 62 },
+  storm: { label: 'thunderstorm', high: 20, low: 12, overcast: 0.92, rain: 1, snow: 0, storm: 1, fogNear: 24, fogFar: 120 },
 };
 
 // Sky colors keyed on the sun's height (sunDir.y), interpolated in between.
@@ -391,11 +393,67 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   }));
   scene.add(stars);
 
-  const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(9, 24, 16),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color('#f5f0dc').multiplyScalar(2.2), transparent: true, opacity: 0, fog: false }),
-  );
+  // The moon is lit from the sun's direction, so it shows its real phase.
+  const moonUniforms = {
+    uLightDir: { value: new THREE.Vector3(0, 1, 0) },
+    uOpacity: { value: 0 },
+    uColor: { value: new THREE.Color('#f5f0dc').multiplyScalar(2.2) },
+  };
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(9, 32, 16), new THREE.ShaderMaterial({
+    uniforms: moonUniforms,
+    transparent: true,
+    depthWrite: false,
+    vertexShader: /* glsl */ `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uLightDir;
+      uniform float uOpacity;
+      uniform vec3 uColor;
+      varying vec3 vNormal;
+      void main() {
+        float lit = smoothstep(-0.08, 0.12, dot(normalize(vNormal), uLightDir));
+        gl_FragColor = vec4(uColor * (0.035 + lit), uOpacity);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }
+    `,
+  }));
   scene.add(moon);
+
+  // Lightning: a brief flash over everything and a bolt somewhere in the distance.
+  const flashLight = new THREE.DirectionalLight('#dfe8ff', 0);
+  flashLight.position.set(12, 40, -8);
+  scene.add(flashLight);
+  const bolt = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#e8eeff').multiplyScalar(6), transparent: true, opacity: 0, depthWrite: false, fog: false,
+  }));
+  bolt.frustumCulled = false;
+  scene.add(bolt);
+  const UP = new THREE.Vector3(0, 1, 0), boltDir = new THREE.Vector3(), boltQ = new THREE.Quaternion();
+  let nextStrike = 3, strikeAge = 9;
+  function strike() {
+    const a = Math.random() * TAU, d = 28 + Math.random() * 14;
+    let x = Math.cos(a) * d, y = 15, z = Math.sin(a) * d;
+    const parts = [];
+    while (y > -20) {
+      const nx = x + (Math.random() - 0.5) * 2.6, ny = y - 1.4 - Math.random() * 2.2, nz = z + (Math.random() - 0.5) * 2.6;
+      boltDir.set(nx - x, ny - y, nz - z);
+      const len = boltDir.length();
+      boltQ.setFromUnitVectors(UP, boltDir.normalize());
+      parts.push(new THREE.BoxGeometry(0.14, len, 0.14).translate(0, len / 2, 0).applyQuaternion(boltQ).translate(x, y, z));
+      x = nx; y = ny; z = nz;
+    }
+    bolt.geometry.dispose();
+    bolt.geometry = mergeGeometries(parts);
+    strikeAge = 0;
+  }
+  // A real flash flickers: a bright stroke, a dip, a second stroke, then fades.
+  const flashAt = (age) => (age < 0.07 ? 1 : age < 0.13 ? 0.25 : age < 0.21 ? 0.85 : Math.max(0, 1 - (age - 0.21) / 0.4) * 0.5);
 
   // One key light plays the sun by day and the moon by night; it swaps
   // direction while it's dark, so the handover never pops.
@@ -420,41 +478,60 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   let target = WEATHERS.clear;
   // `wet` and `snowCover` are what the weather has done to the land: they
   // build up while it rains or snows and fade slowly afterwards.
-  const state = { ...WEATHERS.clear, wet: 0, snowCover: 0 };
+  const state = { ...WEATHERS.clear, storm: 0, wet: 0, snowCover: 0 };
+  let windBase = 1;
   const sunDir = skyUniforms.uSunDir.value;
   const moonDir = new THREE.Vector3();
   const moonColor = new THREE.Color('#9db0ff');
-  const env = { hours: 12, e: 1, night: 0, overcast: 0, sunDir };
+  const env = { e: 1, night: 0, overcast: 0, sunDir };
   let frame = 0;
 
   return {
     // `instant` skips the transition, e.g. when arriving on a new land.
-    setWeather(name, instant = false) {
+    // `windKmh` comes from real weather; without it the wind follows the weather.
+    setWeather(name, instant = false, windKmh = null) {
       target = WEATHERS[name] ?? WEATHERS.clear;
-      if (instant) Object.assign(state, target, { wet: target.rain, snowCover: target.snow });
+      windBase = windKmh == null ? 1 : Math.min(3, 0.5 + windKmh / 25);
+      if (instant) Object.assign(state, target, { storm: target.storm ?? 0, wet: target.rain, snowCover: target.snow });
     },
 
-    update(hours, dt, t, camera) {
+    setShadowSize(size) {
+      if (key.shadow.mapSize.x === size) return;
+      key.shadow.mapSize.setScalar(size);
+      key.shadow.map?.dispose();
+      key.shadow.map = null;
+    },
+
+    // `sky` holds the sun and moon directions and the moon's phase (see conditions.js).
+    update(sky, dt, t, camera) {
       frame++;
-      // Sunrise at 6:00, noon overhead, sunset at 18:00. Real latitudes vary; this keeps it legible.
-      const theta = ((hours - 6) / 24) * TAU;
-      sunDir.set(-Math.cos(theta), Math.sin(theta), -0.45).normalize();
-      moonDir.set(Math.cos(theta), -Math.sin(theta), -0.3).normalize();
+      sunDir.copy(sky.sunDir);
+      moonDir.copy(sky.moonDir);
       const e = sunDir.y;
       samplePalette(e, pal);
 
       const k = 1 - Math.exp(-dt * 1.2);
-      for (const name of ['overcast', 'rain', 'snow', 'fogNear', 'fogFar']) {
-        state[name] += (target[name] - state[name]) * k;
+      for (const name of ['overcast', 'rain', 'snow', 'storm', 'fogNear', 'fogFar']) {
+        state[name] += ((target[name] ?? 0) - state[name]) * k;
       }
+      if (state.storm > 0.5 && (nextStrike -= dt) <= 0) {
+        strike();
+        nextStrike = 3 + Math.random() * 9;
+      }
+      strikeAge += dt;
+      const flash = flashAt(strikeAge) * state.storm;
       state.wet += ((target.rain ? 1 : 0) - state.wet) * (1 - Math.exp(-dt * (target.rain ? 0.25 : 0.04)));
       state.snowCover += ((target.snow ? 1 : 0) - state.snowCover) * (1 - Math.exp(-dt * (target.snow ? 0.05 : 0.025)));
       const o = state.overcast;
       const mist = THREE.MathUtils.clamp((60 - state.fogNear) / 52, 0, 1);
+      // Day-for-night: after dark the skylight is lifted and tinted blue, the way
+      // eyes (and films) see a night scene, so the land stays readable.
+      const nightLift = smoothstep(0.0, -0.2, e);
 
       for (const name of ['top', 'horizon', 'bottom', 'fog', 'hemiSky', 'glow']) overcastTint(pal[name], o * 0.7);
       for (const name of ['top', 'horizon', 'bottom']) pal[name].lerp(pal.fog, mist * 0.8);
       for (const name of ['top', 'horizon', 'bottom', 'fog']) pal[name].multiplyScalar(1 - state.rain * 0.3);
+      for (const name of ['top', 'horizon', 'bottom']) pal[name].lerp(GRAY.setRGB(0.62, 0.66, 0.82), flash * 0.6);
 
       skyUniforms.uTop.value.copy(pal.top);
       skyUniforms.uHorizon.value.copy(pal.horizon);
@@ -470,15 +547,21 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       } else {
         key.position.copy(moonDir).multiplyScalar(50);
         key.color.copy(moonColor);
-        key.intensity = 1.0 * smoothstep(-0.04, -0.2, e) * (1 - o * 0.6);
+        // Moonlight follows the phase: a full moon lights the land, a new moon barely.
+        const illumination = (1 - Math.cos(sky.moonPhase * TAU)) / 2;
+        key.intensity = (0.9 + 0.7 * illumination) * smoothstep(-0.04, -0.2, e) * (1 - o * 0.6);
       }
       skyUniforms.uKeyDir.value.copy(key.position).normalize();
       skyUniforms.uKeyColor.value.copy(key.color).multiplyScalar(key.intensity);
-      skyUniforms.uAmbient.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * 0.45);
+      skyUniforms.uAmbient.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * (0.45 + nightLift * 0.5));
 
       hemi.color.copy(pal.hemiSky);
       hemi.groundColor.copy(pal.hemiGround);
-      hemi.intensity = pal.hemiI * 0.3;
+      hemi.intensity = pal.hemiI * (0.3 + nightLift * 0.9);
+      scene.environmentIntensity = 0.9 + nightLift * 1.4;
+      flashLight.intensity = flash * 5;
+      bolt.material.opacity = strikeAge < 0.3 ? state.storm : 0;
+      bolt.visible = bolt.material.opacity > 0;
 
       scene.fog.color.copy(pal.fog);
       // Fog distances are tuned for a camera ~30 units out; keep them relative to
@@ -490,11 +573,12 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       const dark = smoothstep(-0.02, -0.22, e);
       stars.material.opacity = dark * (1 - o) * (1 - mist);
       moon.position.copy(moonDir).multiplyScalar(420);
-      moon.material.opacity = dark * (1 - o * 0.8) * (1 - mist);
+      moonUniforms.uLightDir.value.copy(sunDir);
+      moonUniforms.uOpacity.value = dark * (1 - o * 0.8) * (1 - mist) * smoothstep(-0.05, 0.05, moonDir.y);
 
       // Clouds take their light from the same sun, sky and weather.
       const gloom = (1 - state.rain * 0.45 - o * 0.15) * (1 - dark * 0.4);
-      puffShared.uLit.value.copy(key.color).multiplyScalar(key.intensity * 0.3 * (1 - o * 0.55));
+      puffShared.uLit.value.copy(key.color).multiplyScalar(key.intensity * 0.3 * (1 - o * 0.55)).addScalar(flash * 1.4);
       puffShared.uAmbTop.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * 0.62 * gloom).lerp(pal.fog, 0.2);
       puffShared.uAmbBottom.value.copy(pal.horizon).lerp(pal.hemiSky, 0.5).multiplyScalar(0.5 * gloom);
       const highCount = target.high, lowCount = target.low;
@@ -532,7 +616,6 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
         lastEnv = { t, e, o };
       }
 
-      env.hours = hours;
       env.e = e;
       env.night = smoothstep(0.04, -0.12, e);
       env.overcast = o;
@@ -543,7 +626,8 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       env.snowCover = state.snowCover;
       // Lamps come on at night, and on gloomy days too.
       env.gloom = Math.max(env.night, o * 0.65);
-      env.wind = 1 + state.rain * 1.2 + state.snow * 0.4 + o * 0.3;
+      env.wind = windBase + state.rain * 1.2 + state.snow * 0.4 + o * 0.3;
+      env.flash = flash;
       return env;
     },
   };

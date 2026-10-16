@@ -199,7 +199,8 @@ const LANDMARKS = {
         pointLight: { at: [0, 0.9, S + 0.7], color: '#ff9a4a', power: 4, flicker: true },
         update(t, dt, env) {
           flags.forEach((f, i) => {
-            f.rotation.y = Math.sin(t * 2.2 * env.wind + i) * 0.35 * Math.min(env.wind, 1.8);
+            const gust = env.wind + env.poke * 2;
+            f.rotation.y = Math.sin(t * 2.2 * gust + i) * 0.35 * Math.min(gust, 2.2);
           });
         },
       };
@@ -227,7 +228,7 @@ const LANDMARKS = {
         radius: 1.3, door: [0, 1.0], extras: [sails], fields: 1,
         lights: [[0, 1.15, 0.7]],
         update(t, dt, env) {
-          sails.rotation.z -= dt * 0.7 * env.wind;
+          sails.rotation.z -= dt * (0.7 * env.wind + env.poke * 5);
         },
       };
     },
@@ -269,7 +270,7 @@ const LANDMARKS = {
         lights: [hut.window],
         pointLight: { at: [0, 2.66, 0], color: '#ffe8a8', power: 2.5 },
         update(t, dt, env) {
-          beam.rotation.y += dt * 0.7;
+          beam.rotation.y += dt * (0.7 + env.poke * 2.5);
           // Lighthouses shine at night and through fog and storms.
           const shine = Math.max(env.gloom, env.mist * 0.5);
           beam.visible = shine > 0.02;
@@ -305,12 +306,13 @@ const LANDMARKS = {
         radius: 1.2, door: [0, 0.8], extras: [orb, shards],
         lights: [[0, 0.95, 0.62, 'cool']],
         pointLight: { at: [0, 4.3, 0], color: '#7ae8ff', power: 3 },
-        update(t) {
-          orb.position.set(0, 4.3 + Math.sin(t * 1.4) * 0.12, 0);
+        update(t, dt, env) {
+          orb.position.set(0, 4.3 + Math.sin(t * 1.4) * 0.12 + env.poke * 0.4, 0);
           orb.rotation.set(t * 0.8, t * 1.1, 0);
-          orb.material.emissiveIntensity = 2.2 + Math.sin(t * 2.3) * 0.6;
+          orb.material.emissiveIntensity = 2.2 + Math.sin(t * 2.3) * 0.6 + env.poke * 5;
           shards.position.copy(orb.position);
-          shards.rotation.y = t * 0.9;
+          shards.rotation.y += dt * (0.9 + env.poke * 9);
+          shards.scale.setScalar(1 + env.poke * 0.8);
         },
       };
     },
@@ -372,13 +374,14 @@ const LANDMARKS = {
         radius: 2.0, door: [0, 1.3], extras: [flames, sparkPoints],
         lights: [[0, 0.25, 0, 'fire']],
         pointLight: { at: [0, 0.45, 0], color: '#ff8a3a', power: 5, flicker: true, always: true },
-        update(t, dt) {
+        update(t, dt, env) {
           flames.children.forEach((f, i) => {
-            f.scale.set(1, 0.8 + Math.abs(Math.sin(t * (9 + i * 2.3) + i)) * 0.45, 1);
+            const flare = 1 + env.poke * 1.3;
+            f.scale.set(flare, (0.8 + Math.abs(Math.sin(t * (9 + i * 2.3) + i)) * 0.45) * flare, flare);
             f.rotation.y = t * (1 + i);
           });
           sparks.forEach((s, i) => {
-            s.life += dt * 0.6;
+            s.life += dt * (0.6 + env.poke * 1.5);
             if (s.life > 1) Object.assign(s, { life: 0, x: (Math.random() - 0.5) * 0.15, z: (Math.random() - 0.5) * 0.15 });
             sparkPos.set([s.x + Math.sin(t * 3 + i) * 0.08 * s.life, g + 0.2 + s.life * 1.4, s.z + Math.cos(t * 2 + i) * 0.08 * s.life], i * 3);
           });
@@ -500,9 +503,9 @@ function addSmoke(group, at) {
     group.add(puff);
     return puff;
   });
-  return (t, dt) => {
+  return (t, dt, env) => {
     for (const puff of puffs) {
-      const life = (puff.userData.life = (puff.userData.life + dt * 0.22) % 1);
+      const life = (puff.userData.life = (puff.userData.life + dt * (0.22 + env.poke * 0.6)) % 1);
       puff.position.set(at[0] + life * 0.6, at[1] + life * 1.8, at[2] + Math.sin(life * 6 + t) * 0.08);
       puff.scale.setScalar(0.6 + life * 2);
       puff.material.opacity = (1 - life) * 0.55 * Math.min(1, life * 10);
@@ -538,10 +541,18 @@ export function buildLandmark(type, ctx) {
     });
   }
 
+  let pokedAt = -99;
   return {
     object: group,
     type,
     spot,
+    poke(t) {
+      pokedAt = t;
+    },
+    // How lit-up the landmark still is from its last poke, 1 fading to 0.
+    boost(t) {
+      return Math.max(0, 1 - (t - pokedAt) / 6);
+    },
     radius: meta.radius,
     fields: meta.fields ?? 0,
     door: toLand([meta.door[0], 0, meta.door[1]]),
@@ -844,14 +855,20 @@ export function buildBalloon(r, mats) {
   flame.position.y = 0.36;
   group.add(balloon, flame);
   const radius = r.range(15, 19), height = r.range(5, 9), speed = r.range(0.015, 0.03);
-  let angle = r.range(0, TAU);
+  let angle = r.range(0, TAU), lift = 0, burn = 0;
   return {
     object: group,
+    lift() {
+      burn = 1;
+    },
     update(t, dt) {
       angle += speed * dt;
-      group.position.set(Math.cos(angle) * radius, height + Math.sin(t * 0.4) * 0.5, Math.sin(angle) * radius);
+      lift += (burn * 2.5 - lift * 0.35) * dt;
+      burn *= Math.exp(-dt * 1.5);
+      group.position.set(Math.cos(angle) * radius, height + lift + Math.sin(t * 0.4) * 0.5, Math.sin(angle) * radius);
       group.rotation.y = t * 0.05;
-      flame.scale.y = 0.7 + Math.abs(Math.sin(t * 7)) * 0.6;
+      flame.scale.setScalar(1 + burn * 2);
+      flame.scale.y = (0.7 + Math.abs(Math.sin(t * 7)) * 0.6) * (1 + burn * 3);
     },
   };
 }

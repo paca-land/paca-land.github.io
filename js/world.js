@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRandom, createNoise2D, fbm, landName } from './random.js';
 import { softDot, skyUniforms, SKY_GLSL, createPuffMesh } from './sky.js';
 import { fxUniforms, patchMaterial } from './effects.js';
+import { createBursts } from './interact.js';
 import {
   makeMaterials, updateMaterials, buildLandmark, planPath, buildLanterns, planFields,
   buildDock, buildProps, buildLightPools, buildBirds, buildBalloon,
@@ -28,7 +29,7 @@ export const BIOMES = {
     flora: { kind: 'round', count: 55, groves: 0.12, colors: ['#3e8f39', '#56a743', '#2f7d34', '#6cb84c'] },
     tufts: ['#ffffff', '#ffd84a', '#ff86b0', '#b896ff'],
     landmark: [['cabin', 3], ['windmill', 3], ['village', 2], ['castle', 2], ['campsite', 2], ['ruins', 1], ['lighthouse', 1], ['stones', 1]], path: '#b8996a',
-    weather: [['clear', 4], ['cloudy', 3], ['rain', 2], ['mist', 1]],
+    weather: [['clear', 4], ['cloudy', 3], ['rain', 2], ['mist', 1], ['storm', 1]],
     ambient: ['fireflies'],
   },
   highlands: {
@@ -39,7 +40,7 @@ export const BIOMES = {
     flora: { kind: 'pine', count: 95, groves: -0.15, colors: ['#2d6b45', '#376f4a', '#24583a'] },
     tufts: ['#ffffff', '#c9d7ff'],
     landmark: [['castle', 3], ['cabin', 2], ['campsite', 2], ['wizard', 1], ['lighthouse', 1], ['stones', 1]], path: '#a08a6a',
-    weather: [['clear', 3], ['cloudy', 3], ['snow', 2], ['mist', 2]],
+    weather: [['clear', 3], ['cloudy', 3], ['snow', 2], ['mist', 2], ['storm', 1]],
     ambient: [],
   },
   autumn: {
@@ -50,7 +51,7 @@ export const BIOMES = {
     flora: { kind: 'round', count: 80, groves: -0.2, colors: ['#d9622b', '#e8a33a', '#b8402a', '#f0c75a', '#9c3d2c'] },
     tufts: ['#d9622b', '#e8a33a', '#b8402a'],
     landmark: [['cabin', 3], ['village', 2], ['windmill', 2], ['campsite', 2], ['castle', 1], ['wizard', 1]], path: '#a98455',
-    weather: [['clear', 3], ['cloudy', 3], ['rain', 2], ['mist', 2]],
+    weather: [['clear', 3], ['cloudy', 3], ['rain', 2], ['mist', 2], ['storm', 1]],
     ambient: ['leaves', 'fireflies'],
   },
   desert: {
@@ -419,6 +420,8 @@ function rippleNormals() {
 const WATER_VERTEX = /* glsl */ `
   attribute float aDepth;
   attribute vec2 aFlow;
+  uniform float uTime;
+  uniform vec4 uClicks[4];
   varying float vDepth;
   varying vec2 vFlow;
   varying vec3 vWorldP;
@@ -429,6 +432,14 @@ const WATER_VERTEX = /* glsl */ `
     #include <beginnormal_vertex>
     #include <defaultnormal_vertex>
     #include <begin_vertex>
+    // A small wave rolling out from each tap, settling as it spreads.
+    for (int i = 0; i < 4; i++) {
+      vec4 c = uClicks[i];
+      float age = uTime - c.z;
+      if (age < 0.0 || age > 5.0) continue;
+      float w = length(position.xz - c.xy) - age * 1.3;
+      transformed.y += c.w * 0.07 * exp(-age * 0.9) * exp(-w * w * 4.0) * cos(w * 7.0);
+    }
     #include <project_vertex>
     #include <worldpos_vertex>
     #include <shadowmap_vertex>
@@ -449,6 +460,7 @@ const WATER_FRAGMENT = /* glsl */ `
   uniform vec3 uAmbient;
   uniform float uRain;
   uniform float uSnow;
+  uniform vec4 uClicks[4];
   varying float vDepth;
   varying vec2 vFlow;
   varying vec3 vWorldP;
@@ -488,6 +500,20 @@ const WATER_FRAGMENT = /* glsl */ `
     vec2 slope = ripple(p * 0.3, vFlow * 1.5) + ripple(p * 0.85 + 3.7, vFlow * 2.5) * 0.6;
     slope *= (1.0 + uRain * 0.6) * (1.0 - ice * 0.9);
     slope += (raindrops(p * 2.2) + raindrops(p * 2.2 + 17.0)) * uRain * (1.0 - ice) * 1.2;
+    // Rings spreading from where the water was tapped.
+    for (int i = 0; i < 4; i++) {
+      vec4 c = uClicks[i];
+      float age = uTime - c.z;
+      if (age < 0.0 || age > 5.0) continue;
+      vec2 d = p - c.xy;
+      float len = length(d) + 1e-4;
+      float w = len - age * 1.3;
+      float wave = c.w * 0.07 * exp(-age * 0.9);
+      float dh = wave * exp(-w * w * 4.0) * (-7.0 * sin(w * 7.0) - 8.0 * w * cos(w * 7.0));
+      slope -= d / len * dh * 6.0 * (1.0 - ice);
+      float fine = len - age * 1.1;
+      slope += d / len * cos(fine * 22.0) * exp(-age * 0.8) * exp(-fine * fine * 14.0) * c.w * 0.6 * (1.0 - ice);
+    }
     vec3 N = normalize(vec3(slope.x * 0.45, 1.0, slope.y * 0.45));
     vec3 V = normalize(cameraPosition - vWorldP);
     vec3 R = reflect(-V, N);
@@ -524,24 +550,39 @@ function buildWater(top, shape, biome) {
   const { lake, river } = shape;
   if (!lake) return null;
   const positions = [], normals = [], depths = [], flows = [];
+  // Depth comes straight from the terrain vertex below, so the shallows and
+  // the shoreline line up exactly with the ground.
+  const sample = (v) => {
+    let k = 0;
+    if (river) {
+      const px = v.x - lake.x, pz = v.z - lake.z;
+      const along = px * river.dx + pz * river.dz;
+      const off = Math.abs(px * river.dz - pz * river.dx);
+      k = smoothstep(lake.radius * 0.5, lake.radius * 1.1, along) * smoothstep(river.width + 0.8, river.width * 0.5, off) * 0.9;
+    }
+    return [v.x, v.z, WATER_LEVEL - v.y, river ? river.dx * k : 0, river ? river.dz * k : 0];
+  };
+  const emit = (...verts) => {
+    for (const [x, z, depth, fx, fz] of verts) {
+      positions.push(x, WATER_LEVEL, z);
+      normals.push(0, 1, 0);
+      depths.push(depth);
+      flows.push(fx, fz);
+    }
+  };
+  // Split each triangle into a 3×3 grid of smaller ones, so a wave can bend the surface.
+  const N = 3;
   for (const tri of top.tris) {
     if (Math.min(tri[0].y, tri[1].y, tri[2].y) >= WATER_LEVEL - 0.005) continue;
     const cx = (tri[0].x + tri[1].x + tri[2].x) / 3, cz = (tri[0].z + tri[1].z + tri[2].z) / 3;
     if (!shape.isWet(cx, cz, 0.6)) continue;
-    for (const v of tri) {
-      positions.push(v.x, WATER_LEVEL, v.z);
-      normals.push(0, 1, 0);
-      // Depth comes straight from the terrain vertex below, so the shallows
-      // and the shoreline line up exactly with the ground.
-      depths.push(WATER_LEVEL - v.y);
-      let k = 0;
-      if (river) {
-        const px = v.x - lake.x, pz = v.z - lake.z;
-        const along = px * river.dx + pz * river.dz;
-        const off = Math.abs(px * river.dz - pz * river.dx);
-        k = smoothstep(lake.radius * 0.5, lake.radius * 1.1, along) * smoothstep(river.width + 0.8, river.width * 0.5, off) * 0.9;
+    const [a, b, c] = tri.map(sample);
+    const at = (i, j) => a.map((_, k) => a[k] * (1 - (i + j) / N) + b[k] * (i / N) + c[k] * (j / N));
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N - i; j++) {
+        emit(at(i, j), at(i + 1, j), at(i, j + 1));
+        if (i + j < N - 1) emit(at(i + 1, j), at(i + 1, j + 1), at(i, j + 1));
       }
-      flows.push(river ? river.dx * k : 0, river ? river.dz * k : 0);
     }
   }
   const geo = new THREE.BufferGeometry();
@@ -566,6 +607,8 @@ function buildWater(top, shape, biome) {
   uniforms.uRipples.value = rippleNormals();
   uniforms.uRain = fxUniforms.uRain;
   uniforms.uSnow = fxUniforms.uSnow;
+  uniforms.uClicks = { value: Array.from({ length: 4 }, () => new THREE.Vector4(0, 0, -99, 0)) };
+  let nextClick = 0;
   for (const name of ['uTop', 'uHorizon', 'uBottom', 'uGlow', 'uSunColor', 'uSunDir', 'uSunVisible', 'uKeyDir', 'uKeyColor', 'uAmbient']) {
     uniforms[name] = skyUniforms[name];
   }
@@ -575,6 +618,10 @@ function buildWater(top, shape, biome) {
   mesh.receiveShadow = true;
   return {
     mesh,
+    ripple(x, z, t) {
+      uniforms.uClicks.value[nextClick].set(x, z, t, 1.6);
+      nextClick = (nextClick + 1) % 4;
+    },
     update(t, dt, env) {
       uniforms.uTime.value = t;
       // Lakes swell a little in the rain.
@@ -760,23 +807,104 @@ function buildFlora(placed, biome, r) {
   const trunk = geos.trunk && new THREE.InstancedMesh(geos.trunk, new THREE.MeshStandardMaterial({ color: '#6b4a2f', vertexColors: true, flatShading: true, roughness: 1 }), placed.length);
   crown.material.userData.wind = true;
   if (trunk) trunk.material.userData.wind = true;
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0);
   const c = new THREE.Color();
-  placed.forEach((v, i) => {
+  const poses = placed.map((v, i) => {
     const size = r.range(0.75, 1.35);
-    q.setFromAxisAngle(up, r.range(0, TAU));
-    s.set(size, size * r.range(0.9, 1.25), size);
-    m.compose(p.set(v.x, v.y - 0.05, v.z), q, s);
+    const pose = {
+      p: new THREE.Vector3(v.x, v.y - 0.05, v.z),
+      q: new THREE.Quaternion().setFromAxisAngle(up, r.range(0, TAU)),
+      s: new THREE.Vector3(size, size * r.range(0.9, 1.25), size),
+    };
+    m.compose(pose.p, pose.q, pose.s);
     crown.setMatrixAt(i, m);
     crown.setColorAt(i, c.copy(r.pick(colors)).offsetHSL(0, 0, (r() - 0.5) * 0.06));
     trunk?.setMatrixAt(i, m);
+    return pose;
   });
   for (const mesh of [crown, trunk]) {
     if (!mesh) continue;
     mesh.castShadow = mesh.receiveShadow = true;
     group.add(mesh);
   }
-  return group;
+
+  const shakes = new Map();
+  const tilt = new THREE.Quaternion();
+  return {
+    object: group,
+    meshes: [crown, trunk].filter(Boolean),
+    shake(i, t) {
+      shakes.set(i, { t, axis: new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize() });
+    },
+    crownTop(i) {
+      return poses[i].p.clone().add(new THREE.Vector3(0, poses[i].s.y, 0));
+    },
+    crownColor(i) {
+      const color = new THREE.Color();
+      crown.getColorAt(i, color);
+      return color;
+    },
+    update(t) {
+      if (!shakes.size) return;
+      for (const [i, shake] of shakes) {
+        const age = t - shake.t, pose = poses[i];
+        const angle = age > 1.4 ? 0 : Math.sin(age * 26) * 0.16 * (1 - age / 1.4) ** 2;
+        m.compose(pose.p, tilt.setFromAxisAngle(shake.axis, angle).multiply(pose.q), pose.s);
+        crown.setMatrixAt(i, m);
+        trunk?.setMatrixAt(i, m);
+        if (age > 1.4) shakes.delete(i);
+      }
+      crown.instanceMatrix.needsUpdate = true;
+      if (trunk) trunk.instanceMatrix.needsUpdate = true;
+    },
+  };
+}
+
+// Flowers you plant by tapping the ground; they pop up with a little bounce.
+function buildGarden(biome) {
+  const MAX = 60;
+  const stems = new THREE.InstancedMesh(
+    new THREE.CylinderGeometry(0.012, 0.016, 0.22, 4).translate(0, 0.11, 0),
+    new THREE.MeshStandardMaterial({ color: '#4f8a3a', flatShading: true }), MAX,
+  );
+  const blooms = new THREE.InstancedMesh(
+    new THREE.IcosahedronGeometry(0.055, 0).translate(0, 0.24, 0),
+    new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.7 }), MAX,
+  );
+  const palette = [...biome.tufts.filter((c) => c.r + c.g + c.b < 2.9), ...['#ffffff', '#ffd84a', '#ff86b0', '#b896ff', '#ff6b5b'].map((h) => new THREE.Color(h))];
+  const planted = [];
+  let next = 0;
+  stems.count = blooms.count = 0;
+  for (const mesh of [stems, blooms]) {
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+  }
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const bounce = (k) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
+  return {
+    object: new THREE.Group().add(stems, blooms),
+    plant(at, t) {
+      for (let i = 0; i < 3; i++) {
+        planted[next] = {
+          p: at.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.3, -0.01, (Math.random() - 0.5) * 0.3)),
+          yaw: Math.random() * TAU, size: 0.8 + Math.random() * 0.5, t: t + i * 0.08,
+        };
+        blooms.setColorAt(next, palette[Math.floor(Math.random() * palette.length)]);
+        next = (next + 1) % MAX;
+      }
+      blooms.instanceColor.needsUpdate = true;
+      stems.count = blooms.count = planted.length;
+    },
+    update(t) {
+      planted.forEach((f, i) => {
+        const grow = Math.max(0.001, bounce(THREE.MathUtils.clamp((t - f.t) / 0.7, 0, 1)) * f.size);
+        m.compose(f.p, q.setFromAxisAngle(up, f.yaw + Math.sin(t * 1.5 + i) * 0.1), s.setScalar(grow));
+        stems.setMatrixAt(i, m);
+        blooms.setMatrixAt(i, m);
+      });
+      stems.instanceMatrix.needsUpdate = blooms.instanceMatrix.needsUpdate = true;
+    },
+  };
 }
 
 function buildTufts(top, shape, biome, r, blocked) {
@@ -851,17 +979,25 @@ function buildIslets(biome, r) {
     }
     const a = r.range(0, TAU), d = r.range(12.5, 17);
     islet.position.set(Math.cos(a) * d, r.range(-4, 3), Math.sin(a) * d);
-    islet.userData = { y: islet.position.y, phase: r.range(0, TAU), speed: r.range(0.4, 0.8) };
+    islet.userData = { y: islet.position.y, phase: r.range(0, TAU), speed: r.range(0.4, 0.8), spin: 0, hop: 0 };
+    islet.userData.onClick = () => {
+      islet.userData.spin += 5;
+      islet.userData.hop = 1;
+    };
     islet.traverse((o) => { o.castShadow = o.receiveShadow = true; });
     group.add(islet);
     items.push(islet);
   }
   return {
     object: group,
+    clickables: items,
     update(t, dt) {
       for (const it of items) {
-        it.position.y = it.userData.y + Math.sin(t * it.userData.speed + it.userData.phase) * 0.3;
-        it.rotation.y += dt * 0.04;
+        const u = it.userData;
+        u.spin *= Math.exp(-dt * 1.2);
+        u.hop *= Math.exp(-dt * 2.5);
+        it.position.y = u.y + Math.sin(t * u.speed + u.phase) * 0.3 + Math.sin((1 - u.hop) * Math.PI) * u.hop * 0.8;
+        it.rotation.y += dt * (0.04 + u.spin);
       }
     },
   };
@@ -969,6 +1105,8 @@ export function generateLand(seed) {
 
   const top = buildTop(shape, makeRandom(seed, 'mesh'));
   const under = buildUnderside(top, shape, makeRandom(seed, 'underside'));
+  const bursts = createBursts();
+  let lastEnv = { snowCover: 0, night: 0 };
 
   // The landmark and what surrounds it come first, so trees and paint can make room.
   const mats = makeMaterials(biomeKey);
@@ -999,8 +1137,10 @@ export function generateLand(seed) {
   bakeOcclusion(top, shape, trees, landmark?.spot);
 
   const overlay = (x, y, z) => fields?.paint(x, z) ?? (path && path.distTo(x, z) < path.width ? biome.path : null);
-  add(buildIslandMesh(top, under, shape, biome, makeRandom(seed, 'paint'), overlay));
-  add(buildWater(top, shape, biome));
+  const ground = buildIslandMesh(top, under, shape, biome, makeRandom(seed, 'paint'), overlay);
+  add(ground);
+  const water = buildWater(top, shape, biome);
+  add(water);
   add(buildWaterfall(shape, biome, makeRandom(seed, 'waterfall')));
   add(landmark);
   const lanterns = path && buildLanterns(ctx, path);
@@ -1009,15 +1149,66 @@ export function generateLand(seed) {
   if (landmark) add(buildProps(ctx, xr, landmark, trees));
   add(buildLightPools([...(landmark?.lights ?? []), ...(lanterns?.lights ?? [])], shape));
 
-  add(buildFlora(trees, biome, fr));
+  const flora = buildFlora(trees, biome, fr);
+  add(flora);
+  const garden = buildGarden(biome);
+  add(garden);
+  add(bursts);
   add(buildTufts(top, shape, biome, makeRandom(seed, 'tufts'), blocked));
   add(buildRocks(top, shape, biome, makeRandom(seed, 'rocks'), blocked));
   if (biome.crystals) add(buildCrystals(top, shape, makeRandom(seed, 'crystals')));
-  add(buildIslets(biome, makeRandom(seed, 'islets')));
+  const islets = buildIslets(biome, makeRandom(seed, 'islets'));
+  add(islets);
   for (const kind of biome.ambient) add(buildAmbient(kind, top, shape, makeRandom(seed, `ambient:${kind}`)));
   add(buildGroundMist(top, shape, makeRandom(seed, 'mist')));
   if (xr.chance(0.7)) add(buildBirds(xr));
-  if (xr.chance(0.15)) add(buildBalloon(xr, mats));
+  const balloon = xr.chance(0.15) ? buildBalloon(xr, mats) : null;
+  add(balloon);
+
+  // --- Things to tap ---
+  const local = (hit) => group.worldToLocal(hit.point.clone());
+  let now = 0;
+  const clock = () => now;
+  ground.userData.onClick = (hit) => {
+    const at = local(hit);
+    if (hit.face.normal.y > 0.35) {
+      garden.plant(at, clock());
+      bursts.spawn(at, { count: 10, colors: lastEnv.snowCover > 0.4 ? ['#ffffff'] : ['#c9b48a', '#9c8a66'], speed: 0.6, up: 0.8, gravity: -3, life: 0.8 });
+    } else {
+      // Tapping the cliffs knocks a few chips loose.
+      bursts.spawn(at, { count: 12, colors: ['#8a857c', '#5f5a54'], speed: 0.5, up: 0.2, gravity: -6, life: 1.6, drag: 0.5 });
+    }
+  };
+  if (water?.ripple) {
+    water.mesh.userData.onClick = (hit) => {
+      const at = local(hit);
+      water.ripple(at.x, at.z, clock());
+      bursts.spawn(at, { count: 14, colors: ['#e8f6ff', '#ffffff'], speed: 0.5, up: 2.2, gravity: -9, life: 0.7, drag: 0.4 });
+    };
+  } else if (water) {
+    water.userData.onClick = (hit) => bursts.spawn(local(hit), { count: 12, colors: ['#ffffff'], glow: true, speed: 0.6, up: 0.5, gravity: -1, life: 1 });
+  }
+  for (const mesh of flora.meshes) {
+    mesh.userData.onClick = (hit) => {
+      if (hit.instanceId == null) return;
+      flora.shake(hit.instanceId, clock());
+      const snowy = lastEnv.snowCover > 0.4;
+      const color = flora.crownColor(hit.instanceId);
+      bursts.spawn(flora.crownTop(hit.instanceId), {
+        count: 20, colors: snowy ? ['#ffffff', '#eef3f8'] : [color, color.clone().offsetHSL(0, 0, 0.08)],
+        speed: 1.1, up: 0.4, gravity: snowy ? -2.5 : -1.2, life: 2.2, drag: 2.2, spread: 0.5,
+      });
+    };
+  }
+  if (landmark) {
+    landmark.object.userData.onClick = (hit) => {
+      landmark.poke(clock());
+      const cool = landmark.type === 'wizard' || landmark.type === 'stones';
+      bursts.spawn(local(hit), { count: 26, colors: cool ? ['#9ff7ff', '#c9b6ff'] : ['#ffd27a', '#fff1c0'], glow: true, speed: 1.2, up: 1.4, gravity: -1.5, life: 1.4 });
+    };
+  }
+  if (balloon) balloon.object.userData.onClick = () => balloon.lift();
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, landmark?.object, ...islets.clickables, balloon?.object].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {
@@ -1031,7 +1222,13 @@ export function generateLand(seed) {
     name: landName(makeRandom(seed, 'name')),
     landmark: landmark?.type ?? 'none',
     hasWaterfall: Boolean(shape.river),
+    clickables,
     update(t, dt, env) {
+      now = t;
+      lastEnv = env;
+      // A tapped landmark lights its lamps for a while, day or night.
+      env.poke = landmark ? landmark.boost(clock()) : 0;
+      env.gloom = Math.max(env.gloom, env.poke);
       updateMaterials(mats, env);
       for (const update of updaters) update(t, dt, env);
     },
