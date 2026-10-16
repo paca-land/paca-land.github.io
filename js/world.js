@@ -2,16 +2,19 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeRandom, createNoise2D, fbm, landName } from './random.js';
 import { softDot, skyUniforms, SKY_GLSL, createPuffMesh } from './sky.js';
-import { fxUniforms, patchMaterial } from './effects.js';
+import { fxUniforms, patchMaterial, sendGust } from './effects.js';
+import { buildGrass } from './grass.js';
+import { buildLife } from './life.js';
+import { buildDetails } from './details.js';
 import { createBursts } from './interact.js';
 import {
   makeMaterials, updateMaterials, buildLandmark, planPath, buildLanterns, planFields,
-  buildDock, buildProps, buildLightPools, buildBirds, buildBalloon,
+  buildDock, buildProps, buildLightPools, buildBalloon,
 } from './landmarks.js';
 
 const TAU = Math.PI * 2;
 const RADIUS = 10;
-const RINGS = 26;
+const RINGS = 32;
 const EDGE_HEIGHT = 0.9;
 const WATER_LEVEL = 0.55;
 
@@ -140,18 +143,10 @@ function makeShape(seed, biome) {
   const twin = r.chance(0.3) ? { x: Math.cos(twinAngle) * twinDist, z: Math.sin(twinAngle) * twinDist, size: r.range(1.8, 3), h: r.range(0.5, 0.9) } : null;
   const ledges = !biome.terrace && r.chance(0.18) ? r.range(1.0, 1.4) : 0;
 
-  let lake = null, river = null;
-  if (r.chance(biome.lake)) {
-    // Keep water away from the mountain so they don't fight for space.
-    const a = peakAngle + Math.PI + r.range(-0.8, 0.8);
-    const d = r.range(0.22, 0.36) * RADIUS * edgeScale(a);
-    lake = { x: Math.cos(a) * d, z: Math.sin(a) * d, radius: r.range(1.5, 2.3), depth: r.range(0.5, 0.9) };
-    if (r.chance(biome.river)) river = { angle: a, dx: Math.cos(a), dz: Math.sin(a), width: 0.6 };
-  }
-
   const radial = (x, z) => Math.hypot(x, z) / (RADIUS * edgeScale(Math.atan2(z, x)));
 
-  function heightAt(x, z) {
+  // The land before any water is cut into it.
+  function baseHeight(x, z) {
     const inland = smoothstep(1.0, 0.5, radial(x, z));
     let h = EDGE_HEIGHT + inland * (fbm(terrain, x * 0.11, z * 0.11, 4) * 0.5 + 0.5) * biome.hills * hillsScale;
     if (biome.peak) {
@@ -169,17 +164,103 @@ function makeShape(seed, biome) {
       const k = h / step;
       h = (Math.floor(k) + smoothstep(biome.terrace ? 0.7 : 0.6, 1, k - Math.floor(k))) * step;
     }
-    h += fbm(detail, x * 0.6, z * 0.6, 2) * (step ? 0.04 : 0.12);
-    if (lake) {
-      const d = Math.hypot(x - lake.x, z - lake.z);
-      h = Math.min(h, d < lake.radius
-        ? WATER_LEVEL - lake.depth * (1 - (d / lake.radius) ** 2)
-        : WATER_LEVEL + (d - lake.radius) * 0.9);
+    return h + fbm(detail, x * 0.6, z * 0.6, 2) * (step ? 0.04 : 0.12);
+  }
+
+  // --- Water ----------------------------------------------------------------
+  // A main lake (anything from a pond to a broad lake, and never quite round),
+  // sometimes a winding river out over the edge, and sometimes a pond or two
+  // more, each sitting at its own natural level.
+  const makePool = (x, z, radius, depth, level) => ({
+    x, z, radius, depth, level,
+    stretch: r.range(0.65, 1.4), turn: r.range(0, Math.PI), wobble: r.range(0.15, 0.38), noise: createNoise2D(r), seed: r.range(0, 50),
+  });
+  // q < 1 inside the pool; `shore` is how far the shore lies in that direction.
+  function poolAt(pool, x, z) {
+    const dx = x - pool.x, dz = z - pool.z;
+    const c = Math.cos(pool.turn), s = Math.sin(pool.turn);
+    const u = (dx * c + dz * s) / pool.stretch, v = (-dx * s + dz * c) * pool.stretch;
+    const a = Math.atan2(v, u);
+    const shore = pool.radius * (1 + pool.wobble * fbm(pool.noise, Math.cos(a) * 1.4 + pool.seed, Math.sin(a) * 1.4, 3));
+    return { q: Math.hypot(u, v) / shore, shore };
+  }
+  const extent = (pool) => pool.radius * (1 + pool.wobble) * Math.max(pool.stretch, 1 / pool.stretch);
+
+  const pools = [];
+  let lake = null, river = null;
+  if (r.chance(biome.lake)) {
+    // Keep water away from the mountain so they don't fight for space.
+    const a = peakAngle + Math.PI + r.range(-0.8, 0.8);
+    const size = r.weighted([[r.range(0.9, 1.4), 2], [r.range(1.5, 2.3), 3], [r.range(2.4, 3.1), 2]]);
+    lake = makePool(0, 0, size, r.range(0.5, 0.95), WATER_LEVEL);
+    // The whole lake stays well inside the coast.
+    const room = RADIUS * edgeScale(a) * 0.8;
+    lake.radius = Math.min(lake.radius, (room * 0.55) / (extent(lake) / lake.radius));
+    const d = Math.max(0, Math.min(r.range(0.2, 0.36) * RADIUS * edgeScale(a), room - extent(lake)));
+    lake.x = Math.cos(a) * d;
+    lake.z = Math.sin(a) * d;
+    pools.push(lake);
+
+    if (r.chance(biome.river)) {
+      const ra = a + r.range(-0.5, 0.5);
+      const dx = Math.cos(ra), dz = Math.sin(ra);
+      const bend = r.range(0.4, 1.1) * (r.chance(0.5) ? 1 : -1), freq = r.range(0.35, 0.6), phase = r.range(0, TAU);
+      // How far the river's centerline swings sideways, t units downstream.
+      const wander = (t) => bend * Math.sin(t * freq * TAU * 0.5 + phase) * smoothstep(0.5, 2.5, t);
+      const center = (t) => ({ x: lake.x + dx * t - dz * wander(t), z: lake.z + dz * t + dx * wander(t) });
+      let end = 0;
+      while (end < 30 && radial(center(end).x, center(end).z) < 1) end += 0.05;
+      const before = center(end - 0.1), at = center(end);
+      const len = Math.hypot(at.x - before.x, at.z - before.z);
+      river = {
+        width: r.range(0.45, 0.75), dx, dz, end,
+        // Where it pours off the edge, and which way it's flowing there.
+        exit: { x: at.x, z: at.z, dx: (at.x - before.x) / len, dz: (at.z - before.z) / len },
+        // Distance downstream (t) and sideways from the centerline (off).
+        measure(x, z) {
+          const px = x - lake.x, pz = z - lake.z;
+          const t = px * dx + pz * dz;
+          return { t, off: Math.abs(px * -dz + pz * dx - wander(t)) };
+        },
+      };
+    }
+  }
+
+  // Extra ponds sit on flat ground at the level of their own banks.
+  for (let n = r.chance(biome.lake * 0.6) ? r.int(1, 2) : 0; n > 0; n--) {
+    for (let k = 0; k < 14; k++) {
+      const pa = r.range(0, TAU), pd = r.range(0.15, 0.55) * RADIUS * edgeScale(pa);
+      const pond = makePool(Math.cos(pa) * pd, Math.sin(pa) * pd, r.range(0.55, 1.0), r.range(0.3, 0.55), 0);
+      const reach = extent(pond);
+      if (pd + reach > RADIUS * edgeScale(pa) * 0.8) continue;
+      if (pools.some((p) => Math.hypot(p.x - pond.x, p.z - pond.z) < extent(p) + reach + 0.8)) continue;
+      if (Math.hypot(pond.x - peak.x, pond.z - peak.z) < peak.size * 0.9) continue;
+      if (river) {
+        const { t, off } = river.measure(pond.x, pond.z);
+        if (t > -reach && t < river.end + reach && off < river.width + reach + 0.5) continue;
+      }
+      // The water line sits just below the lowest point of its banks, so it never spills.
+      let rim = baseHeight(pond.x, pond.z);
+      for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * TAU;
+        rim = Math.min(rim, baseHeight(pond.x + Math.cos(ang) * reach * 1.15, pond.z + Math.sin(ang) * reach * 1.15));
+      }
+      if (baseHeight(pond.x, pond.z) - rim > 0.6) continue; // too steep a spot
+      pond.level = rim - 0.08;
+      pools.push(pond);
+      break;
+    }
+  }
+
+  function heightAt(x, z) {
+    let h = baseHeight(x, z);
+    for (const pool of pools) {
+      const { q, shore } = poolAt(pool, x, z);
+      h = Math.min(h, q < 1 ? pool.level - pool.depth * (1 - q * q) : pool.level + (q - 1) * shore * 0.9);
     }
     if (river) {
-      const px = x - lake.x, pz = z - lake.z;
-      if (px * river.dx + pz * river.dz > 0) {
-        const off = Math.abs(px * river.dz - pz * river.dx);
+      const { t, off } = river.measure(x, z);
+      if (t > 0) {
         h = Math.min(h, off < river.width
           ? WATER_LEVEL - 0.3 * (1 - (off / river.width) ** 2)
           : WATER_LEVEL + (off - river.width) * 1.1);
@@ -188,12 +269,26 @@ function makeShape(seed, biome) {
     return h;
   }
 
-  function isWet(x, z, margin = 0) {
-    if (!lake) return false;
-    if (Math.hypot(x - lake.x, z - lake.z) < lake.radius + margin) return true;
-    if (!river) return false;
-    const px = x - lake.x, pz = z - lake.z;
-    return px * river.dx + pz * river.dz > 0 && Math.abs(px * river.dz - pz * river.dx) < river.width + margin;
+  // Which body of water a point is in (or within `margin` of), if any.
+  function waterAt(x, z, margin = 0) {
+    for (const pool of pools) {
+      const { q, shore } = poolAt(pool, x, z);
+      if ((q - 1) * shore < margin) return pool;
+    }
+    if (river) {
+      const { t, off } = river.measure(x, z);
+      if (t > 0 && t < river.end + 1 && off < river.width + margin) return lake;
+    }
+    return null;
+  }
+  const isWet = (x, z, margin = 0) => waterAt(x, z, margin) !== null;
+
+  // How far a pool's shore is from its middle, in a given direction.
+  function shoreDistance(pool, angle) {
+    const step = 0.05, limit = extent(pool) * 1.3;
+    let t = 0;
+    while (t < limit && poolAt(pool, pool.x + Math.cos(angle) * t, pool.z + Math.sin(angle) * t).q < 1) t += step;
+    return t;
   }
 
   function slopeAt(x, z) {
@@ -201,7 +296,7 @@ function makeShape(seed, biome) {
     return Math.hypot(heightAt(x + e, z) - heightAt(x - e, z), heightAt(x, z + e) - heightAt(x, z - e)) / (2 * e);
   }
 
-  return { edgeScale, heightAt, isWet, slopeAt, radial, lake, river, peak };
+  return { edgeScale, heightAt, isWet, waterAt, shoreDistance, slopeAt, radial, lake, pools, river, peak };
 }
 
 // Stitch two closed rings of vertices into a band of triangles, walking both
@@ -356,7 +451,7 @@ function buildIslandMesh(top, under, shape, biome, r, overlay) {
       const painted = overlay(x, y, z);
       if (painted) col.copy(painted);
       else if (shape.lake && y < WATER_LEVEL + 0.22 && shape.isWet(x, z, 0.9)) col.copy(biome.sand);
-      else if (n.y < 0.66) col.copy(biome.rock[0]).lerp(biome.rock[1], r());
+      else if (n.y < 0.45 || shape.slopeAt(x, z) > 1.05) col.copy(biome.rock[0]).lerp(biome.rock[1], r());
       else if (biome.snowLine && y > biome.snowLine + patch * 0.5) col.copy(SNOW);
       else col.copy(biome.grass[0]).lerp(biome.grass[1], smoothstep(-0.5, 0.6, patch * 0.7 + (y - EDGE_HEIGHT) * 0.15));
     });
@@ -420,8 +515,11 @@ function rippleNormals() {
 const WATER_VERTEX = /* glsl */ `
   attribute float aDepth;
   attribute vec2 aFlow;
+  attribute float aMirror;
   uniform float uTime;
+  uniform float uWind;
   uniform vec4 uClicks[4];
+  varying float vMirror;
   varying float vDepth;
   varying vec2 vFlow;
   varying vec3 vWorldP;
@@ -440,6 +538,10 @@ const WATER_VERTEX = /* glsl */ `
       float w = length(position.xz - c.xy) - age * 1.3;
       transformed.y += c.w * 0.07 * exp(-age * 0.9) * exp(-w * w * 4.0) * cos(w * 7.0);
     }
+    // Wind chop: crossing wavelets that grow with the wind.
+    transformed.y += (sin(dot(position.xz, vec2(0.94, 0.33)) * 3.1 - uTime * 2.2)
+      + 0.6 * sin(dot(position.xz, vec2(-0.3, 0.95)) * 4.3 - uTime * 2.9)) * 0.008 * uWind;
+    vMirror = aMirror;
     #include <project_vertex>
     #include <worldpos_vertex>
     #include <shadowmap_vertex>
@@ -461,6 +563,11 @@ const WATER_FRAGMENT = /* glsl */ `
   uniform float uRain;
   uniform float uSnow;
   uniform vec4 uClicks[4];
+  uniform sampler2D uReflection;
+  uniform mat4 uReflectMatrix;
+  uniform float uReflectOn;
+  uniform float uWind;
+  varying float vMirror;
   varying float vDepth;
   varying vec2 vFlow;
   varying vec3 vWorldP;
@@ -498,7 +605,7 @@ const WATER_FRAGMENT = /* glsl */ `
     vec2 p = vWorldP.xz;
     float ice = smoothstep(0.55, 0.95, uSnow);
     vec2 slope = ripple(p * 0.3, vFlow * 1.5) + ripple(p * 0.85 + 3.7, vFlow * 2.5) * 0.6;
-    slope *= (1.0 + uRain * 0.6) * (1.0 - ice * 0.9);
+    slope *= (1.0 + uRain * 0.6) * (0.75 + 0.25 * uWind) * (1.0 - ice * 0.9);
     slope += (raindrops(p * 2.2) + raindrops(p * 2.2 + 17.0)) * uRain * (1.0 - ice) * 1.2;
     // Rings spreading from where the water was tapped.
     for (int i = 0; i < 4; i++) {
@@ -518,19 +625,26 @@ const WATER_FRAGMENT = /* glsl */ `
     vec3 V = normalize(cameraPosition - vWorldP);
     vec3 R = reflect(-V, N);
     R.y = abs(R.y);
-    float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
+    float fresnel = 0.06 + 0.94 * pow(clamp(1.0 - dot(N, V), 0.0, 1.0), 5.0);
     float shadow = getShadowMask();
     float depth = max(vDepth, 0.0);
     float deep = 1.0 - exp(-depth * 2.8);
 
     vec3 body = mix(uShallow, uDeep, deep) * (uAmbient + uKeyColor * max(dot(N, uKeyDir), 0.0) * shadow * 0.3);
-    vec3 col = mix(body, skyColor(R, 0.0), fresnel);
+    vec3 reflection = skyColor(R, 0.0);
+    if (uReflectOn > 0.5 && vMirror > 0.5) {
+      vec4 rc = uReflectMatrix * vec4(vWorldP, 1.0);
+      vec2 ruv = clamp(rc.xy / rc.w + slope * 0.03, 0.002, 0.998);
+      reflection = texture2D(uReflection, ruv).rgb;
+    }
+    vec3 col = mix(body, reflection, fresnel);
     float sparkle = max(dot(R, uKeyDir), 0.0);
     col += uKeyColor * (pow(sparkle, 700.0) * 3.0 + pow(sparkle, 60.0) * 0.12) * shadow;
 
     // Foam where the water laps at the shore.
     float foamNoise = texture2D(uRipples, p * 1.3 + uTime * 0.03).x;
-    float foam = smoothstep(0.1, 0.0, depth + (foamNoise - 0.5) * 0.12);
+    float lap = sin(uTime * 1.6 + (p.x + p.y) * 1.3);
+    float foam = smoothstep(0.1 + lap * 0.04, 0.0, depth + (foamNoise - 0.5) * 0.12) * (0.75 + 0.25 * lap);
     col = mix(col, uAmbient * 1.6 + uKeyColor * 0.35 * shadow, foam * 0.75 * (1.0 - ice));
 
     // A long snowfall freezes the water over, dusted with snow.
@@ -549,34 +663,33 @@ const WATER_FRAGMENT = /* glsl */ `
 function buildWater(top, shape, biome) {
   const { lake, river } = shape;
   if (!lake) return null;
-  const positions = [], normals = [], depths = [], flows = [];
+  const positions = [], normals = [], depths = [], flows = [], mirrors = [];
   // Depth comes straight from the terrain vertex below, so the shallows and
   // the shoreline line up exactly with the ground.
-  const sample = (v) => {
+  const sample = (v, pool) => {
     let k = 0;
-    if (river) {
-      const px = v.x - lake.x, pz = v.z - lake.z;
-      const along = px * river.dx + pz * river.dz;
-      const off = Math.abs(px * river.dz - pz * river.dx);
-      k = smoothstep(lake.radius * 0.5, lake.radius * 1.1, along) * smoothstep(river.width + 0.8, river.width * 0.5, off) * 0.9;
+    if (river && pool === lake) {
+      const { t, off } = river.measure(v.x, v.z);
+      k = smoothstep(lake.radius * 0.4, lake.radius * 1.1, t) * smoothstep(river.width + 0.8, river.width * 0.5, off) * 0.9;
     }
-    return [v.x, v.z, WATER_LEVEL - v.y, river ? river.dx * k : 0, river ? river.dz * k : 0];
+    return [v.x, pool.level, v.z, pool.level - v.y, river ? river.dx * k : 0, river ? river.dz * k : 0, pool === lake ? 1 : 0];
   };
   const emit = (...verts) => {
-    for (const [x, z, depth, fx, fz] of verts) {
-      positions.push(x, WATER_LEVEL, z);
+    for (const [x, y, z, depth, fx, fz, mirror] of verts) {
+      positions.push(x, y, z);
       normals.push(0, 1, 0);
       depths.push(depth);
       flows.push(fx, fz);
+      mirrors.push(mirror);
     }
   };
   // Split each triangle into a 3×3 grid of smaller ones, so a wave can bend the surface.
   const N = 3;
   for (const tri of top.tris) {
-    if (Math.min(tri[0].y, tri[1].y, tri[2].y) >= WATER_LEVEL - 0.005) continue;
     const cx = (tri[0].x + tri[1].x + tri[2].x) / 3, cz = (tri[0].z + tri[1].z + tri[2].z) / 3;
-    if (!shape.isWet(cx, cz, 0.6)) continue;
-    const [a, b, c] = tri.map(sample);
+    const pool = shape.waterAt(cx, cz, 0.6);
+    if (!pool || Math.min(tri[0].y, tri[1].y, tri[2].y) >= pool.level - 0.005) continue;
+    const [a, b, c] = tri.map((v) => sample(v, pool));
     const at = (i, j) => a.map((_, k) => a[k] * (1 - (i + j) / N) + b[k] * (i / N) + c[k] * (j / N));
     for (let i = 0; i < N; i++) {
       for (let j = 0; j < N - i; j++) {
@@ -590,6 +703,7 @@ function buildWater(top, shape, biome) {
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geo.setAttribute('aDepth', new THREE.Float32BufferAttribute(depths, 1));
   geo.setAttribute('aFlow', new THREE.Float32BufferAttribute(flows, 2));
+  geo.setAttribute('aMirror', new THREE.Float32BufferAttribute(mirrors, 1));
 
   const { color, frozen } = biome.water;
   if (frozen) {
@@ -607,6 +721,10 @@ function buildWater(top, shape, biome) {
   uniforms.uRipples.value = rippleNormals();
   uniforms.uRain = fxUniforms.uRain;
   uniforms.uSnow = fxUniforms.uSnow;
+  uniforms.uReflection = fxUniforms.uReflection;
+  uniforms.uReflectMatrix = fxUniforms.uReflectMatrix;
+  uniforms.uReflectOn = fxUniforms.uReflectOn;
+  uniforms.uWind = fxUniforms.uWindStrength;
   uniforms.uClicks = { value: Array.from({ length: 4 }, () => new THREE.Vector4(0, 0, -99, 0)) };
   let nextClick = 0;
   for (const name of ['uTop', 'uHorizon', 'uBottom', 'uGlow', 'uSunColor', 'uSunDir', 'uSunVisible', 'uKeyDir', 'uKeyColor', 'uAmbient']) {
@@ -618,8 +736,8 @@ function buildWater(top, shape, biome) {
   mesh.receiveShadow = true;
   return {
     mesh,
-    ripple(x, z, t) {
-      uniforms.uClicks.value[nextClick].set(x, z, t, 1.6);
+    ripple(x, z, t, strength = 1.6) {
+      uniforms.uClicks.value[nextClick].set(x, z, t, strength);
       nextClick = (nextClick + 1) % 4;
     },
     update(t, dt, env) {
@@ -668,10 +786,10 @@ const FALL_FRAGMENT = /* glsl */ `
 function buildWaterfall(shape, biome, r) {
   const { river } = shape;
   if (!river) return null;
-  const edgeR = RADIUS * shape.edgeScale(river.angle);
+  const { exit } = river;
   const group = new THREE.Group();
-  group.position.set(river.dx * (edgeR + 0.05), WATER_LEVEL + 0.02, river.dz * (edgeR + 0.05));
-  group.rotation.y = Math.atan2(river.dx, river.dz);
+  group.position.set(exit.x + exit.dx * 0.05, WATER_LEVEL + 0.02, exit.z + exit.dz * 0.05);
+  group.rotation.y = Math.atan2(exit.dx, exit.dz);
 
   const H = 7, W = river.width * 2.2;
   const geo = new THREE.PlaneGeometry(W, H, 1, 18);
@@ -740,38 +858,81 @@ function shadeByHeight(geo, dark) {
   return geo;
 }
 
-function treeGeometries(kind) {
-  const { trunk, crown } = rawTreeGeometries(kind);
-  return { trunk: trunk && shadeByHeight(trunk, 0.55), crown: shadeByHeight(crown, kind === 'cactus' ? 0.7 : 0.45) };
-}
+// Which trees grow where, and how often.
+const TREE_SPECIES = {
+  meadow: [['round', 3], ['oak', 3], ['birch', 1], ['bush', 2]],
+  highlands: [['pine', 4], ['fir', 3], ['bush', 1]],
+  autumn: [['round', 3], ['oak', 2], ['birch', 2], ['bush', 1]],
+  desert: [['cactus', 4], ['shrub', 2]],
+  snowfield: [['pine', 3], ['fir', 3]],
+  blossom: [['round', 4], ['oak', 1], ['bush', 1]],
+  dream: [['round', 3], ['poplar', 2], ['bush', 1]],
+};
+// How high each crown sits, for leaves shaken loose.
+const CROWN_TOP = { round: 1, oak: 1.1, birch: 1.4, fir: 1.4, poplar: 1.5, bush: 0.35, shrub: 0.3, pine: 1.2, cactus: 0.9 };
 
-function rawTreeGeometries(kind) {
-  if (kind === 'pine') {
-    return {
-      trunk: new THREE.CylinderGeometry(0.06, 0.09, 0.5, 5).translate(0, 0.25, 0),
-      crown: mergeGeometries([
+const ico = (r, x, y, z, sy = 1) => new THREE.IcosahedronGeometry(r, 0).scale(1, sy, 1).translate(x, y, z);
+
+function speciesGeometry(kind) {
+  const plain = (trunk, crown, extra = {}) => ({ trunk: trunk && shadeByHeight(trunk, 0.55), crown: shadeByHeight(crown, extra.dark ?? 0.45), ...extra });
+  switch (kind) {
+    case 'pine':
+      return plain(new THREE.CylinderGeometry(0.06, 0.09, 0.5, 5).translate(0, 0.25, 0), mergeGeometries([
         new THREE.ConeGeometry(0.5, 0.8, 6).translate(0, 0.75, 0),
         new THREE.ConeGeometry(0.38, 0.65, 6).translate(0, 1.1, 0),
         new THREE.ConeGeometry(0.25, 0.5, 6).translate(0, 1.42, 0),
-      ]),
-    };
-  }
-  if (kind === 'cactus') {
-    return {
-      trunk: null,
-      crown: mergeGeometries([
+      ]));
+    case 'fir':
+      return plain(new THREE.CylinderGeometry(0.05, 0.08, 0.45, 5).translate(0, 0.22, 0), mergeGeometries([
+        new THREE.ConeGeometry(0.38, 0.7, 7).translate(0, 0.65, 0),
+        new THREE.ConeGeometry(0.31, 0.62, 7).translate(0, 0.98, 0),
+        new THREE.ConeGeometry(0.23, 0.55, 7).translate(0, 1.3, 0),
+        new THREE.ConeGeometry(0.14, 0.45, 7).translate(0, 1.6, 0),
+      ]));
+    case 'cactus':
+      return plain(null, mergeGeometries([
         new THREE.CylinderGeometry(0.12, 0.14, 1.1, 6).translate(0, 0.55, 0),
         new THREE.CylinderGeometry(0.07, 0.07, 0.3, 5).rotateZ(Math.PI / 2).translate(0.2, 0.45, 0),
         new THREE.CylinderGeometry(0.07, 0.07, 0.35, 5).translate(0.33, 0.62, 0),
         new THREE.CylinderGeometry(0.06, 0.06, 0.25, 5).rotateZ(Math.PI / 2).translate(-0.18, 0.7, 0),
         new THREE.CylinderGeometry(0.06, 0.06, 0.28, 5).translate(-0.29, 0.84, 0),
-      ]),
-    };
+      ]), { dark: 0.7 });
+    case 'oak': {
+      const trunk = mergeGeometries([
+        new THREE.CylinderGeometry(0.09, 0.15, 0.75, 6).translate(0, 0.37, 0),
+        new THREE.CylinderGeometry(0.04, 0.06, 0.4, 5).rotateZ(-0.9).translate(0.15, 0.7, 0),
+      ]);
+      return plain(trunk, mergeGeometries([ico(0.42, 0, 1.05, 0), ico(0.34, 0.32, 0.92, 0.1), ico(0.32, -0.28, 0.95, -0.12), ico(0.3, 0.05, 1.32, 0.05)]));
+    }
+    case 'birch': {
+      // White bark with dark scars.
+      const trunk = new THREE.CylinderGeometry(0.045, 0.065, 1.15, 6, 6).translate(0, 0.57, 0);
+      const pos = trunk.attributes.position;
+      const colors = [];
+      for (let i = 0; i < pos.count; i++) {
+        const band = Math.sin(pos.getY(i) * 31 + Math.atan2(pos.getZ(i), pos.getX(i)) * 2) > 0.75 ? 0.25 : 1;
+        colors.push(band, band, band);
+      }
+      trunk.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      return { trunk, trunkColor: '#efeadf', crown: shadeByHeight(mergeGeometries([ico(0.3, 0, 1.3, 0, 1.4), ico(0.22, 0.14, 1.0, 0.05, 1.3), ico(0.2, -0.12, 1.55, -0.04, 1.3)]), 0.5) };
+    }
+    case 'poplar':
+      return plain(new THREE.CylinderGeometry(0.05, 0.08, 0.6, 5).translate(0, 0.3, 0), ico(0.33, 0, 1.25, 0, 2.3));
+    case 'bush':
+      return plain(null, mergeGeometries([ico(0.28, 0, 0.2, 0), ico(0.22, 0.22, 0.15, 0.08), ico(0.2, -0.18, 0.16, -0.1)]), { dark: 0.55 });
+    case 'shrub':
+      return plain(null, mergeGeometries([ico(0.18, 0, 0.14, 0, 0.8), ico(0.14, 0.15, 0.1, 0.05, 0.8), ico(0.12, -0.12, 0.1, -0.08, 0.8)]), { dark: 0.6 });
+    default:
+      return plain(new THREE.CylinderGeometry(0.07, 0.11, 0.7, 5).translate(0, 0.35, 0), new THREE.IcosahedronGeometry(0.5, 0).translate(0, 0.98, 0));
   }
-  return {
-    trunk: new THREE.CylinderGeometry(0.07, 0.11, 0.7, 5).translate(0, 0.35, 0),
-    crown: new THREE.IcosahedronGeometry(0.5, 0).translate(0, 0.98, 0),
-  };
+}
+
+function speciesColors(kind, biome, biomeKey) {
+  const base = biome.flora.colors;
+  if (kind === 'birch') return (biomeKey === 'autumn' ? ['#e8c840', '#f0d35a', '#d9a832'] : ['#9ccf5a', '#b5d96a', '#88c04f']).map((h) => new THREE.Color(h));
+  if (kind === 'shrub') return ['#8a8a4a', '#9a9455', '#7d7a40'].map((h) => new THREE.Color(h));
+  if (kind === 'bush') return base.map((c) => c.clone().offsetHSL(0, 0, -0.06));
+  return base;
 }
 
 // Candidate ground spots: real mesh vertices, so nothing ever floats.
@@ -797,65 +958,80 @@ function placeFlora(top, shape, biome, r, blocked) {
   return placed;
 }
 
-function buildFlora(placed, biome, r) {
-  const { kind, colors } = biome.flora;
+function buildFlora(placed, biome, biomeKey, r) {
   const group = new THREE.Group();
-  if (!placed.length) return group;
-
-  const geos = treeGeometries(kind);
-  const crown = new THREE.InstancedMesh(geos.crown, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }), placed.length);
-  const trunk = geos.trunk && new THREE.InstancedMesh(geos.trunk, new THREE.MeshStandardMaterial({ color: '#6b4a2f', vertexColors: true, flatShading: true, roughness: 1 }), placed.length);
-  crown.material.userData.wind = true;
-  if (trunk) trunk.material.userData.wind = true;
-  const m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0);
-  const c = new THREE.Color();
+  const m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
+  const kinds = placed.map(() => r.weighted(TREE_SPECIES[biomeKey] ?? [[biome.flora.kind, 1]]));
   const poses = placed.map((v, i) => {
-    const size = r.range(0.75, 1.35);
-    const pose = {
+    const size = kinds[i] === 'bush' || kinds[i] === 'shrub' ? r.range(0.8, 1.3) : r.range(0.75, 1.35);
+    return {
       p: new THREE.Vector3(v.x, v.y - 0.05, v.z),
       q: new THREE.Quaternion().setFromAxisAngle(up, r.range(0, TAU)),
-      s: new THREE.Vector3(size, size * r.range(0.9, 1.25), size),
+      s: new THREE.Vector3(size, size * r.range(0.9, kinds[i] === 'fir' ? 1.45 : 1.25), size),
     };
-    m.compose(pose.p, pose.q, pose.s);
-    crown.setMatrixAt(i, m);
-    crown.setColorAt(i, c.copy(r.pick(colors)).offsetHSL(0, 0, (r() - 0.5) * 0.06));
-    trunk?.setMatrixAt(i, m);
-    return pose;
   });
-  for (const mesh of [crown, trunk]) {
-    if (!mesh) continue;
-    mesh.castShadow = mesh.receiveShadow = true;
-    group.add(mesh);
+
+  // One pair of instanced meshes per species; `where` maps a tree to its slot.
+  const meshes = [], where = [];
+  const byKind = new Map();
+  kinds.forEach((kind, i) => byKind.set(kind, [...(byKind.get(kind) ?? []), i]));
+  for (const [kind, indices] of byKind) {
+    const geos = speciesGeometry(kind);
+    const colors = speciesColors(kind, biome, biomeKey);
+    const crown = new THREE.InstancedMesh(geos.crown, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }), indices.length);
+    const trunk = geos.trunk && new THREE.InstancedMesh(geos.trunk, new THREE.MeshStandardMaterial({ color: geos.trunkColor ?? '#6b4a2f', vertexColors: true, flatShading: true, roughness: 1 }), indices.length);
+    indices.forEach((gi, li) => {
+      const pose = poses[gi];
+      m.compose(pose.p, pose.q, pose.s);
+      crown.setMatrixAt(li, m);
+      crown.setColorAt(li, c.copy(r.pick(colors)).offsetHSL(0, 0, (r() - 0.5) * 0.06));
+      trunk?.setMatrixAt(li, m);
+      where[gi] = { crown, trunk, li, kind };
+    });
+    for (const mesh of [crown, trunk]) {
+      if (!mesh) continue;
+      mesh.material.userData.wind = true;
+      mesh.userData.indices = indices;
+      mesh.castShadow = mesh.receiveShadow = true;
+      group.add(mesh);
+      meshes.push(mesh);
+    }
   }
 
   const shakes = new Map();
   const tilt = new THREE.Quaternion();
   return {
     object: group,
-    meshes: [crown, trunk].filter(Boolean),
+    meshes,
+    // Which tree a raycast hit, across all the species meshes.
+    indexOf(hit) {
+      return hit.object.userData.indices?.[hit.instanceId];
+    },
     shake(i, t) {
       shakes.set(i, { t, axis: new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize() });
     },
     crownTop(i) {
-      return poses[i].p.clone().add(new THREE.Vector3(0, poses[i].s.y, 0));
+      return poses[i].p.clone().add(new THREE.Vector3(0, poses[i].s.y * CROWN_TOP[where[i].kind], 0));
     },
     crownColor(i) {
       const color = new THREE.Color();
-      crown.getColorAt(i, color);
+      where[i].crown.getColorAt(where[i].li, color);
       return color;
     },
     update(t) {
       if (!shakes.size) return;
       for (const [i, shake] of shakes) {
-        const age = t - shake.t, pose = poses[i];
+        const age = t - shake.t, pose = poses[i], slot = where[i];
         const angle = age > 1.4 ? 0 : Math.sin(age * 26) * 0.16 * (1 - age / 1.4) ** 2;
         m.compose(pose.p, tilt.setFromAxisAngle(shake.axis, angle).multiply(pose.q), pose.s);
-        crown.setMatrixAt(i, m);
-        trunk?.setMatrixAt(i, m);
+        slot.crown.setMatrixAt(slot.li, m);
+        slot.crown.instanceMatrix.needsUpdate = true;
+        if (slot.trunk) {
+          slot.trunk.setMatrixAt(slot.li, m);
+          slot.trunk.instanceMatrix.needsUpdate = true;
+        }
         if (age > 1.4) shakes.delete(i);
       }
-      crown.instanceMatrix.needsUpdate = true;
-      if (trunk) trunk.instanceMatrix.needsUpdate = true;
     },
   };
 }
@@ -917,21 +1093,6 @@ function buildTufts(top, shape, biome, r, blocked) {
     mesh.setMatrixAt(i, m);
     mesh.setColorAt(i, c.copy(r.pick(biome.tufts)));
   });
-  return mesh;
-}
-
-function buildRocks(top, shape, biome, r, blocked) {
-  const spots = groundSpots(top, r).filter((v) => !shape.isWet(v.x, v.z, 0.1) && !blocked(v.x, v.z)).slice(0, r.int(7, 14));
-  const mesh = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.3, 0), new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1 }), spots.length);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler(), c = new THREE.Color();
-  spots.forEach((v, i) => {
-    const size = r.range(0.5, 1.6);
-    q.setFromEuler(e.set(r() * TAU, r() * TAU, r() * TAU));
-    m.compose(p.set(v.x, v.y - 0.08, v.z), q, s.set(size, size * r.range(0.55, 0.9), size));
-    mesh.setMatrixAt(i, m);
-    mesh.setColorAt(i, c.copy(biome.rock[0]).lerp(biome.rock[1], r()));
-  });
-  mesh.castShadow = mesh.receiveShadow = true;
   return mesh;
 }
 
@@ -1073,14 +1234,17 @@ function buildGroundMist(top, shape, r) {
     update(t, dt, env) {
       mist.visible = env.mist > 0.02;
       mist.material.uniforms.uOpacity.value = env.mist * 0.55;
+      // The bank rolls in from upwind as the mist thickens.
+      const away = (1 - env.mist) * 14;
+      mist.position.set(-0.94 * away, 0, -0.33 * away);
       mist.rotation.y += dt * 0.01;
     },
   };
 }
 
-function shoreToward(lake, from) {
-  const a = Math.atan2(from.z - lake.z, from.x - lake.x);
-  return { x: lake.x + Math.cos(a) * (lake.radius + 0.2), z: lake.z + Math.sin(a) * (lake.radius + 0.2) };
+// Paths head for the middle of the lake and stop where the water begins.
+function shoreToward(lake) {
+  return { x: lake.x, z: lake.z };
 }
 
 function coastToward(shape, r, from) {
@@ -1107,6 +1271,8 @@ export function generateLand(seed) {
   const under = buildUnderside(top, shape, makeRandom(seed, 'underside'));
   const bursts = createBursts();
   let lastEnv = { snowCover: 0, night: 0 };
+  // main.js fills in hooks.sound, so taps can make a noise.
+  const hooks = { sound() {} };
 
   // The landmark and what surrounds it come first, so trees and paint can make room.
   const mats = makeMaterials(biomeKey);
@@ -1149,21 +1315,35 @@ export function generateLand(seed) {
   if (landmark) add(buildProps(ctx, xr, landmark, trees));
   add(buildLightPools([...(landmark?.lights ?? []), ...(lanterns?.lights ?? [])], shape));
 
-  const flora = buildFlora(trees, biome, fr);
+  const flora = buildFlora(trees, biome, biomeKey, fr);
   add(flora);
   const garden = buildGarden(biome);
   add(garden);
+  const grass = buildGrass({ top, shape, biome, biomeKey, blocked, r: makeRandom(seed, 'grass'), waterLevel: WATER_LEVEL });
+  add(grass);
+  const details = buildDetails({
+    top, under, shape, biome, biomeKey, trees, landmark, path, blocked,
+    water: water?.ripple ? water.mesh : null, waterLevel: WATER_LEVEL, r: makeRandom(seed, 'details'),
+  });
+  add(details);
   add(bursts);
   add(buildTufts(top, shape, biome, makeRandom(seed, 'tufts'), blocked));
-  add(buildRocks(top, shape, biome, makeRandom(seed, 'rocks'), blocked));
   if (biome.crystals) add(buildCrystals(top, shape, makeRandom(seed, 'crystals')));
   const islets = buildIslets(biome, makeRandom(seed, 'islets'));
   add(islets);
   for (const kind of biome.ambient) add(buildAmbient(kind, top, shape, makeRandom(seed, `ambient:${kind}`)));
   add(buildGroundMist(top, shape, makeRandom(seed, 'mist')));
-  if (xr.chance(0.7)) add(buildBirds(xr));
   const balloon = xr.chance(0.15) ? buildBalloon(xr, mats) : null;
   add(balloon);
+
+  // Wildlife: birds, butterflies, bats and dragonflies in the air; rabbits and
+  // deer on the ground; ducks and fish in the lake.
+  const life = buildLife({
+    top, shape, biome, biomeKey, blocked, bursts, r: makeRandom(seed, 'life'),
+    water: water?.ripple ? water : null, waterLevel: WATER_LEVEL, sound: (kind) => hooks.sound(kind),
+  });
+  add(life);
+  const fish = life.fish;
 
   // --- Things to tap ---
   const local = (hit) => group.worldToLocal(hit.point.clone());
@@ -1172,11 +1352,14 @@ export function generateLand(seed) {
   ground.userData.onClick = (hit) => {
     const at = local(hit);
     if (hit.face.normal.y > 0.35) {
+      sendGust(at.x, at.z, clock());
       garden.plant(at, clock());
+      hooks.sound('pop');
       bursts.spawn(at, { count: 10, colors: lastEnv.snowCover > 0.4 ? ['#ffffff'] : ['#c9b48a', '#9c8a66'], speed: 0.6, up: 0.8, gravity: -3, life: 0.8 });
     } else {
       // Tapping the cliffs knocks a few chips loose.
       bursts.spawn(at, { count: 12, colors: ['#8a857c', '#5f5a54'], speed: 0.5, up: 0.2, gravity: -6, life: 1.6, drag: 0.5 });
+      hooks.sound('chips');
     }
   };
   if (water?.ripple) {
@@ -1184,17 +1367,21 @@ export function generateLand(seed) {
       const at = local(hit);
       water.ripple(at.x, at.z, clock());
       bursts.spawn(at, { count: 14, colors: ['#e8f6ff', '#ffffff'], speed: 0.5, up: 2.2, gravity: -9, life: 0.7, drag: 0.4 });
+      fish?.jumpNear(at, clock());
+      hooks.sound('splash');
     };
   } else if (water) {
     water.userData.onClick = (hit) => bursts.spawn(local(hit), { count: 12, colors: ['#ffffff'], glow: true, speed: 0.6, up: 0.5, gravity: -1, life: 1 });
   }
   for (const mesh of flora.meshes) {
     mesh.userData.onClick = (hit) => {
-      if (hit.instanceId == null) return;
-      flora.shake(hit.instanceId, clock());
+      const tree = flora.indexOf(hit);
+      if (tree == null) return;
+      flora.shake(tree, clock());
+      hooks.sound('rustle');
       const snowy = lastEnv.snowCover > 0.4;
-      const color = flora.crownColor(hit.instanceId);
-      bursts.spawn(flora.crownTop(hit.instanceId), {
+      const color = flora.crownColor(tree);
+      bursts.spawn(flora.crownTop(tree), {
         count: 20, colors: snowy ? ['#ffffff', '#eef3f8'] : [color, color.clone().offsetHSL(0, 0, 0.08)],
         speed: 1.1, up: 0.4, gravity: snowy ? -2.5 : -1.2, life: 2.2, drag: 2.2, spread: 0.5,
       });
@@ -1203,16 +1390,22 @@ export function generateLand(seed) {
   if (landmark) {
     landmark.object.userData.onClick = (hit) => {
       landmark.poke(clock());
+      hooks.sound('chime');
       const cool = landmark.type === 'wizard' || landmark.type === 'stones';
       bursts.spawn(local(hit), { count: 26, colors: cool ? ['#9ff7ff', '#c9b6ff'] : ['#ffd27a', '#fff1c0'], glow: true, speed: 1.2, up: 1.4, gravity: -1.5, life: 1.4 });
     };
   }
-  if (balloon) balloon.object.userData.onClick = () => balloon.lift();
-  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, landmark?.object, ...islets.clickables, balloon?.object].filter(Boolean);
+  if (balloon) {
+    balloon.object.userData.onClick = () => {
+      balloon.lift();
+      hooks.sound('whoosh');
+    };
+  }
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {
-    for (const m of [o.material].flat()) if (m?.isMeshStandardMaterial) patchMaterial(m, { wind: m.userData.wind });
+    for (const m of [o.material].flat()) if (m?.isMeshStandardMaterial) patchMaterial(m, { wind: m.userData.wind, grass: m.userData.grass });
   });
 
   return {
@@ -1223,6 +1416,24 @@ export function generateLand(seed) {
     landmark: landmark?.type ?? 'none',
     hasWaterfall: Boolean(shape.river),
     clickables,
+    hooks,
+    // What the soundscape should play here.
+    sounds: {
+      waterfall: Boolean(shape.river),
+      lake: Boolean(water?.ripple),
+      fire: landmark?.type === 'campsite',
+      grassy: !['snowfield', 'desert'].includes(biomeKey),
+    },
+    // For lake reflections: the water itself, its height, and what to leave out
+    // of the mirrored pass (small things that barely show but cost a lot twice).
+    water: water?.ripple ? water.mesh : null,
+    mirrorHide: [water?.mesh, grass?.object, details.object, life.object, garden.object, bursts.object].filter(Boolean),
+    waterLevel() {
+      return water.mesh.localToWorld(new THREE.Vector3(0, WATER_LEVEL, 0)).y;
+    },
+    setDetail(level) {
+      grass?.setDetail(level);
+    },
     update(t, dt, env) {
       now = t;
       lastEnv = env;

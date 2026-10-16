@@ -10,12 +10,12 @@ const smoothstep = (e0, e1, x) => {
 
 // `high` clouds drift around the land; `low` ones form the cloud sea below it.
 export const WEATHERS = {
-  clear: { label: 'clear skies', high: 4, low: 9, overcast: 0, rain: 0, snow: 0, fogNear: 70, fogFar: 260 },
-  cloudy: { label: 'clouds drifting by', high: 14, low: 12, overcast: 0.45, rain: 0, snow: 0, fogNear: 50, fogFar: 200 },
-  rain: { label: 'rain', high: 18, low: 12, overcast: 0.8, rain: 1, snow: 0, fogNear: 30, fogFar: 140 },
-  snow: { label: 'snowfall', high: 15, low: 12, overcast: 0.55, rain: 0, snow: 1, fogNear: 30, fogFar: 150 },
-  mist: { label: 'mist', high: 6, low: 12, overcast: 0.35, rain: 0, snow: 0, fogNear: 8, fogFar: 62 },
-  storm: { label: 'thunderstorm', high: 20, low: 12, overcast: 0.92, rain: 1, snow: 0, storm: 1, fogNear: 24, fogFar: 120 },
+  clear: { label: 'clear skies', high: 4, low: 12, overcast: 0, rain: 0, snow: 0, fogNear: 70, fogFar: 260 },
+  cloudy: { label: 'clouds drifting by', high: 14, low: 16, overcast: 0.45, rain: 0, snow: 0, fogNear: 50, fogFar: 200 },
+  rain: { label: 'rain', high: 18, low: 16, overcast: 0.8, rain: 1, snow: 0, fogNear: 30, fogFar: 140 },
+  snow: { label: 'snowfall', high: 15, low: 16, overcast: 0.55, rain: 0, snow: 1, fogNear: 30, fogFar: 150 },
+  mist: { label: 'mist', high: 6, low: 16, overcast: 0.35, rain: 0, snow: 0, fogNear: 8, fogFar: 62 },
+  storm: { label: 'thunderstorm', high: 20, low: 16, overcast: 0.92, rain: 1, snow: 0, storm: 1, fogNear: 24, fogFar: 120 },
 };
 
 // Sky colors keyed on the sun's height (sunDir.y), interpolated in between.
@@ -24,7 +24,7 @@ const PALETTE = [
   { e: -0.35, top: '#060a1d', horizon: '#131b38', bottom: '#04060d', glow: '#000000', sun: '#000000', sunI: 0, hemiSky: '#34477f', hemiGround: '#0d1020', hemiI: 0.75, fog: '#0f152c' },
   { e: -0.1, top: '#151d48', horizon: '#33305e', bottom: '#0b0c1d', glow: '#5a2a58', sun: '#000000', sunI: 0, hemiSky: '#4d4f86', hemiGround: '#16142a', hemiI: 0.75, fog: '#2a2850' },
   { e: 0.0, top: '#28397a', horizon: '#e07c5e', bottom: '#4a3a52', glow: '#ff6a2a', sun: '#ff7a3d', sunI: 0.6, hemiSky: '#8c7aa8', hemiGround: '#3a2a2a', hemiI: 0.7, fog: '#b9786c' },
-  { e: 0.12, top: '#3a70c8', horizon: '#ffc08a', bottom: '#b4a2a0', glow: '#ff9a4a', sun: '#ffb46b', sunI: 2.2, hemiSky: '#bcd2f0', hemiGround: '#7a5c48', hemiI: 0.95, fog: '#e6c4a2' },
+  { e: 0.12, top: '#3a70c8', horizon: '#ffc08a', bottom: '#9a8fa8', glow: '#ff9a4a', sun: '#ffb46b', sunI: 2.2, hemiSky: '#bcd2f0', hemiGround: '#7a5c48', hemiI: 0.95, fog: '#e6c4a2' },
   { e: 0.35, top: '#2470dc', horizon: '#a6d4ff', bottom: '#bccbdb', glow: '#000000', sun: '#fff1dc', sunI: 3.2, hemiSky: '#cfe6ff', hemiGround: '#8f7c62', hemiI: 1.1, fog: '#b6d8f7' },
 ].map((k) => Object.fromEntries(Object.entries(k).map(([name, v]) => [name, typeof v === 'string' ? new THREE.Color(v) : v])));
 
@@ -75,6 +75,7 @@ export const skyUniforms = {
   uKeyDir: { value: new THREE.Vector3(0, 1, 0) },
   uKeyColor: { value: new THREE.Color() },
   uAmbient: { value: new THREE.Color() },
+  uRainbow: { value: 0 },
 };
 
 export const SKY_GLSL = /* glsl */ `
@@ -85,17 +86,34 @@ export const SKY_GLSL = /* glsl */ `
   uniform vec3 uSunColor;
   uniform vec3 uSunDir;
   uniform float uSunVisible;
+  uniform float uRainbow;
+
+  // Rainbow colors across the band: 0 is the violet inner edge, 1 the red outer edge.
+  vec3 bowColor(float t) {
+    float h = (1.0 - clamp(t, 0.0, 1.0)) * 0.78;
+    return clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+  }
+  float bowBand(float t) { return smoothstep(-0.15, 0.2, t) * smoothstep(1.15, 0.8, t); }
 
   vec3 skyColor(vec3 d, float disk) {
     vec3 col = d.y > 0.0
-      ? mix(uHorizon, uTop, pow(d.y, 0.5))
-      : mix(uHorizon, uBottom, pow(-d.y, 0.4));
+      ? mix(uHorizon, uTop, pow(max(d.y, 0.0), 0.5))
+      : mix(uHorizon, uBottom, pow(max(-d.y, 0.0), 0.4));
     // Dawn and dusk warm the horizon on the sun's side of the sky.
     float toward = max(dot(normalize(d.xz + 1e-5), normalize(uSunDir.xz + 1e-5)), 0.0);
-    col += uGlow * pow(toward, 3.0) * pow(1.0 - abs(d.y), 5.0);
+    col += uGlow * pow(toward, 3.0) * pow(max(1.0 - abs(d.y), 0.0), 5.0);
     float s = max(dot(d, uSunDir), 0.0);
     col += uSunColor * (pow(s, 6.0) * 0.12 + pow(s, 64.0) * 0.4) * uSunVisible;
     col += uSunColor * smoothstep(0.99955, 0.99975, s) * 14.0 * uSunVisible * disk;
+    if (uRainbow > 0.001) {
+      // Primary bow at ~42° around the point opposite the sun, a fainter reversed
+      // secondary at ~51°, and the brighter sky inside the primary.
+      float ang = degrees(acos(clamp(dot(d, -uSunDir), -1.0, 1.0)));
+      float t1 = (ang - 40.5) / 2.0;
+      float t2 = (53.5 - ang) / 2.8;
+      vec3 bow = bowColor(t1) * bowBand(t1) + bowColor(t2) * bowBand(t2) * 0.35;
+      col += (bow * 0.32 + smoothstep(41.0, 28.0, ang) * 0.06) * uRainbow * smoothstep(-0.97, -0.6, d.y);
+    }
     return col;
   }
 `;
@@ -260,15 +278,44 @@ export function createPuffMesh(puffs, opacity = 1) {
   return mesh;
 }
 
+const SHAFT_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  #include <fog_pars_vertex>
+  void main() {
+    vUv = uv;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
+  }
+`;
+const SHAFT_FRAGMENT = /* glsl */ `
+  uniform float uTime;
+  uniform float uOpacity;
+  uniform vec3 uColor;
+  varying vec2 vUv;
+  #include <fog_pars_fragment>
+  float hash1(float x) { return fract(sin(x * 127.1) * 43758.5453); }
+  void main() {
+    float lane = floor(vUv.x * 90.0);
+    float streak = 0.55 + 0.45 * fract(vUv.y * 3.0 + uTime * (1.5 + hash1(lane)) + hash1(lane + 3.0));
+    float a = uOpacity * streak * smoothstep(0.0, 0.85, vUv.y) * (0.6 + 0.4 * hash1(lane + 9.0));
+    gl_FragColor = vec4(uColor, a);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    #include <fog_fragment>
+  }
+`;
+const shaftShared = { uTime: { value: 0 }, uColor: { value: new THREE.Color() } };
+
 function buildClouds() {
   const r = makeRandom('pacaland-sky', 'clouds');
   const clouds = [];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 34; i++) {
     const low = i >= 18;
     const S = low ? r.range(3.2, 5.5) : r.range(2.0, 3.6);
     const span = low ? { x: S * 2.4, y: S * 0.35, z: S * 1.6 } : { x: S * 1.8, y: S * 0.85, z: S * 1.0 };
     const puffs = [];
-    const count = low ? r.int(16, 24) : r.int(14, 24);
+    const count = low ? r.int(20, 28) : r.int(14, 24);
     while (puffs.length < count) {
       const x = r.range(-1, 1), z = r.range(-1, 1);
       const core = 1 - Math.hypot(x, z);
@@ -293,6 +340,20 @@ function buildClouds() {
       opacity: 0,
     });
     mesh.rotation.y = r.range(0, TAU);
+    if (!low) {
+      // Visible from afar when this cloud is raining.
+      const shaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(S * 1.3, S * 1.9, 18, 12, 1, true).translate(0, -9, 0),
+        new THREE.ShaderMaterial({
+          uniforms: { ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog), ...shaftShared, uOpacity: { value: 0 } },
+          vertexShader: SHAFT_VERTEX, fragmentShader: SHAFT_FRAGMENT, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: true,
+        }),
+      );
+      shaft.visible = false;
+      shaft.frustumCulled = false;
+      mesh.add(shaft);
+      mesh.userData.shaft = shaft;
+    }
     clouds.push(mesh);
   }
   return clouds;
@@ -425,6 +486,71 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   }));
   scene.add(moon);
 
+  // Shooting stars on clear nights.
+  const meteorPos = new Float32Array(6);
+  const meteorCol = new Float32Array(6);
+  const meteorGeo = new THREE.BufferGeometry();
+  meteorGeo.setAttribute('position', new THREE.BufferAttribute(meteorPos, 3));
+  meteorGeo.setAttribute('color', new THREE.BufferAttribute(meteorCol, 3));
+  const meteor = new THREE.LineSegments(meteorGeo, new THREE.LineBasicMaterial({
+    vertexColors: true, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
+  }));
+  meteor.frustumCulled = false;
+  meteor.visible = false;
+  scene.add(meteor);
+  const meteorStart = new THREE.Vector3(), meteorVel = new THREE.Vector3(), head = new THREE.Vector3(), tail = new THREE.Vector3();
+  let meteorWait = 4, meteorAge = 9;
+
+  // Aurora curtains across the northern sky, on cold clear nights.
+  const auroraUniforms = { uTime: { value: 0 }, uOpacity: { value: 0 } };
+  const auroraMat = new THREE.ShaderMaterial({
+    uniforms: auroraUniforms, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, blending: THREE.AdditiveBlending,
+    vertexShader: /* glsl */ `
+      uniform float uTime;
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        vec3 p = position;
+        p.y += sin(uv.x * 9.0 + uTime * 0.3) * 6.0;
+        p.x += sin(uv.x * 5.0 + uTime * 0.2) * 8.0;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float uTime;
+      uniform float uOpacity;
+      varying vec2 vUv;
+      float h1(float x) { return fract(sin(x * 91.7) * 43758.5453); }
+      float n1(float x) { float i = floor(x), f = fract(x); return mix(h1(i), h1(i + 1.0), f * f * (3.0 - 2.0 * f)); }
+      void main() {
+        float rays = n1(vUv.x * 70.0 + uTime * 0.6) * n1(vUv.x * 23.0 - uTime * 0.3);
+        float fold = 0.5 + 0.5 * sin(vUv.x * 14.0 + uTime * 0.4);
+        float fade = smoothstep(0.0, 0.18, vUv.y) * pow(max(1.0 - vUv.y, 0.0), 1.6) * smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x);
+        vec3 col = mix(vec3(0.1, 1.0, 0.45), vec3(0.65, 0.25, 1.0), smoothstep(0.35, 1.0, vUv.y));
+        gl_FragColor = vec4(col * (0.35 + rays * 1.4) * (0.4 + 0.6 * fold) * fade * uOpacity * 1.6, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+  const aurora = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const geo = new THREE.PlaneGeometry(1, 1, 80, 1);
+    const pos = geo.attributes.position;
+    for (let v = 0; v < pos.count; v++) {
+      const u = pos.getX(v) + 0.5, h = pos.getY(v) + 0.5;
+      const a = -Math.PI / 2 + (u - 0.5) * 1.6 + i * 0.4 - 0.4;
+      const radius = 330 + i * 25;
+      pos.setXYZ(v, Math.cos(a) * radius, -30 + i * 12 + h * (95 + i * 10), Math.sin(a) * radius);
+    }
+    const curtain = new THREE.Mesh(geo, auroraMat);
+    curtain.frustumCulled = false;
+    aurora.add(curtain);
+  }
+  aurora.visible = false;
+  scene.add(aurora);
+  let cold = false;
+
   // Lightning: a brief flash over everything and a bolt somewhere in the distance.
   const flashLight = new THREE.DirectionalLight('#dfe8ff', 0);
   flashLight.position.set(12, 40, -8);
@@ -478,7 +604,7 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   let target = WEATHERS.clear;
   // `wet` and `snowCover` are what the weather has done to the land: they
   // build up while it rains or snows and fade slowly afterwards.
-  const state = { ...WEATHERS.clear, storm: 0, wet: 0, snowCover: 0 };
+  const state = { ...WEATHERS.clear, storm: 0, wet: 0, snowCover: 0, rainbow: 0, aurora: 0 };
   let windBase = 1;
   const sunDir = skyUniforms.uSunDir.value;
   const moonDir = new THREE.Vector3();
@@ -493,6 +619,11 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       target = WEATHERS[name] ?? WEATHERS.clear;
       windBase = windKmh == null ? 1 : Math.min(3, 0.5 + windKmh / 25);
       if (instant) Object.assign(state, target, { storm: target.storm ?? 0, wet: target.rain, snowCover: target.snow });
+    },
+
+    // Cold lands (and cold nights at home) can have aurora.
+    setCold(value) {
+      cold = value;
     },
 
     setShadowSize(size) {
@@ -572,6 +703,34 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
 
       const dark = smoothstep(-0.02, -0.22, e);
       stars.material.opacity = dark * (1 - o) * (1 - mist);
+
+      // A rainbow when the rain has just passed and a low sun is out.
+      const bowWanted = state.wet > 0.25 && state.rain < 0.35 && e > 0.0 && e < 0.7 && o < 0.85 && mist < 0.4 ? 1 : 0;
+      state.rainbow += (bowWanted - state.rainbow) * k;
+      skyUniforms.uRainbow.value = state.rainbow * smoothstep(0.0, 0.08, e);
+
+      const clearDark = dark * (1 - o) * (1 - mist);
+      if (clearDark > 0.6 && (meteorWait -= dt) <= 0) {
+        meteorStart.set(Math.random() - 0.5, 0.12 + Math.random() * 0.25, Math.random() - 0.5).normalize();
+        meteorVel.set(Math.random() - 0.5, -0.08 - Math.random() * 0.12, Math.random() - 0.5).projectOnPlane(meteorStart).setLength(0.45);
+        meteorAge = 0;
+        meteorWait = 4 + Math.random() * 11;
+      }
+      meteorAge += dt;
+      meteor.visible = meteorAge < 0.8;
+      if (meteor.visible) {
+        head.copy(meteorStart).addScaledVector(meteorVel, meteorAge).normalize().multiplyScalar(440);
+        tail.copy(meteorStart).addScaledVector(meteorVel, Math.max(0, meteorAge - 0.18)).normalize().multiplyScalar(440);
+        meteorPos.set([head.x, head.y, head.z, tail.x, tail.y, tail.z]);
+        const glow = 4 * Math.sin((meteorAge / 0.8) * Math.PI) * clearDark;
+        meteorCol.set([glow, glow, glow * 0.95, 0, 0, 0]);
+        meteorGeo.attributes.position.needsUpdate = meteorGeo.attributes.color.needsUpdate = true;
+      }
+
+      state.aurora += ((cold ? clearDark : 0) - state.aurora) * k * 0.5;
+      aurora.visible = state.aurora > 0.01;
+      auroraUniforms.uOpacity.value = state.aurora;
+      auroraUniforms.uTime.value = t;
       moon.position.copy(moonDir).multiplyScalar(420);
       moonUniforms.uLightDir.value.copy(sunDir);
       moonUniforms.uOpacity.value = dark * (1 - o * 0.8) * (1 - mist) * smoothstep(-0.05, 0.05, moonDir.y);
@@ -582,6 +741,8 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       puffShared.uAmbTop.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * 0.62 * gloom).lerp(pal.fog, 0.2);
       puffShared.uAmbBottom.value.copy(pal.horizon).lerp(pal.hemiSky, 0.5).multiplyScalar(0.5 * gloom);
       const highCount = target.high, lowCount = target.low;
+      shaftShared.uTime.value = t;
+      shaftShared.uColor.value.copy(pal.fog).multiplyScalar(0.75);
       clouds.forEach((c, i) => {
         const u = c.userData;
         const wanted = u.low ? i - 18 < lowCount : i < highCount;
@@ -590,6 +751,10 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
         c.visible = u.opacity > 0.01;
         c.material.uniforms.uOpacity.value = u.opacity;
         c.position.set(Math.cos(u.angle) * u.radius, u.y + Math.sin(t * 0.2 + i) * 0.3, Math.sin(u.angle) * u.radius);
+        if (u.shaft) {
+          u.shaft.material.uniforms.uOpacity.value = u.opacity * state.rain * 0.45;
+          u.shaft.visible = c.visible && state.rain > 0.02;
+        }
         if (c.visible && (frame + i) % 4 === 0) {
           c.updateMatrixWorld();
           writePuffs(c, c.worldToLocal(camLocal.copy(camera.position)));

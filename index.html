@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="main.css?v=3">
+  <link rel="stylesheet" href="main.css?v=4">
   <!--
     three.js r170 is vendored in vendor/three (MIT, see its LICENSE): no third-party scripts at runtime.
     The ?v= numbers dodge the CDN's hours-long cache: bump them all together when the site's own files change.
@@ -18,17 +18,21 @@
       "imports": {
         "three": "./vendor/three/build/three.module.js",
         "three/addons/": "./vendor/three/examples/jsm/",
-        "./js/world.js": "./js/world.js?v=3",
-        "./js/sky.js": "./js/sky.js?v=3",
-        "./js/effects.js": "./js/effects.js?v=3",
-        "./js/interact.js": "./js/interact.js?v=3",
-        "./js/conditions.js": "./js/conditions.js?v=3",
-        "./js/landmarks.js": "./js/landmarks.js?v=3",
-        "./js/random.js": "./js/random.js?v=3"
+        "./js/world.js": "./js/world.js?v=4",
+        "./js/sky.js": "./js/sky.js?v=4",
+        "./js/effects.js": "./js/effects.js?v=4",
+        "./js/interact.js": "./js/interact.js?v=4",
+        "./js/conditions.js": "./js/conditions.js?v=4",
+        "./js/landmarks.js": "./js/landmarks.js?v=4",
+        "./js/random.js": "./js/random.js?v=4",
+        "./js/grass.js": "./js/grass.js?v=4",
+        "./js/life.js": "./js/life.js?v=4",
+        "./js/sound.js": "./js/sound.js?v=4",
+        "./js/details.js": "./js/details.js?v=4"
       }
     }
   </script>
-  <script type="module" src="js/main.js?v=3"></script>
+  <script type="module" src="js/main.js?v=4"></script>
 </head>
 <body>
 
@@ -48,6 +52,7 @@
       <input id="time" type="range" min="0" max="23.99" step="0.01">
       <output id="time-out" for="time"></output>
       <button id="live" type="button" class="chip">Live</button>
+      <button id="timelapse" type="button" class="chip">Time lapse</button>
     </div>
     <div class="row chips" id="weather-chips"></div>
     <div class="row">
@@ -68,10 +73,25 @@
     <button type="button" id="share" class="icon" aria-label="Copy a link to this land" title="Copy link">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>
     </button>
+    <button type="button" id="sound" class="icon" aria-label="Sound" aria-pressed="false" title="Sound">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6"/><path class="wave" d="M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+    </button>
+    <button type="button" id="photo" class="icon" aria-label="Photo mode" title="Photo mode">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+    </button>
     <button type="button" id="tweak" class="icon" aria-label="Play with time and weather" aria-expanded="false" title="Time &amp; weather">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
     </button>
   </form>
+</div>
+
+<div id="photo-ui" class="panel" hidden>
+  <label>Exposure <input id="photo-exposure" type="range" min="-1" max="1" step="0.05" value="0"></label>
+  <label>Focus blur <input id="photo-blur" type="range" min="0" max="14" step="0.5" value="5"></label>
+  <div class="row">
+    <button id="photo-save" type="button" class="chip primary-chip">Save picture</button>
+    <button id="photo-done" type="button" class="chip">Done</button>
+  </div>
 </div>
 
 <p class="fallback">Welcome to <span class="magic">PaCaLand.</span></p>

@@ -6,8 +6,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { generateLand } from './world.js';
 import { createSky, WEATHERS, skyUniforms } from './sky.js';
-import { fxUniforms, createLightShafts, createFinishPass } from './effects.js';
+import { fxUniforms, createLightShafts, createFinishPass, createReflection, useSoftShadows } from './effects.js';
 import { createInteraction } from './interact.js';
+import { createSoundscape } from './sound.js';
 import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, moonPhase, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
 
@@ -29,6 +30,8 @@ try {
 }
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// ?pcss=0 falls back to plain soft shadows, for comparison or slow GPUs.
+if (!lowPower && !/[?&]pcss=0/.test(location.search)) useSoftShadows();
 renderer.toneMapping = THREE.NeutralToneMapping;
 
 const scene = new THREE.Scene();
@@ -57,6 +60,7 @@ composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const finish = createFinishPass();
 composer.addPass(finish);
+const reflection = createReflection(renderer);
 
 // --- Where each land's sky comes from ------------------------------------
 // The home land shows the real sky: the sun and moon where they really are and
@@ -128,6 +132,8 @@ function visit(next) {
     dispose(land.group);
   }
   land = generateLand(seed);
+  land.setDetail(QUALITY[quality].grass);
+  land.hooks.sound = (kind) => sound.play(kind);
   scene.add(land.group);
   bornAt = clock.elapsedTime;
   vibe = isHome() ? null : landVibe(seed, land.biome);
@@ -198,10 +204,94 @@ $('#tweak').addEventListener('click', () => {
 
 const timeSlider = $('#time');
 timeSlider.addEventListener('input', () => {
+  setTimelapse(false);
   timeOverride = Number(timeSlider.value);
 });
 $('#live').addEventListener('click', () => {
+  setTimelapse(false);
   timeOverride = null;
+});
+
+// A whole day and night in a minute, then back to the land's own time.
+// The button stays lit while it runs; tap it again to stop.
+let timelapse = null;
+const timelapseButton = $('#timelapse');
+function setTimelapse(on) {
+  timelapse = on ? { start: clock.elapsedTime, from: landHours() } : null;
+  timelapseButton.setAttribute('aria-pressed', String(on));
+  timelapseButton.textContent = on ? 'Stop time lapse' : 'Time lapse';
+}
+timelapseButton.addEventListener('click', () => {
+  const on = !timelapse;
+  setTimelapse(on);
+  if (!on) timeOverride = null;
+});
+function updateTimelapse() {
+  if (!timelapse) return;
+  const k = (clock.elapsedTime - timelapse.start) / 60;
+  if (k >= 1) {
+    setTimelapse(false);
+    timeOverride = null;
+  } else {
+    timeOverride = (timelapse.from + k * 24) % 24;
+    // Keep the slider and its readout moving along with the time lapse.
+    timeSlider.value = timeOverride.toFixed(2);
+    $('#time-out').textContent = formatHours(timeOverride);
+  }
+}
+
+// Sound starts muted (browsers insist on a tap first) and remembers your choice.
+const sound = createSoundscape();
+const soundButton = $('#sound');
+let soundWanted = false;
+try {
+  soundWanted = localStorage.getItem('paca-sound') === 'on';
+} catch {}
+async function setSound(on) {
+  soundWanted = on;
+  try {
+    localStorage.setItem('paca-sound', on ? 'on' : 'off');
+  } catch {}
+  if (on) await sound.enable();
+  else sound.disable();
+  soundButton.setAttribute('aria-pressed', String(sound.on));
+}
+soundButton.addEventListener('click', () => setSound(!sound.on));
+addEventListener('pointerdown', () => {
+  if (soundWanted && !sound.on) setSound(true);
+}, { once: true });
+
+// Photo mode: no interface, a freer camera, exposure and focus to taste.
+const photo = { on: false, exposure: 0, blur: 5 };
+function setPhotoMode(on) {
+  photo.on = on;
+  document.body.classList.toggle('photo', on);
+  $('#photo-ui').hidden = !on;
+  controls.enablePan = on;
+  controls.minDistance = on ? 3 : 6;
+}
+$('#photo').addEventListener('click', () => setPhotoMode(true));
+$('#photo-done').addEventListener('click', () => setPhotoMode(false));
+addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && photo.on) setPhotoMode(false);
+});
+$('#photo-exposure').addEventListener('input', (event) => {
+  photo.exposure = Number(event.target.value);
+});
+$('#photo-blur').addEventListener('input', (event) => {
+  photo.blur = Number(event.target.value);
+});
+$('#photo-save').addEventListener('click', () => {
+  // Render a fresh frame and grab it before the browser clears the canvas.
+  composer.render(0);
+  renderer.domElement.toBlob((blob) => {
+    if (!blob) return;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${land.name}.png`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+  });
 });
 
 function chipRow(container, options, selected, onPick) {
@@ -253,15 +343,15 @@ function readSeed() {
 // Starts high and steps down if the frame rate struggles; or pick a level.
 
 const QUALITY = [
-  { label: 'low', ratio: 0.75, shadow: 1024, shafts: false, tilt: false, bloom: false },
-  { label: 'medium', ratio: 1, shadow: 1024, shafts: false, tilt: false, bloom: true },
-  { label: 'high', ratio: 1.5, shadow: 2048, shafts: true, tilt: true, bloom: true },
-  { label: 'ultra', ratio: 2, shadow: 4096, shafts: true, tilt: true, bloom: true },
+  { label: 'low', ratio: 0.75, shadow: 1024, shafts: false, tilt: false, bloom: false, reflect: false, grass: 0 },
+  { label: 'medium', ratio: 1, shadow: 1024, shafts: false, tilt: false, bloom: true, reflect: false, grass: 1 },
+  { label: 'high', ratio: 1.5, shadow: 2048, shafts: true, tilt: true, bloom: true, reflect: true, grass: 2 },
+  { label: 'ultra', ratio: 2, shadow: 4096, shafts: true, tilt: true, bloom: true, reflect: true, grass: 3 },
 ];
 const startQuality = lowPower ? 2 : 3;
 let quality = startQuality;
 let qualityMode = 'auto';
-const perf = { frames: 0, time: 0, settleUntil: performance.now() + 3000 };
+const perf = { frames: 0, time: 0, settleUntil: performance.now() + 3000, slow: 0, smooth: 0, ceiling: startQuality, raisedAt: -Infinity };
 
 function applyQuality() {
   const q = QUALITY[quality];
@@ -269,24 +359,45 @@ function applyQuality() {
   shafts.enabled = q.shafts;
   bloom.enabled = q.bloom;
   sky.setShadowSize(q.shadow);
+  land?.setDetail(q.grass);
   sizeRenderer();
   perf.settleUntil = performance.now() + 2500;
   if (land) renderChips();
 }
 
 function watchPerformance(realDt) {
-  if (qualityMode !== 'auto' || document.hidden || performance.now() < perf.settleUntil) {
+  const now = performance.now();
+  if (qualityMode !== 'auto' || document.hidden || now < perf.settleUntil) {
     perf.frames = perf.time = 0;
     return;
   }
+  // Long gaps mean the browser is throttling us (background tab, a busy
+  // moment), not that the GPU is struggling, so they don't count.
+  if (realDt > 0.1) return;
   perf.frames++;
   perf.time += realDt;
   if (perf.time < 2) return;
   const fps = perf.frames / perf.time;
   perf.frames = perf.time = 0;
-  if (fps < 40 && quality > 0) {
-    quality--;
-    applyQuality();
+  if (fps < 30) {
+    perf.smooth = 0;
+    if (++perf.slow >= 2 && quality > 0) {
+      // Struggling right after stepping up: that level is too much, stop trying it.
+      if (now - perf.raisedAt < 15000) perf.ceiling = quality - 1;
+      quality--;
+      perf.slow = 0;
+      applyQuality();
+    }
+  } else if (fps > 55) {
+    perf.slow = 0;
+    if (++perf.smooth >= 4 && quality < perf.ceiling) {
+      quality++;
+      perf.smooth = 0;
+      perf.raisedAt = now;
+      applyQuality();
+    }
+  } else {
+    perf.slow = perf.smooth = 0;
   }
 }
 
@@ -302,6 +413,7 @@ function sizeRenderer() {
   composer.setPixelRatio(renderer.getPixelRatio());
   composer.setSize(w, h);
   finish.uniforms.uResolution.value.set(w, h).multiplyScalar(renderer.getPixelRatio());
+  reflection.setSize(w * renderer.getPixelRatio() * 0.5, h * renderer.getPixelRatio() * 0.5);
   shafts.uniforms.uAspect.value = w / h;
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
@@ -383,6 +495,9 @@ function aimShafts(env) {
   const strength = env.e > -0.04 ? skyUniforms.uSunVisible.value * lowSun : (1 - env.overcast) * (1 - env.mist) * env.night * 0.5;
   shafts.uniforms.uSun.value.set(lightPos.x * 0.5 + 0.5, lightPos.y * 0.5 + 0.5);
   shafts.uniforms.uStrength.value = lightPos.z < 1 ? strength * onScreen * 0.9 : 0;
+  // Lens flare only when the sun itself is in the frame.
+  const inFrame = smoothstep(1.05, 0.9, Math.max(Math.abs(lightPos.x), Math.abs(lightPos.y)));
+  shafts.uniforms.uFlare.value = env.e > -0.02 && lightPos.z < 1 ? skyUniforms.uSunVisible.value * inFrame * (1 - env.overcast) : 0;
 }
 
 renderer.setAnimationLoop(() => {
@@ -394,9 +509,10 @@ renderer.setAnimationLoop(() => {
 
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
+  updateTimelapse();
   const env = sky.update(updateSkyState(), dt, t, camera);
   // Eyes adjust to the dark a little; lightning flashes overexpose for an instant.
-  renderer.toneMappingExposure = 1 + env.night * 0.9 + env.flash * 0.4;
+  renderer.toneMappingExposure = (1 + env.night * 0.9 + env.flash * 0.4) * (photo.on ? 2 ** photo.exposure : 1);
   fxUniforms.uTime.value = t;
   fxUniforms.uCloudShadow.value = (0.15 + env.overcast * 0.4) * (1 - env.night * 0.7) * (1 - env.mist * 0.5);
   fxUniforms.uWindStrength.value = env.wind;
@@ -411,15 +527,22 @@ renderer.setAnimationLoop(() => {
   land.group.position.y = (1 - grow) * -5;
   land.group.rotation.y = (1 - grow) * 0.9;
 
+  // Aurora needs a cold place: a snowy or high land, fresh snow, or a freezing night at home.
+  sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1));
   updateFocus(t);
-  controls.autoRotate = !reducedMotion && nowMs - idleSince > 8000;
+  controls.autoRotate = !reducedMotion && !photo.on && nowMs - idleSince > 8000;
   controls.update(dt);
   interaction.update();
   aimShafts(env);
   focusPoint.copy(controls.target).add(new THREE.Vector3(0, camera.position.distanceTo(controls.target) * 0.065, 0)).project(camera);
   finish.uniforms.uFocusY.value = focusPoint.y * 0.5 + 0.5;
-  finish.uniforms.uBlur.value = QUALITY[quality].tilt ? 5 * renderer.getPixelRatio() : 0;
+  finish.uniforms.uBlur.value = (photo.on ? photo.blur : QUALITY[quality].tilt ? 5 : 0) * renderer.getPixelRatio();
+  finish.uniforms.uTime.value = t;
+  finish.uniforms.uRainLens.value = env.rain * 0.85;
+  const mirrored = QUALITY[quality].reflect && land.water && grow >= 1 && reflection.render(scene, camera, land.waterLevel(), land.mirrorHide);
+  fxUniforms.uReflectOn.value = mirrored ? 1 : 0;
   composer.render(dt);
+  sound.update(env, land.sounds, dt);
 
   if (t - lastLabel > 0.5) {
     lastLabel = t;

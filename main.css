@@ -340,3 +340,62 @@ button {
     padding: 0 12px;
   }
 }
+
+/* Sound toggle: speaker waves when on, a cross when muted. */
+
+#sound .mute {
+  display: none;
+}
+
+#sound[aria-pressed='false'] .wave {
+  display: none;
+}
+
+#sound[aria-pressed='false'] .mute {
+  display: inline;
+}
+
+/* Photo mode: only the picture and a small panel. */
+
+body.photo .hud-top,
+body.photo .hud-bottom {
+  display: none;
+}
+
+#photo-ui {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+}
+
+#photo-ui[hidden] {
+  display: none;
+}
+
+#photo-ui label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#photo-ui input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.chip.primary-chip {
+  background: var(--accent);
+  border-color: transparent;
+}
+
+@media (max-width: 520px) {
+  .bar .icon {
+    width: 36px;
+  }
+
+  .bar {
+    gap: 4px;
+  }
+}

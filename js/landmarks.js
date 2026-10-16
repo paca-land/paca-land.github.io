@@ -171,7 +171,9 @@ const LANDMARKS = {
           kit.add(roof, cone(0.46, 0.85), [x, 1.78, z]);
           kit.add('glow', box(0.09, 0.16, 0.05), [x + sx * 0.25, 1.05, z + sz * 0.25], { ry: Math.atan2(sx, sz) });
           kit.add('darkWood', cyl(0.012, 0.012, 0.45, 4), [x, 2.58, z]);
-          const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.17).translate(0.15, 0, 0), banner);
+          // Cloth that ripples from the pole out to the free end.
+          const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.18, 8, 2).translate(0.16, 0, 0), banner);
+          flag.userData.base = Float32Array.from(flag.geometry.attributes.position.array);
           flag.position.set(x, 2.94, z);
           flag.castShadow = true;
           flags.push(flag);
@@ -193,14 +195,26 @@ const LANDMARKS = {
         kit.add('flame', cone(0.05, 0.13, 5), [sx * 0.38, 0.64, S + 0.2]);
       }
       mats.banner = banner;
+      let phase = 0;
       return {
         radius: 2.4, door: [0, S + 0.7], extras: flags,
         lights: [[-0.38, 0.7, S + 0.3, 'fire'], [0.38, 0.7, S + 0.3, 'fire']],
         pointLight: { at: [0, 0.9, S + 0.7], color: '#ff9a4a', power: 4, flicker: true },
         update(t, dt, env) {
+          // Advance the wave's phase rather than scaling time, so a change of
+          // speed never makes the flags jump.
+          phase += dt * (3 + Math.min(env.wind, 3) * 1.5 + env.poke * 1.5);
+          const lift = Math.min(env.wind, 2) * 0.5;
           flags.forEach((f, i) => {
-            const gust = env.wind + env.poke * 2;
-            f.rotation.y = Math.sin(t * 2.2 * gust + i) * 0.35 * Math.min(gust, 2.2);
+            const pos = f.geometry.attributes.position, base = f.userData.base;
+            for (let v = 0; v < pos.count; v++) {
+              const x = base[v * 3], y = base[v * 3 + 1], k = x / 0.32;
+              pos.setY(v, y - k * k * 0.03 * (1 - lift * 0.6));
+              pos.setZ(v, (Math.sin(x * 18 - phase - i * 1.7) * 0.03 * (1 + env.poke * 0.5) + Math.sin(y * 9 + phase * 0.7) * 0.008) * k);
+            }
+            pos.needsUpdate = true;
+            // Stream downwind, whichever way the castle faces.
+            f.rotation.y = -0.34 - f.parent.rotation.y + Math.sin(phase * 0.13 + i) * 0.12;
           });
         },
       };
@@ -659,7 +673,8 @@ export function buildDock(ctx, r, toward) {
   const W = ctx.waterLevel;
   const kit = new Kit(ctx.mats);
   const yaw = Math.atan2(dx, dz);
-  const mid = lake.radius - 0.35;
+  // Out from wherever the shore actually is in that direction.
+  const mid = ctx.shape.shoreDistance(lake, a) - 0.35;
   kit.add('wood', box(0.42, 0.05, 1.5), [lake.x + dx * mid, W + 0.08, lake.z + dz * mid], { ry: yaw });
   for (const along of [-0.6, 0.6]) {
     for (const side of [-0.18, 0.18]) {
@@ -727,7 +742,7 @@ export function buildProps(ctx, r, landmark, trees) {
     // Palms ring the oasis.
     const { lake } = shape;
     for (let i = r.int(3, 6); i > 0; i--) {
-      const a = r.range(0, TAU), d = lake.radius + r.range(0.4, 0.9);
+      const a = r.range(0, TAU), d = shape.shoreDistance(lake, a) + r.range(0.4, 0.9);
       const x = lake.x + Math.cos(a) * d, z = lake.z + Math.sin(a) * d;
       const y = shape.heightAt(x, z), lean = r.range(0, TAU);
       let px = x, pz = z, py = y;
@@ -776,7 +791,7 @@ export function buildLightPools(lights, shape) {
     const p = geo.attributes.position;
     for (let i = 0; i < p.count; i++) p.setY(i, shape.heightAt(pos.x + p.getX(i), pos.z + p.getZ(i)) + 0.04);
     const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(COLORS[kind]).multiplyScalar(1.6), map: softDot(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+      color: new THREE.Color(COLORS[kind]).lerp(new THREE.Color('#fff2dc'), 0.35).multiplyScalar(1.3), map: softDot(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const mesh = new THREE.Mesh(geo, material);
     mesh.position.set(pos.x, 0, pos.z);
@@ -788,48 +803,13 @@ export function buildLightPools(lights, shape) {
     update(t, dt, env) {
       group.visible = env.gloom > 0.02;
       items.forEach(({ material, kind }, i) => {
-        material.opacity = env.gloom * (kind === 'fire' ? 0.6 * (0.85 + 0.15 * Math.sin(t * 11 + i)) : 0.42);
+        material.opacity = env.gloom * (kind === 'fire' ? 0.5 * (0.85 + 0.15 * Math.sin(t * 11 + i)) : 0.3);
       });
     },
   };
 }
 
 // --- Sky life ------------------------------------------------------------------
-
-export function buildBirds(r) {
-  const N = r.int(6, 11);
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute([
-    0, 0, 0.09, -0.34, 0.1, -0.05, 0, 0, -0.07,
-    0, 0, 0.09, 0, 0, -0.07, 0.34, 0.1, -0.05,
-  ], 3));
-  geo.computeVertexNormals();
-  const flock = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: '#2f3238', side: THREE.DoubleSide, flatShading: true }), N);
-  flock.frustumCulled = false;
-  const birds = Array.from({ length: N }, () => ({ ox: r.range(-1.2, 1.2), oy: r.range(-0.4, 0.4), oz: r.range(-1.2, 1.2), phase: r.range(0, TAU) }));
-  const radius = r.range(10, 14), height = r.range(5, 8), speed = r.range(0.08, 0.13) * (r.chance(0.5) ? 1 : -1);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  return {
-    object: flock,
-    update(t, dt, env) {
-      // Birds roost at night and shelter from rain and snow.
-      const awake = (1 - env.night) * (1 - Math.max(env.rain, env.snow));
-      flock.visible = awake > 0.05;
-      if (!flock.visible) return;
-      const a = t * speed;
-      const heading = Math.atan2(-Math.sin(a) * Math.sign(speed), Math.cos(a) * Math.sign(speed));
-      q.setFromAxisAngle(up, heading);
-      birds.forEach((b, i) => {
-        const wobble = Math.sin(t * 0.7 + b.phase) * 0.3;
-        p.set(Math.cos(a) * radius + b.ox + wobble, height + b.oy + Math.sin(t * 0.5 + b.phase) * 0.3, Math.sin(a) * radius + b.oz);
-        const flap = Math.sin(t * 9 + b.phase);
-        s.set(awake, flap * awake, awake);
-        flock.setMatrixAt(i, m.compose(p, q, s));
-      });
-      flock.instanceMatrix.needsUpdate = true;
-    },
-  };
-}
 
 export function buildBalloon(r, mats) {
   const group = new THREE.Group();
