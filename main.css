@@ -64,6 +64,85 @@ body {
   cursor: pointer;
 }
 
+#world.can-grab {
+  cursor: grab;
+}
+
+/* The time, floating by the pointer while you drag the sun. */
+.sky-tag {
+  position: fixed;
+  left: 0;
+  top: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--glass-strong);
+  color: #f6f3ec;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.sky-tag[hidden] {
+  display: none;
+}
+
+/* Points at the sun (or moon) when it's out of frame; drag it to drag the sun. */
+.sky-handle {
+  position: fixed;
+  left: -18px;
+  top: -18px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: grab;
+  touch-action: none;
+}
+
+.sky-handle:active {
+  cursor: grabbing;
+}
+
+.sky-handle svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.15s ease;
+}
+
+.sky-handle:hover svg {
+  transform: scale(1.15);
+}
+
+.sky-handle .sun {
+  fill: #ffcf5a;
+  stroke: #ffcf5a;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.sky-handle .moon {
+  fill: #e6ebff;
+}
+
+.sky-handle[data-body='sun'] .moon,
+.sky-handle[data-body='moon'] .sun,
+.sky-handle[hidden] {
+  display: none;
+}
+
+body.photo .sky-tag,
+body.photo .sky-handle {
+  display: none;
+}
+
 #hint {
   margin: 0;
   text-align: center;

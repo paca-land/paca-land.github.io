@@ -9,7 +9,8 @@ import { createSky, WEATHERS, skyUniforms } from './sky.js';
 import { fxUniforms, createLightShafts, createFinishPass, createReflection, useSoftShadows } from './effects.js';
 import { createInteraction } from './interact.js';
 import { createSoundscape } from './sound.js';
-import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, moonPhase, fetchWeather } from './conditions.js';
+import { createSkyGrab } from './skygrab.js';
+import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
 
 const HOME = 'pacaland';
@@ -115,6 +116,22 @@ function landHours() {
   return (vibe.hours + (clock.elapsedTime - vibeStart) / 3600) % 24;
 }
 
+// Hours on the home clock right now. Intl is slow, so ask it once a second.
+let homeClock = { ms: -Infinity, hours: 0 };
+function homeHoursNow(ms) {
+  if (ms - homeClock.ms > 1000) homeClock = { ms, hours: placeHours(new Date(ms), place) };
+  return homeClock.hours + (ms - homeClock.ms) / 3600000;
+}
+
+// The sky at any hour: at home, today's real sky (so a scrubbed or dragged sun
+// stays on its true path); anywhere else, the land's own imagined one.
+function skyAtHours(hours, out) {
+  if (!isHome()) return syntheticSky(hours, vibe.moonPhase, out);
+  const ms = Date.now();
+  const ahead = ((hours - homeHoursNow(ms) + 36) % 24) - 12;
+  return realSky(new Date(ms + ahead * 3600000), place, out);
+}
+
 // After a flight the sun and moon swing over from the last land's moment to
 // this one's, instead of the sky cutting from noon to midnight.
 const glide = { from: newSkyState(), k: 1 };
@@ -124,7 +141,7 @@ const glideStep = new THREE.Quaternion();
 function updateSkyState(dt) {
   const out = isHome() && timeOverride === null
     ? realSky(new Date(), place, skyState)
-    : syntheticSky(landHours(), isHome() ? moonPhase(new Date()) : vibe.moonPhase, skyState);
+    : skyAtHours(landHours(), skyState);
   if (glide.k >= 1) return out;
   glide.k = Math.min(glide.k + dt / 2.6, 1);
   const e = smoothstep(0, 1, glide.k);
@@ -139,6 +156,8 @@ function dispose(root) {
   root.traverse((o) => {
     o.geometry?.dispose();
     for (const m of [o.material].flat()) m?.dispose();
+    // Instanced meshes keep their matrices and colors in buffers of their own.
+    o.dispose?.();
   });
 }
 
@@ -550,15 +569,53 @@ controls.addEventListener('end', () => {
   idleSince = performance.now();
 });
 
+// Two things worth knowing, one after the other, then out of the way (or gone at the first tap).
 const hint = $('#hint');
+let hintDismissed = false;
+function dismissHint() {
+  hintDismissed = true;
+  hint.classList.add('gone');
+}
+setTimeout(() => {
+  if (hintDismissed) return;
+  hint.classList.add('gone');
+  setTimeout(() => {
+    if (hintDismissed) return;
+    hint.textContent = 'Drag the sun or moon to change the time';
+    hint.classList.remove('gone');
+  }, 1200);
+}, 7000);
+setTimeout(dismissHint, 14000);
+
 const interaction = createInteraction(renderer.domElement, camera, () => (leaving ? [] : land?.clickables ?? []), {
   onClick: () => {
     idleSince = performance.now();
-    hint.classList.add('gone');
+    dismissHint();
   },
   onDoubleClick: (picked) => focusOn(picked ? picked.hit.point : null),
 });
-setTimeout(() => hint.classList.add('gone'), 14000);
+
+// Grab the sun (or the moon) and drag it to set the time.
+const skyGrab = createSkyGrab(renderer.domElement, camera, {
+  sky, state: skyState, skyAt: skyAtHours, hours: landHours, label: formatHours,
+  onGrab: () => {
+    // Holding the sun takes over from the opening flight and from a sky still swinging over
+    // (the grab stops the pointerdown that would otherwise end the flight).
+    intro = null;
+    glide.k = 1;
+    setTimelapse(false);
+    idleSince = Infinity;
+    dismissHint();
+  },
+  onDrag: (hours) => {
+    timeOverride = hours;
+    timeSlider.value = hours.toFixed(2);
+    $('#time-out').textContent = formatHours(hours);
+  },
+  onRelease: () => {
+    idleSince = performance.now();
+  },
+});
 
 addEventListener('resize', resize);
 new ResizeObserver(resize).observe(document.documentElement);
@@ -591,7 +648,19 @@ function aimShafts(env) {
   shafts.uniforms.uFlare.value = env.e > -0.02 && lightPos.z < 1 ? skyUniforms.uSunVisible.value * inFrame * (1 - env.overcast) : 0;
 }
 
+// three asks for the next frame only after this one returns, so a single
+// exception would freeze the land for good. Log the first one and carry on.
+let frameFailed = false;
 renderer.setAnimationLoop(() => {
+  try {
+    renderFrame();
+  } catch (error) {
+    if (!frameFailed) console.error(error);
+    frameFailed = true;
+  }
+});
+
+function renderFrame() {
   const nowMs = performance.now();
   watchPerformance((nowMs - lastFrame) / 1000);
   lastFrame = nowMs;
@@ -640,6 +709,7 @@ renderer.setAnimationLoop(() => {
   controls.update(dt);
   if (tilt) camera.rotateX(tilt);
   interaction.update();
+  skyGrab.update(dt);
   aimShafts(env);
   focusPoint.copy(controls.target).add(new THREE.Vector3(0, camera.position.distanceTo(controls.target) * 0.065, 0)).project(camera);
   finish.uniforms.uFocusY.value = focusPoint.y * 0.5 + 0.5;
@@ -661,4 +731,4 @@ renderer.setAnimationLoop(() => {
     $('#live').disabled = timeOverride === null;
     document.body.classList.toggle('is-day', env.e > 0.06 && env.overcast < 0.6);
   }
-});
+}

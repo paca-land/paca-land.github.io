@@ -76,6 +76,8 @@ export const skyUniforms = {
   uKeyColor: { value: new THREE.Color() },
   uAmbient: { value: new THREE.Color() },
   uRainbow: { value: 0 },
+  // 0..1 while the sun is hovered or held (see skygrab.js).
+  uSunGrab: { value: 0 },
 };
 
 export const SKY_GLSL = /* glsl */ `
@@ -87,6 +89,7 @@ export const SKY_GLSL = /* glsl */ `
   uniform vec3 uSunDir;
   uniform float uSunVisible;
   uniform float uRainbow;
+  uniform float uSunGrab;
 
   // Rainbow colors across the band: 0 is the violet inner edge, 1 the red outer edge.
   vec3 bowColor(float t) {
@@ -104,7 +107,8 @@ export const SKY_GLSL = /* glsl */ `
     col += uGlow * pow(toward, 3.0) * pow(max(1.0 - abs(d.y), 0.0), 5.0);
     float s = max(dot(d, uSunDir), 0.0);
     col += uSunColor * (pow(s, 6.0) * 0.12 + pow(s, 64.0) * 0.4) * uSunVisible;
-    col += uSunColor * smoothstep(0.99955, 0.99975, s) * 14.0 * uSunVisible * disk;
+    // A held sun swells a little, and shows through cloud so you can see what you're dragging.
+    col += uSunColor * smoothstep(0.99955 - uSunGrab * 0.0003, 0.99975 - uSunGrab * 0.00015, s) * 14.0 * max(uSunVisible, uSunGrab * 0.5) * disk;
     if (uRainbow > 0.001) {
       // Primary bow at ~42° around the point opposite the sun, a fainter reversed
       // secondary at ~51°, and the brighter sky inside the primary.
@@ -459,6 +463,7 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
     uLightDir: { value: new THREE.Vector3(0, 1, 0) },
     uOpacity: { value: 0 },
     uColor: { value: new THREE.Color('#f5f0dc').multiplyScalar(2.2) },
+    uGrab: { value: 0 },
   };
   const moon = new THREE.Mesh(new THREE.SphereGeometry(9, 32, 16), new THREE.ShaderMaterial({
     uniforms: moonUniforms,
@@ -475,10 +480,11 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       uniform vec3 uLightDir;
       uniform float uOpacity;
       uniform vec3 uColor;
+      uniform float uGrab;
       varying vec3 vNormal;
       void main() {
         float lit = smoothstep(-0.08, 0.12, dot(normalize(vNormal), uLightDir));
-        gl_FragColor = vec4(uColor * (0.035 + lit), uOpacity);
+        gl_FragColor = vec4(uColor * (0.035 + lit) * (1.0 + uGrab * 0.4), max(uOpacity, uGrab * 0.6));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -642,6 +648,15 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
     // Cold lands (and cold nights at home) can have aurora.
     setCold(value) {
       cold = value;
+    },
+
+    // How much the sun or moon is being hovered (0.5) or held (1), see skygrab.js.
+    setGrab(body, amount) {
+      if (body === 'sun') skyUniforms.uSunGrab.value = amount;
+      else {
+        moonUniforms.uGrab.value = amount;
+        moon.scale.setScalar(1 + amount * 0.25);
+      }
     },
 
     setShadowSize(size) {
