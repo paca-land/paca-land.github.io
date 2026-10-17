@@ -487,7 +487,210 @@ function buildFish({ lake, open, water, waterLevel, bursts, koi, note }) {
 
 const COATS = { snowfield: '#f4f4f2', desert: '#c8a47a', highlands: '#8a8478' };
 
-export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, water, waterLevel, sound, note }) {
+// More creatures. Each is a little model and a way of getting about: hoppers
+// hop from spot to spot, walkers amble and stop to graze (a waddle rocks them
+// side to side), and scuttlers go sideways. Tap one and it scampers off.
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const ball = (r, detail = 1) => new THREE.IcosahedronGeometry(r, detail);
+const legs = (color, w, h, dx, dz, y = h / 2) => [[-dx, dz], [dx, dz], [-dx, -dz], [dx, -dz]].map(([x, z]) => part(box(w, h, w), color, [x, y, z]));
+const CRITTERS = {
+  sheep: {
+    gait: 'walk', speed: 0.22, roam: 1.6, rest: [2, 6], sound: 'baa',
+    model: (coat = '#f4f1ea') => model(
+      part(ball(0.17), coat, [0, 0.26, 0], { s: [1, 0.85, 1.3] }),
+      part(ball(0.075), '#2a2622', [0, 0.32, 0.2], { s: [0.9, 1, 1.2] }),
+      part(box(0.06, 0.025, 0.035), '#2a2622', [-0.07, 0.36, 0.18], { rz: 0.4 }),
+      part(box(0.06, 0.025, 0.035), '#2a2622', [0.07, 0.36, 0.18], { rz: -0.4 }),
+      ...legs('#2a2622', 0.035, 0.16, 0.07, 0.1),
+    ),
+  },
+  goat: {
+    gait: 'walk', speed: 0.3, roam: 2, rest: [1.5, 5], sound: 'baa',
+    model: () => model(
+      part(box(0.13, 0.15, 0.32), '#e8e4dc', [0, 0.3, 0]),
+      part(box(0.08, 0.1, 0.13), '#e8e4dc', [0, 0.42, 0.18], { rx: 0.3 }),
+      part(new THREE.ConeGeometry(0.018, 0.12, 4), '#5a4a3a', [-0.03, 0.51, 0.13], { rx: -0.7 }),
+      part(new THREE.ConeGeometry(0.018, 0.12, 4), '#5a4a3a', [0.03, 0.51, 0.13], { rx: -0.7 }),
+      part(box(0.03, 0.06, 0.02), '#d8d0c4', [0, 0.34, 0.24]),
+      ...legs('#cfc8bc', 0.035, 0.24, 0.045, 0.11),
+    ),
+  },
+  squirrel: {
+    gait: 'hop', speed: 0.7, hop: 0.07, step: 0.25, roam: 1.4, rest: [0.8, 3], sound: 'rustle',
+    model: () => model(
+      part(ball(0.07), '#c2562a', [0, 0.08, 0], { s: [0.9, 1, 1.25] }),
+      part(ball(0.05), '#c2562a', [0, 0.13, 0.08]),
+      part(ball(0.075), '#d8703a', [0, 0.17, -0.1], { s: [0.7, 1.5, 0.8] }),
+      part(box(0.02, 0.04, 0.01), '#c2562a', [-0.025, 0.19, 0.07]),
+      part(box(0.02, 0.04, 0.01), '#c2562a', [0.025, 0.19, 0.07]),
+    ),
+  },
+  lizard: {
+    gait: 'walk', speed: 0.6, roam: 1.2, rest: [1, 5], sound: 'rustle',
+    model: (coat = '#6a9a3a') => model(
+      part(box(0.06, 0.03, 0.18), coat, [0, 0.03, 0]),
+      part(box(0.05, 0.03, 0.06), coat, [0, 0.035, 0.11]),
+      part(new THREE.ConeGeometry(0.022, 0.16, 4), coat, [0, 0.025, -0.16], { rx: -Math.PI / 2 }),
+      ...legs(coat, 0.02, 0.03, 0.045, 0.06, 0.015),
+    ),
+  },
+  penguin: {
+    gait: 'walk', waddle: true, speed: 0.16, roam: 1.4, rest: [1.5, 5], sound: 'pop',
+    model: () => model(
+      part(ball(0.1), '#1e2228', [0, 0.17, 0], { s: [1, 1.6, 0.9] }),
+      part(ball(0.075), '#f4f4f2', [0, 0.15, 0.035], { s: [1, 1.5, 0.8] }),
+      part(ball(0.06), '#1e2228', [0, 0.32, 0.01]),
+      part(new THREE.ConeGeometry(0.018, 0.05, 4), '#f0a030', [0, 0.31, 0.07], { rx: Math.PI / 2 }),
+      part(box(0.04, 0.012, 0.05), '#f0a030', [-0.035, 0.006, 0.02]),
+      part(box(0.04, 0.012, 0.05), '#f0a030', [0.035, 0.006, 0.02]),
+    ),
+  },
+  frog: {
+    gait: 'hop', speed: 0.6, hop: 0.1, step: 0.28, roam: 1.2, rest: [1, 4], sound: 'ribbit',
+    model: (coat = '#5a8a3a') => model(
+      part(ball(0.07), coat, [0, 0.05, 0], { s: [1.1, 0.7, 1.2] }),
+      part(ball(0.025), coat, [-0.035, 0.1, 0.05]),
+      part(ball(0.025), coat, [0.035, 0.1, 0.05]),
+      part(ball(0.012, 0), '#1a1a1a', [-0.035, 0.115, 0.07]),
+      part(ball(0.012, 0), '#1a1a1a', [0.035, 0.115, 0.07]),
+      part(box(0.03, 0.025, 0.08), coat, [-0.07, 0.02, -0.03], { ry: 0.4 }),
+      part(box(0.03, 0.025, 0.08), coat, [0.07, 0.02, -0.03], { ry: -0.4 }),
+    ),
+  },
+  crab: {
+    gait: 'walk', sideways: true, speed: 0.4, roam: 1.2, rest: [1, 4], sound: 'chips',
+    model: () => model(
+      part(ball(0.08), '#e0503a', [0, 0.06, 0], { s: [1.3, 0.55, 0.9] }),
+      part(ball(0.035), '#e85a40', [-0.1, 0.06, 0.07]),
+      part(ball(0.035), '#e85a40', [0.1, 0.06, 0.07]),
+      part(box(0.008, 0.05, 0.008), '#e0503a', [-0.025, 0.11, 0.04]),
+      part(box(0.008, 0.05, 0.008), '#e0503a', [0.025, 0.11, 0.04]),
+      ...[-0.04, 0, 0.04].flatMap((z) => [part(box(0.07, 0.012, 0.012), '#c8402a', [-0.1, 0.03, z], { rz: 0.5 }), part(box(0.07, 0.012, 0.012), '#c8402a', [0.1, 0.03, z], { rz: -0.5 })]),
+    ),
+  },
+  snail: {
+    gait: 'walk', speed: 0.05, roam: 0.6, rest: [3, 9], sound: 'pop',
+    model: () => model(
+      part(ball(0.075), '#a0703a', [0, 0.09, -0.02], { s: [0.8, 1, 1] }),
+      part(ball(0.04), '#c8904a', [0.03, 0.1, -0.02]),
+      part(box(0.05, 0.03, 0.18), '#d8c49a', [0, 0.015, 0.02]),
+      part(box(0.006, 0.05, 0.006), '#d8c49a', [-0.015, 0.05, 0.1], { rx: 0.4 }),
+      part(box(0.006, 0.05, 0.006), '#d8c49a', [0.015, 0.05, 0.1], { rx: 0.4 }),
+    ),
+  },
+  giraffe: {
+    gait: 'walk', speed: 0.28, roam: 2.4, rest: [2, 6], sound: 'thud',
+    model: () => model(
+      part(box(0.18, 0.2, 0.42), '#e8b84a', [0, 0.62, 0]),
+      ...legs('#e0b048', 0.05, 0.52, 0.06, 0.15),
+      part(box(0.08, 0.6, 0.08), '#e8b84a', [0, 0.98, 0.2], { rx: 0.35 }),
+      part(box(0.09, 0.09, 0.18), '#e8b84a', [0, 1.3, 0.34]),
+      part(box(0.015, 0.06, 0.015), '#6a4a2a', [-0.025, 1.38, 0.3]),
+      part(box(0.015, 0.06, 0.015), '#6a4a2a', [0.025, 1.38, 0.3]),
+      ...[[0.05, 0.7, 0.08], [-0.06, 0.66, -0.1], [0.04, 0.6, -0.04], [-0.05, 0.74, 0.12], [0.0, 0.9, 0.24]].map(([x, y, z]) => part(box(0.07, 0.06, 0.07), '#9a5a2a', [x * 1.4, y, z])),
+    ),
+  },
+  panda: {
+    gait: 'walk', waddle: true, speed: 0.12, roam: 1.2, rest: [3, 8], sound: 'thud',
+    model: () => model(
+      part(ball(0.16), '#f2f2ee', [0, 0.22, 0], { s: [1, 0.95, 1.3] }),
+      ...legs('#1e1e22', 0.07, 0.14, 0.08, 0.1),
+      part(ball(0.11), '#f2f2ee', [0, 0.33, 0.2]),
+      part(ball(0.035), '#1e1e22', [-0.07, 0.43, 0.18]),
+      part(ball(0.035), '#1e1e22', [0.07, 0.43, 0.18]),
+      part(ball(0.025), '#1e1e22', [-0.04, 0.35, 0.29], { s: [1, 1.3, 0.6] }),
+      part(ball(0.025), '#1e1e22', [0.04, 0.35, 0.29], { s: [1, 1.3, 0.6] }),
+      part(ball(0.018, 0), '#1e1e22', [0, 0.31, 0.31]),
+    ),
+  },
+};
+// Who lives where (the older animals are below, in buildLife): [kind, fewest, most, coat].
+const NEIGHBOURS = {
+  meadow: [['sheep', 2, 5]], blossom: [['squirrel', 1, 3]], autumn: [['squirrel', 3, 5]],
+  highlands: [['goat', 2, 4]], desert: [['lizard', 3, 5, '#c8a46a']], snowfield: [['penguin', 3, 6]],
+  heath: [['sheep', 3, 5]], lavender: [['sheep', 2, 4]], cloudisle: [['sheep', 3, 5, '#ffffff']],
+  stormcrag: [['goat', 2, 4]], terraces: [['goat', 1, 3]], ember: [['lizard', 2, 4, '#c8462a']],
+  savanna: [['giraffe', 2, 3], ['lizard', 1, 2, '#b89a5a']], mire: [['frog', 3, 6]],
+  jungle: [['frog', 3, 5, '#3ac85a']], toadstool: [['snail', 3, 5], ['frog', 1, 3]], bamboo: [['panda', 1, 3], ['frog', 2, 3]],
+  coral: [['crab', 4, 7]], giant: [['snail', 2, 4]],
+};
+
+// One kind of creature, wandering between nearby spots.
+function buildCritters({ kind, spots, shape, r, count, coat, sound, note }) {
+  const spec = CRITTERS[kind];
+  if (!count || spots.length < 8) return null;
+  const mesh = new THREE.InstancedMesh(spec.model(coat), material(), count);
+  mesh.castShadow = true;
+  mesh.frustumCulled = false;
+  const crowd = Array.from({ length: count }, () => {
+    const home = r.pick(spots);
+    const heading = r.range(0, TAU);
+    return { x: home.x, z: home.z, home, heading, aim: heading, moving: false, flee: 0, rest: r.range(...spec.rest), phase: r.range(0, TAU), target: null };
+  });
+  const nearby = (c) => {
+    for (let k = 0; k < 10; k++) {
+      const s = spots[Math.floor(Math.random() * spots.length)];
+      if (Math.hypot(s.x - c.home.x, s.z - c.home.z) < spec.roam) return s;
+    }
+    return c.home;
+  };
+  const go = (c, x, z) => {
+    c.target = { x, z };
+    c.aim = Math.atan2(x - c.x, z - c.z);
+    c.moving = true;
+  };
+  mesh.userData.onClick = (hit) => {
+    const c = crowd[hit.instanceId];
+    if (!c) return;
+    const away = Math.atan2(c.x - hit.point.x, c.z - hit.point.z) + (Math.random() - 0.5) * 0.8;
+    go(c, c.x + Math.sin(away) * 1.4, c.z + Math.cos(away) * 1.4);
+    c.flee = 1.4;
+    sound(spec.sound);
+    note(kind);
+  };
+  return {
+    object: mesh,
+    clickables: [mesh],
+    update(t, dt) {
+      crowd.forEach((c, i) => {
+        let lift = 0, roll = 0, pitch = 0;
+        if (c.moving) {
+          // Turn smoothly toward where it's going (never snap, never spin).
+          const turn = Math.atan2(Math.sin(c.aim - c.heading), Math.cos(c.aim - c.heading));
+          c.heading += turn * Math.min(1, dt * 6);
+          const speed = spec.speed * (c.flee > 0 ? 3 : 1);
+          c.phase += dt * speed * (spec.gait === 'hop' ? 28 : 22);
+          const d = Math.hypot(c.target.x - c.x, c.target.z - c.z);
+          const s = Math.min(d, speed * dt);
+          const x1 = c.x + Math.sin(c.aim) * s, z1 = c.z + Math.cos(c.aim) * s;
+          if (shape.isWet(x1, z1, 0.2) || shape.radial(x1, z1) > 0.92 || d < 0.03) {
+            // Blocked, or there: stop and rest (a new place is picked after).
+            c.moving = false;
+            c.rest = spec.rest[0] + Math.random() * (spec.rest[1] - spec.rest[0]);
+          } else {
+            c.x = x1;
+            c.z = z1;
+          }
+          if (spec.gait === 'hop') lift = Math.abs(Math.sin(c.phase * 0.5)) * spec.hop;
+          else lift = Math.abs(Math.sin(c.phase)) * 0.012;
+          if (spec.waddle) roll = Math.sin(c.phase) * 0.18;
+        } else if ((c.rest -= dt) <= 0) {
+          const s = nearby(c);
+          go(c, s.x, s.z);
+        } else {
+          pitch = Math.max(0, Math.sin(t * 2 + i * 1.7)) * 0.12; // grazing, sniffing, looking about
+        }
+        c.flee = Math.max(0, c.flee - dt);
+        const yaw = c.heading + (spec.sideways ? Math.PI / 2 : 0);
+        _q.setFromAxisAngle(UP, yaw).multiply(_q2.setFromEuler(_e.set(pitch, 0, roll)));
+        mesh.setMatrixAt(i, _m.compose(_p.set(c.x, shape.heightAt(c.x, c.z) - 0.02 + lift, c.z), _q, _s.setScalar(1)));
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    },
+  };
+}
+
+export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, fauna, water, waterLevel, sound, note }) {
   const group = new THREE.Group();
   const updaters = [], clickables = [];
   const add = (part) => {
@@ -521,6 +724,10 @@ export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, wat
     add(buildDucks({ lake: shape.lake, open, water, waterLevel, r, count: r.int(2, 4), sound, note }));
     fish = buildFish({ lake: shape.lake, open, water, waterLevel, bursts, note, koi: biomeKey === 'blossom' || biomeKey === 'dream' });
     add(fish);
+  }
+  // The newer neighbours draw from their own stream, so the animals above stay put.
+  for (const [kind, fewest, most, coat] of NEIGHBOURS[biomeKey] ?? []) {
+    add(buildCritters({ kind, spots, shape, r: fauna, count: fauna.int(fewest, most), coat, sound, note }));
   }
 
   return {

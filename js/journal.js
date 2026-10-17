@@ -43,6 +43,11 @@ export const SECTIONS = [
     ['life:fish', '🐟', 'leaping fish', 'watch a lake, or tap the water'],
     ['life:bats', '🦇', 'bats', 'out after dark'],
     ['life:fireflies', '✨', 'fireflies', 'a night in the meadows or the woods'],
+    ['life:sheep', '🐑', 'sheep', 'grazing in the meadows'],
+    ['life:goat', '🐐', 'goat', 'up in the highlands'],
+    ['life:squirrel', '🐿️', 'squirrel', 'busy in the autumn woods'],
+    ['life:lizard', '🦎', 'lizard', 'sunning itself on desert rock'],
+    ['life:penguin', '🐧', 'penguin', 'waddling over the snow'],
   ]],
   ['curiosities', [
     ['odd:balloon', '🎈', 'hot-air balloon', 'about one land in seven'],
@@ -52,7 +57,7 @@ export const SECTIONS = [
   ]],
   // Islands only a voyage reaches (Drift: they never turn up on an ordinary land).
   ['voyage islands', [
-    ['land:mire', '🐸', 'the mire', 'say something swampy on a voyage'],
+    ['land:mire', '🌫️', 'the mire', 'say something swampy on a voyage'],
     ['land:coral', '🐠', 'coral shoal', 'say something tropical on a voyage'],
     ['land:toadstool', '🍄', 'toadstool wood', 'say something mushroomy on a voyage'],
     ['land:stormcrag', '🌩️', 'storm crag', 'say something wild and lonely on a voyage'],
@@ -60,18 +65,32 @@ export const SECTIONS = [
     ['land:ember', '🌋', 'ember isle', 'say something volcanic on a voyage'],
     ['land:gilded', '🪙', 'gilded isle', 'say something golden on a voyage'],
     ['land:jungle', '🐒', 'jungle', 'say something jungly on a voyage'],
-    ['land:savanna', '🦒', 'savanna', 'say something from a safari on a voyage'],
-    ['land:heath', '🐑', 'heath', 'say something from the moors on a voyage'],
+    ['land:savanna', '🌳', 'savanna', 'say something from a safari on a voyage'],
+    ['land:heath', '🏞️', 'heath', 'say something from the moors on a voyage'],
     ['land:lavender', '💜', 'lavender fields', 'say something purple on a voyage'],
     ['land:cloudisle', '☁️', 'cloud isle', 'say something soft on a voyage'],
     ['land:withered', '🥀', 'withered wood', 'say something dark on a voyage (it bites)'],
     ['land:sugar', '🍬', 'sugar isle', 'say something sweet on a voyage'],
+    ['land:bamboo', '🎋', 'bamboo grove', 'say something about pandas on a voyage'],
+    ['land:terraces', '🍵', 'tea terraces', 'say something about tea on a voyage'],
+    ['land:clockwork', '⚙️', 'clockwork isle', 'say something mechanical on a voyage'],
+    ['land:paper', '📄', 'paper isle', 'say something papery on a voyage'],
+    ['land:moon', '🌙', 'moon isle', 'say something about the moon on a voyage'],
+    ['land:maze', '🧩', 'hedge maze', 'say something about mazes on a voyage'],
+    ['land:giant', '🌻', 'giants’ garden', 'say something enormous on a voyage'],
+  ]],
+  ['voyage wildlife', [
+    ['life:frog', '🐸', 'frog', 'in a swamp or a jungle, on a voyage'],
+    ['life:crab', '🦀', 'crab', 'on a coral shoal, on a voyage'],
+    ['life:snail', '🐌', 'snail', 'in a toadstool wood, on a voyage'],
+    ['life:giraffe', '🦒', 'giraffe', 'out on a savanna, on a voyage'],
+    ['life:panda', '🐼', 'panda', 'in a bamboo grove, on a voyage'],
   ]],
 ];
 const ENTRIES = new Map(SECTIONS.flatMap(([, items]) => items.map((item) => [item[0], item])));
-// Voyage islands are a bonus: Drift is behind a password, so the naturalist
+// Voyage islands and animals are a bonus: Drift is behind a password, so the naturalist
 // badge asks only for what ordinary lands hold.
-const VOYAGE_ONLY = new Set(SECTIONS.find(([title]) => title === 'voyage islands')[1].map(([id]) => id));
+const VOYAGE_ONLY = new Set(SECTIONS.filter(([title]) => title.startsWith('voyage ')).flatMap(([, items]) => items.map(([id]) => id)));
 
 // [id, emoji, name, what to do, counter, goal]
 export const BADGES = [
@@ -84,7 +103,7 @@ export const BADGES = [
   ['duck-whisperer', '🦆', 'duck whisperer', 'make the ducks quack 20 times', 'ducks', 20],
   ['photographer', '📷', 'photographer', 'save 5 pictures', 'photos', 5],
   ['legend-hunter', '👑', 'legend hunter', 'find a legendary land', 'legendary', 1],
-  ['naturalist', '📖', 'naturalist', 'fill the journal, voyage islands aside', 'found', ENTRIES.size - VOYAGE_ONLY.size],
+  ['naturalist', '📖', 'naturalist', 'fill the journal, voyage finds aside', 'found', ENTRIES.size - VOYAGE_ONLY.size],
 ];
 
 // What the land's hooks report, and what each one counts toward.
@@ -97,6 +116,7 @@ const NOTES = {
   fish: { find: 'life:fish' },
   bats: { find: 'life:bats' },
   fireflies: { find: 'life:fireflies' },
+  ...Object.fromEntries(['sheep', 'goat', 'squirrel', 'lizard', 'penguin', 'frog', 'crab', 'snail', 'giraffe', 'panda'].map((kind) => [kind, { find: `life:${kind}` }])),
 };
 
 function load() {

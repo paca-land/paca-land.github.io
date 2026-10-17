@@ -260,6 +260,84 @@ export const BIOMES = {
     weather: [['clear', 6], ['cloudy', 1]],
     ambient: ['sparkles'],
   },
+  bamboo: {
+    label: 'bamboo grove', weight: 0,
+    grass: ['#6a9a4a', '#8ab860'], dirt: '#6a5a3a', rock: ['#8a8a7a', '#6a6a5c'], sand: '#d8cc9a',
+    hills: 2.4, peak: 2.4,
+    water: { color: '#4a9a8a', opacity: 0.86 }, lake: 0.7, river: 0.7,
+    flora: { kind: 'bamboo', count: 70, groves: 0.15, colors: ['#5a9a3a', '#6aaa45'] },
+    tufts: ['#ffffff', '#f0e0a0'],
+    landmark: [['shrine', 3], ['cabin', 2], ['campsite', 1], ['village', 1]], path: '#b0a070',
+    weather: [['mist', 3], ['clear', 2], ['rain', 2], ['cloudy', 1]],
+    ambient: ['fireflies'],
+  },
+  terraces: {
+    label: 'tea terraces', weight: 0,
+    grass: ['#5aa04a', '#7ab85a'], dirt: '#7a5a3a', rock: ['#9a8a7a', '#7a6a5c'], sand: '#d8c89a',
+    hills: 2.6, peak: 3.0, terrace: 1.3,
+    water: { color: '#4aa0c0', opacity: 0.85 }, lake: 0.6, river: 0.8,
+    flora: { kind: 'bush', count: 90, groves: -0.3, colors: ['#3a8a3a', '#4a9a40', '#2f7a34'] },
+    tufts: ['#ffffff', '#ffe08a'],
+    landmark: [['shrine', 2], ['village', 2], ['windmill', 1], ['cabin', 1]], path: '#c0a878',
+    weather: [['mist', 3], ['clear', 3], ['rain', 2], ['cloudy', 1]],
+    ambient: [],
+  },
+  clockwork: {
+    label: 'clockwork isle', weight: 0,
+    grass: ['#8a7a5a', '#a08a62'], dirt: '#5a4a38', rock: ['#7a6a5a', '#5a4e44'], sand: '#c8b088',
+    hills: 1.8, peak: 2.0,
+    water: { color: '#5a8a8a', opacity: 0.9 }, lake: 0.6, river: 0.6,
+    flora: { kind: 'gear', count: 40, groves: -0.2, colors: ['#c9a04a', '#b8863a'] },
+    tufts: ['#d9b45a', '#a8703a'],
+    landmark: [['windmill', 3], ['castle', 2], ['village', 2], ['lighthouse', 1]], path: '#9a8a6a',
+    weather: [['clear', 3], ['cloudy', 3], ['mist', 1], ['rain', 1]],
+    ambient: ['embers'],
+  },
+  paper: {
+    label: 'paper isle', weight: 0,
+    grass: ['#f2ead8', '#fbf6ea'], dirt: '#d8ccb0', rock: ['#e8dcc4', '#c8b898'], sand: '#fffaf0',
+    hills: 2.0, peak: 1.8,
+    water: { color: '#3a5a9a', opacity: 0.88 }, lake: 0.8, river: 0.7,
+    flora: { kind: 'paper', count: 55, groves: 0.05, colors: ['#ffffff', '#f6efe0', '#ffd0dc', '#cfe2ff', '#fff0a8', '#ffffff'] },
+    tufts: ['#3a5a9a', '#c8382a'],
+    landmark: [['wizard', 3], ['village', 2], ['ruins', 1], ['shrine', 1]], path: '#e0d4b8',
+    weather: [['clear', 4], ['cloudy', 2], ['mist', 1]],
+    ambient: ['scraps'],
+  },
+  moon: {
+    label: 'moon isle', weight: 0,
+    grass: ['#b8bcc8', '#d4d8e2'], dirt: '#8a8e9a', rock: ['#9a9eaa', '#767a86'], sand: '#e2e4ec',
+    hills: 2.6, peak: 1.6,
+    water: { color: '#9ab4e8', opacity: 0.8 }, lake: 0.7, river: 0.3,
+    flora: { kind: 'birch', count: 30, groves: -0.2, colors: ['#e0e8f4', '#c8d4e8', '#f0f4ff'] },
+    tufts: ['#ffffff', '#c8d8ff'],
+    crystals: true,
+    landmark: [['stones', 3], ['wizard', 2], ['ruins', 1], ['lighthouse', 1]], path: '#d4d8e2',
+    weather: [['clear', 6], ['mist', 1]],
+    ambient: ['sparkles'],
+  },
+  maze: {
+    label: 'hedge maze', weight: 0,
+    grass: ['#5a9a4a', '#7ab060'], dirt: '#7a6a4a', rock: ['#9a9a8a', '#7a7a6c'], sand: '#e0d4a8',
+    hills: 1.2, peak: 0.8,
+    water: { color: '#4a9ad0', opacity: 0.84 }, lake: 0.7, river: 0.4,
+    flora: { kind: 'hedge', count: 90, groves: -0.1, colors: ['#2f6a32', '#3a7a3a', '#285a2c'] },
+    tufts: ['#ff4a5a', '#ffffff', '#ffd23a'],
+    landmark: [['castle', 4], ['shrine', 1], ['ruins', 1]], path: '#d8c8a0',
+    weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
+    ambient: [],
+  },
+  giant: {
+    label: 'giants’ garden', weight: 0,
+    grass: ['#4a9a3a', '#6ab84a'], dirt: '#6a4a2a', rock: ['#8a8070', '#6a6258'], sand: '#e0d0a0',
+    hills: 2.2, peak: 1.6,
+    water: { color: '#3aa0d8', opacity: 0.84 }, lake: 0.8, river: 0.6,
+    flora: { kind: 'flower', count: 45, groves: 0, colors: ['#ff6a8a', '#ffd23a'] },
+    tufts: ['#ffffff', '#ff86b0', '#ffd84a'],
+    landmark: [['cabin', 2], ['windmill', 2], ['castle', 1], ['village', 1]], path: '#b8996a',
+    weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
+    ambient: ['petals'],
+  },
 };
 
 const SNOW = new THREE.Color('#f4f7fb');
@@ -1029,34 +1107,48 @@ function shadeByHeight(geo, dark) {
   return geo;
 }
 
-// Which trees grow where, and how often.
+// Which trees grow where, and how often. (Adding a kind to a list changes which
+// kind some trees are, not where they stand: every tree still takes one draw.)
 const TREE_SPECIES = {
-  meadow: [['round', 3], ['oak', 3], ['birch', 1], ['bush', 2]],
-  highlands: [['pine', 4], ['fir', 3], ['bush', 1]],
-  autumn: [['round', 3], ['oak', 2], ['birch', 2], ['bush', 1]],
-  desert: [['cactus', 4], ['shrub', 2]],
-  snowfield: [['pine', 3], ['fir', 3]],
-  blossom: [['round', 4], ['oak', 1], ['bush', 1]],
-  dream: [['round', 3], ['poplar', 2], ['bush', 1]],
-  mire: [['round', 2], ['bush', 3], ['poplar', 1]],
-  coral: [['bush', 3], ['round', 2]],
-  toadstool: [['round', 3], ['bush', 2]],
-  stormcrag: [['fir', 3], ['pine', 2], ['bush', 1]],
-  glass: [['poplar', 3], ['fir', 2]],
-  ember: [['pine', 2], ['shrub', 2]],
-  gilded: [['round', 3], ['poplar', 2], ['oak', 1]],
-  jungle: [['round', 3], ['poplar', 2], ['bush', 2], ['oak', 1]],
-  savanna: [['oak', 3], ['shrub', 2]],
-  heath: [['bush', 4], ['shrub', 2], ['pine', 1]],
+  meadow: [['round', 3], ['oak', 3], ['birch', 1], ['bush', 2], ['willow', 1]],
+  highlands: [['pine', 4], ['fir', 3], ['bush', 1], ['birch', 1]],
+  autumn: [['round', 3], ['oak', 2], ['birch', 2], ['bush', 1], ['poplar', 1]],
+  desert: [['cactus', 4], ['shrub', 2], ['palm', 1], ['dead', 1]],
+  snowfield: [['pine', 3], ['fir', 3], ['birch', 1], ['dead', 0.5]],
+  blossom: [['round', 4], ['oak', 1], ['bush', 1], ['willow', 1], ['topiary', 0.5]],
+  dream: [['round', 3], ['poplar', 2], ['bush', 1], ['mushroom', 1], ['crystal', 1]],
+  mire: [['willow', 3], ['dead', 1], ['bush', 2], ['poplar', 1]],
+  coral: [['palm', 4], ['bush', 2]],
+  toadstool: [['mushroom', 5], ['round', 1], ['bush', 1]],
+  stormcrag: [['fir', 3], ['pine', 2], ['dead', 1], ['bush', 1]],
+  glass: [['crystal', 3], ['poplar', 2], ['fir', 1]],
+  ember: [['dead', 3], ['pine', 1], ['shrub', 2]],
+  gilded: [['round', 3], ['poplar', 2], ['topiary', 1], ['oak', 1]],
+  jungle: [['palm', 2], ['round', 3], ['poplar', 1], ['bush', 2], ['oak', 1], ['willow', 1]],
+  savanna: [['acacia', 4], ['shrub', 2], ['dead', 0.5]],
+  heath: [['bush', 4], ['shrub', 2], ['pine', 1], ['dead', 0.5]],
   lavender: [['poplar', 3], ['round', 1], ['bush', 1]],
-  cloudisle: [['round', 3], ['bush', 3]],
-  withered: [['fir', 2], ['shrub', 2], ['bush', 1]],
-  sugar: [['round', 3], ['poplar', 1], ['bush', 2]],
+  cloudisle: [['puff', 4], ['bush', 2]],
+  withered: [['dead', 4], ['fir', 1], ['shrub', 1]],
+  sugar: [['lollipop', 4], ['round', 1], ['bush', 1]],
+  bamboo: [['bamboo', 5], ['bush', 1], ['round', 1]],
+  terraces: [['bush', 5], ['poplar', 1], ['round', 1]],
+  clockwork: [['gear', 4], ['poplar', 1], ['shrub', 1]],
+  paper: [['paper', 4], ['bush', 1]],
+  moon: [['birch', 2], ['crystal', 1], ['poplar', 1], ['dead', 1]],
+  maze: [['hedge', 4], ['topiary', 3], ['poplar', 1]],
+  giant: [['flower', 4], ['mushroom', 1], ['bush', 1]],
 };
 // How high each crown sits, for leaves shaken loose.
-const CROWN_TOP = { round: 1, oak: 1.1, birch: 1.4, fir: 1.4, poplar: 1.5, bush: 0.35, shrub: 0.3, pine: 1.2, cactus: 0.9 };
+const CROWN_TOP = {
+  round: 1, oak: 1.1, birch: 1.4, fir: 1.4, poplar: 1.5, bush: 0.35, shrub: 0.3, pine: 1.2, cactus: 0.9,
+  mushroom: 1, palm: 1.45, acacia: 1.2, dead: 1.2, lollipop: 1.45, crystal: 1.4, willow: 1.3, bamboo: 1.6,
+  gear: 1.5, paper: 1.4, topiary: 1.4, hedge: 0.55, flower: 1.45, puff: 1.15,
+};
 
 const ico = (r, x, y, z, sy = 1) => new THREE.IcosahedronGeometry(r, 0).scale(1, sy, 1).translate(x, y, z);
+// Merge pieces of any make (indexed or not, which mergeGeometries won't mix).
+const flat = (...geos) => mergeGeometries(geos.map((g) => (g.index ? g.toNonIndexed() : g)));
 
 function speciesGeometry(kind) {
   const plain = (trunk, crown, extra = {}) => ({ trunk: trunk && shadeByHeight(trunk, 0.55), crown: shadeByHeight(crown, extra.dark ?? 0.45), ...extra });
@@ -1107,6 +1199,123 @@ function speciesGeometry(kind) {
       return plain(null, mergeGeometries([ico(0.28, 0, 0.2, 0), ico(0.22, 0.22, 0.15, 0.08), ico(0.2, -0.18, 0.16, -0.1)]), { dark: 0.55 });
     case 'shrub':
       return plain(null, mergeGeometries([ico(0.18, 0, 0.14, 0, 0.8), ico(0.14, 0.15, 0.1, 0.05, 0.8), ico(0.12, -0.12, 0.1, -0.08, 0.8)]), { dark: 0.6 });
+    case 'mushroom': {
+      // A toadstool as tall as a tree: a pale stem and a broad cap.
+      const stem = new THREE.CylinderGeometry(0.09, 0.14, 0.9, 7).translate(0, 0.45, 0);
+      const cap = flat(
+        new THREE.SphereGeometry(0.55, 9, 4, 0, TAU, 0, Math.PI / 2).scale(1, 0.6, 1).translate(0, 0.84, 0),
+        new THREE.CylinderGeometry(0.55, 0.42, 0.08, 9).translate(0, 0.82, 0),
+      );
+      return { trunk: shadeByHeight(stem, 0.75), trunkColor: '#efe6d2', crown: shadeByHeight(cap, 0.55) };
+    }
+    case 'palm': {
+      // A leaning trunk and a crown of drooping fronds.
+      const trunk = flat(...[0, 1, 2, 3].map((i) => new THREE.CylinderGeometry(0.055 - i * 0.007, 0.07 - i * 0.007, 0.37, 6).translate(i * 0.05, 0.18 + i * 0.34, 0)));
+      const fronds = Array.from({ length: 7 }, (_, i) => new THREE.ConeGeometry(0.12, 0.85, 4)
+        .rotateZ(-Math.PI / 2).scale(1, 0.3, 1).rotateZ(-0.45).translate(0.36, 0, 0).rotateY((i / 7) * TAU).translate(0.15, 1.42, 0));
+      return { trunk: shadeByHeight(trunk, 0.6), trunkColor: '#8a6a44', crown: shadeByHeight(flat(...fronds, ico(0.1, 0.15, 1.44, 0)), 0.5) };
+    }
+    case 'acacia': {
+      // A thin forked trunk under a flat, wide crown: the savanna's umbrella tree.
+      const trunk = flat(
+        new THREE.CylinderGeometry(0.05, 0.08, 0.7, 5).translate(0, 0.35, 0),
+        new THREE.CylinderGeometry(0.03, 0.045, 0.5, 5).rotateZ(0.6).translate(-0.13, 0.85, 0),
+        new THREE.CylinderGeometry(0.03, 0.045, 0.5, 5).rotateZ(-0.6).translate(0.13, 0.85, 0),
+      );
+      return plain(trunk, flat(ico(0.58, 0, 1.12, 0, 0.3), ico(0.36, 0.34, 1.08, 0.12, 0.35), ico(0.33, -0.34, 1.1, -0.1, 0.35)));
+    }
+    case 'dead': {
+      // Bare branches and no leaves: the crown is the branches.
+      const trunk = new THREE.CylinderGeometry(0.05, 0.1, 0.9, 5).translate(0, 0.45, 0);
+      const twigs = flat(
+        new THREE.CylinderGeometry(0.02, 0.035, 0.5, 4).rotateZ(0.8).translate(-0.18, 0.95, 0),
+        new THREE.CylinderGeometry(0.02, 0.035, 0.45, 4).rotateZ(-0.7).translate(0.16, 1.0, 0.05),
+        new THREE.CylinderGeometry(0.015, 0.03, 0.35, 4).rotateX(0.7).translate(0, 1.05, 0.14),
+        new THREE.CylinderGeometry(0.015, 0.025, 0.3, 4).rotateZ(0.3).translate(0.04, 1.2, -0.04),
+      );
+      return plain(trunk, twigs, { dark: 0.45 });
+    }
+    case 'lollipop': {
+      // A stick and a round, striped sweet.
+      const stick = new THREE.CylinderGeometry(0.03, 0.03, 0.95, 5).translate(0, 0.47, 0);
+      const sweet = flat(
+        new THREE.CylinderGeometry(0.4, 0.4, 0.12, 14).rotateX(Math.PI / 2).translate(0, 1.18, 0),
+        new THREE.TorusGeometry(0.4, 0.045, 4, 14).translate(0, 1.18, 0),
+      );
+      return { trunk: shadeByHeight(stick, 0.85), trunkColor: '#f4efe6', crown: shadeByHeight(sweet, 0.7) };
+    }
+    case 'crystal': {
+      // No trunk: a cluster of tall glassy spires.
+      const spike = (h, r, x, z, tilt) => new THREE.OctahedronGeometry(r, 0).scale(1, h / r, 1).rotateZ(tilt).translate(x, h * 0.9, z);
+      return plain(null, flat(spike(0.75, 0.16, 0, 0, 0), spike(0.5, 0.12, 0.18, 0.08, -0.3), spike(0.45, 0.11, -0.16, -0.06, 0.35)), { dark: 0.75 });
+    }
+    case 'willow': {
+      // A round head with long strands hanging down all round it.
+      const strands = Array.from({ length: 9 }, (_, i) => {
+        const a = (i / 9) * TAU;
+        return new THREE.ConeGeometry(0.1, 0.75, 4).rotateX(Math.PI).translate(Math.cos(a) * 0.42, 0.78, Math.sin(a) * 0.42);
+      });
+      return plain(new THREE.CylinderGeometry(0.07, 0.12, 0.8, 6).translate(0, 0.4, 0), flat(ico(0.46, 0, 1.15, 0, 0.7), ...strands), { dark: 0.4 });
+    }
+    case 'bamboo': {
+      // A clump of jointed canes with sprays of leaves at the top.
+      const pieces = [];
+      for (const [x, z, h] of [[0, 0, 1.7], [0.14, 0.06, 1.45], [-0.12, 0.1, 1.55], [0.05, -0.14, 1.25], [-0.08, -0.1, 1.35]]) {
+        for (let y = 0; y < h; y += 0.32) pieces.push(new THREE.CylinderGeometry(0.034, 0.04, 0.29, 5).translate(x, y + 0.15, z));
+        pieces.push(ico(0.15, x + 0.06, h + 0.02, z, 0.45), ico(0.12, x - 0.07, h - 0.16, z + 0.04, 0.45));
+      }
+      return plain(null, flat(...pieces), { dark: 0.55 });
+    }
+    case 'gear': {
+      // A big cog on a post, standing on its edge, with a little one turning against it.
+      const post = new THREE.CylinderGeometry(0.04, 0.06, 0.8, 6).translate(0, 0.4, 0);
+      const cog = (r, teeth, x, y) => [
+        new THREE.CylinderGeometry(r, r, 0.1, 16).rotateX(Math.PI / 2).translate(x, y, 0),
+        new THREE.CylinderGeometry(r * 0.28, r * 0.28, 0.16, 8).rotateX(Math.PI / 2).translate(x, y, 0),
+        ...Array.from({ length: teeth }, (_, i) => {
+          const a = (i / teeth) * TAU;
+          return new THREE.BoxGeometry(r * 0.38, r * 0.34, 0.1).rotateZ(a).translate(x + Math.cos(a) * r * 1.12, y + Math.sin(a) * r * 1.12, 0);
+        }),
+      ];
+      const wheel = flat(...cog(0.46, 9, 0, 1.12), ...cog(0.22, 7, 0.6, 1.5));
+      return { trunk: shadeByHeight(post, 0.6), trunkColor: '#6a5038', crown: shadeByHeight(wheel, 0.65) };
+    }
+    case 'paper': {
+      // Folded paper: four-sided cones stacked like an origami fir.
+      return {
+        trunk: shadeByHeight(new THREE.CylinderGeometry(0.03, 0.04, 0.4, 4).translate(0, 0.2, 0), 0.7),
+        trunkColor: '#cbb894',
+        crown: shadeByHeight(flat(
+          new THREE.ConeGeometry(0.45, 0.6, 4).translate(0, 0.6, 0),
+          new THREE.ConeGeometry(0.34, 0.5, 4).rotateY(Math.PI / 4).translate(0, 0.95, 0),
+          new THREE.ConeGeometry(0.22, 0.42, 4).translate(0, 1.27, 0),
+        ), 0.8),
+      };
+    }
+    case 'topiary':
+      // Clipped balls on a stick.
+      return plain(new THREE.CylinderGeometry(0.035, 0.05, 0.6, 5).translate(0, 0.3, 0),
+        flat(new THREE.IcosahedronGeometry(0.3, 1).translate(0, 0.85, 0), new THREE.IcosahedronGeometry(0.2, 1).translate(0, 1.25, 0)), { dark: 0.5 });
+    case 'hedge':
+      // A block of clipped hedge.
+      return plain(null, new THREE.BoxGeometry(0.75, 0.55, 0.36).translate(0, 0.27, 0), { dark: 0.55 });
+    case 'flower': {
+      // A flower taller than you: a green stem, five round petals and a middle.
+      const stem = new THREE.CylinderGeometry(0.04, 0.05, 1.3, 5).translate(0, 0.65, 0);
+      const petals = Array.from({ length: 5 }, (_, i) => {
+        const a = (i / 5) * TAU;
+        return new THREE.IcosahedronGeometry(0.2, 0).scale(1, 0.35, 1).translate(Math.cos(a) * 0.24, 1.36, Math.sin(a) * 0.24);
+      });
+      return { trunk: shadeByHeight(stem, 0.6), trunkColor: '#5a9a3a', crown: shadeByHeight(flat(...petals, new THREE.IcosahedronGeometry(0.13, 0).scale(1, 0.5, 1).translate(0, 1.38, 0)), 0.8) };
+    }
+    case 'puff':
+      // A tree made of cloud.
+      return plain(new THREE.CylinderGeometry(0.04, 0.06, 0.55, 5).translate(0, 0.27, 0), flat(
+        new THREE.IcosahedronGeometry(0.32, 1).translate(0, 0.85, 0),
+        new THREE.IcosahedronGeometry(0.26, 1).translate(0.24, 0.78, 0.06),
+        new THREE.IcosahedronGeometry(0.24, 1).translate(-0.22, 0.8, -0.05),
+        new THREE.IcosahedronGeometry(0.22, 1).translate(0.02, 1.08, 0.04),
+      ), { dark: 0.8, trunkColor: '#d8d0e0' });
     default:
       return plain(new THREE.CylinderGeometry(0.07, 0.11, 0.7, 5).translate(0, 0.35, 0), new THREE.IcosahedronGeometry(0.5, 0).translate(0, 0.98, 0));
   }
@@ -1114,9 +1323,18 @@ function speciesGeometry(kind) {
 
 function speciesColors(kind, biome, biomeKey) {
   const base = biome.flora.colors;
-  if (kind === 'birch') return (biomeKey === 'autumn' ? ['#e8c840', '#f0d35a', '#d9a832'] : ['#9ccf5a', '#b5d96a', '#88c04f']).map((h) => new THREE.Color(h));
+  if (kind === 'birch') return (biomeKey === 'autumn' ? ['#e8c840', '#f0d35a', '#d9a832'] : biomeKey === 'moon' ? ['#e6ecf6', '#cdd8ea', '#f4f7ff'] : ['#9ccf5a', '#b5d96a', '#88c04f']).map((h) => new THREE.Color(h));
   if (kind === 'shrub') return ['#8a8a4a', '#9a9455', '#7d7a40'].map((h) => new THREE.Color(h));
   if (kind === 'bush') return base.map((c) => c.clone().offsetHSL(0, 0, -0.06));
+  const own = {
+    dead: biomeKey === 'ember' ? ['#2e2622', '#3a302a', '#241e1a'] : ['#5a4a3a', '#4a3e32', '#6a5a48'],
+    gear: ['#c9a04a', '#b8863a', '#d9b45a', '#a8703a', '#8a9a9a'],
+    palm: ['#3f8f3a', '#4ea045', '#2f7d34'],
+    bamboo: ['#5a9a3a', '#6aaa45', '#4a8a32'],
+    puff: ['#ffffff', '#f4f6ff', '#fff4fa'],
+    flower: ['#ff6a8a', '#ffd23a', '#8a7aff', '#ff9a3a', '#ffffff'],
+  }[kind];
+  if (own) return own.map((h) => new THREE.Color(h));
   return base;
 }
 
@@ -1356,6 +1574,7 @@ function buildAmbient(kind, top, shape, r) {
     sparkles: { count: 70, size: 0.16, colors: ['#ffffff', '#ffd6fb', '#b7fff3'], glow: 2, night: false },
     petals: { count: 80, size: 0.12, colors: ['#ffc4d6', '#ffe0ea'], fall: true },
     leaves: { count: 70, size: 0.13, colors: ['#e07a2c', '#f0b03a', '#c2452d'], fall: true },
+    scraps: { count: 50, size: 0.13, colors: ['#ffffff', '#f6efe0', '#e4ecff'], fall: true },
     embers: { count: 60, size: 0.13, colors: ['#ff8a3a', '#ffb84a', '#ff5a1f'], glow: 2.5, night: false },
     spores: { count: 60, size: 0.12, colors: ['#e8ffd0', '#fff2c0', '#d0f0ff'], glow: 1.6, night: false },
     wisps: { count: 16, size: 0.3, colors: ['#9dffb0', '#c8ffe0'], glow: 3, night: false },
@@ -1536,7 +1755,7 @@ export function generateLand(seed, want = {}) {
   // Wildlife: birds, butterflies, bats and dragonflies in the air; rabbits and
   // deer on the ground; ducks and fish in the lake.
   const life = buildLife({
-    top, shape, biome, biomeKey, blocked, bursts, r: makeRandom(seed, 'life'),
+    top, shape, biome, biomeKey, blocked, bursts, r: makeRandom(seed, 'life'), fauna: makeRandom(seed, 'fauna'),
     water: water?.ripple ? water : null, waterLevel: WATER_LEVEL, sound: (kind) => hooks.sound(kind), note: (kind) => hooks.note(kind),
   });
   add(life);

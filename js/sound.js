@@ -154,6 +154,8 @@ export function createSoundscape() {
       if (kind === 'chime') [1320, 1980, 2640].forEach((f, i) => tone({ frequency: f, duration: 1.4 - i * 0.3, level: 0.05 / (i + 1) }));
       if (kind === 'quack') [0, 0.17].forEach((delay) => tone({ frequency: 430, to: 300, duration: 0.12, level: 0.05, type: 'sawtooth', delay }));
       if (kind === 'thud') tone({ frequency: 160, to: 70, duration: 0.25, level: 0.12, type: 'triangle' });
+      if (kind === 'baa') [0, 0.09, 0.18].forEach((delay) => tone({ frequency: 360, to: 330, duration: 0.1, level: 0.04, type: 'sawtooth', delay }));
+      if (kind === 'ribbit') [0, 0.11].forEach((delay) => tone({ frequency: 170, to: 260, duration: 0.07, level: 0.06, type: 'square', delay }));
     },
   };
 }

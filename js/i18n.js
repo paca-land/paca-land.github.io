@@ -24,7 +24,11 @@ export function t(en, vars) {
     if (ZH[en] === undefined) missing.add(en);
     else text = ZH[en];
   }
-  return vars ? text.replace(/\{(\w+)\}/g, (all, k) => (k in vars ? vars[k] : all)) : text;
+  if (!vars) return text;
+  text = text.replace(/\{(\w+)\}/g, (all, k) => (k in vars ? vars[k] : all));
+  // Chinese puts a space around a Latin word (“Wa 的”), but none between two
+  // characters, which is what a space by {name} becomes when the name is Chinese.
+  return lang === 'zh' ? text.replace(/([一-鿿]) (?=[一-鿿])/g, '$1') : text;
 }
 
 export function setLang(next) {
