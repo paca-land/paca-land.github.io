@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="main.css?v=17">
+  <link rel="stylesheet" href="main.css?v=40">
   <!--
     three.js r170 is vendored in vendor/three (MIT, see its LICENSE): no third-party scripts at runtime.
     The ?v= numbers dodge the CDN's hours-long cache: bump them all together when the site's own files change.
@@ -18,31 +18,36 @@
       "imports": {
         "three": "./vendor/three/build/three.module.js",
         "three/addons/": "./vendor/three/examples/jsm/",
-        "./js/world.js": "./js/world.js?v=17",
-        "./js/sky.js": "./js/sky.js?v=17",
-        "./js/effects.js": "./js/effects.js?v=17",
-        "./js/interact.js": "./js/interact.js?v=17",
-        "./js/conditions.js": "./js/conditions.js?v=17",
-        "./js/landmarks.js": "./js/landmarks.js?v=17",
-        "./js/random.js": "./js/random.js?v=17",
-        "./js/grass.js": "./js/grass.js?v=17",
-        "./js/life.js": "./js/life.js?v=17",
-        "./js/sound.js": "./js/sound.js?v=17",
-        "./js/details.js": "./js/details.js?v=17",
-        "./js/skygrab.js": "./js/skygrab.js?v=17",
-        "./js/journal.js": "./js/journal.js?v=17",
-        "./js/rarity.js": "./js/rarity.js?v=17"
+        "./js/world.js": "./js/world.js?v=40",
+        "./js/sky.js": "./js/sky.js?v=40",
+        "./js/effects.js": "./js/effects.js?v=40",
+        "./js/interact.js": "./js/interact.js?v=40",
+        "./js/conditions.js": "./js/conditions.js?v=40",
+        "./js/landmarks.js": "./js/landmarks.js?v=40",
+        "./js/random.js": "./js/random.js?v=40",
+        "./js/grass.js": "./js/grass.js?v=40",
+        "./js/life.js": "./js/life.js?v=40",
+        "./js/sound.js": "./js/sound.js?v=40",
+        "./js/details.js": "./js/details.js?v=40",
+        "./js/skygrab.js": "./js/skygrab.js?v=40",
+        "./js/journal.js": "./js/journal.js?v=40",
+        "./js/rarity.js": "./js/rarity.js?v=40",
+        "./js/lexicon.js": "./js/lexicon.js?v=40",
+        "./js/voyage.js": "./js/voyage.js?v=40",
+        "./js/tales.js": "./js/tales.js?v=40",
+        "./js/i18n.js": "./js/i18n.js?v=40",
+        "./js/zh.js": "./js/zh.js?v=40"
       }
     }
   </script>
-  <script type="module" src="js/main.js?v=17"></script>
+  <script type="module" src="js/main.js?v=40"></script>
 </head>
 <body class="in-flight">
 
 <canvas id="world" aria-label="A small floating land. Drag to look around."></canvas>
 
 <header class="hud-top">
-  <p class="welcome">Welcome to <a class="magic" href="#" title="Back to the home land">PaCaLand.</a></p>
+  <p class="welcome"><span data-i18n>Welcome to</span> <a class="magic" href="#" title="Back to the home land">PaCaLand.</a></p>
   <h1 id="land-name">&nbsp;</h1>
   <p id="land-meta"></p>
   <p id="conditions"></p>
@@ -56,25 +61,25 @@
 
   <div id="panel" class="panel" hidden>
     <div class="row time-row">
-      <label for="time">time</label>
+      <label for="time" data-i18n>time</label>
       <input id="time" type="range" min="0" max="23.99" step="0.01">
       <output id="time-out" for="time"></output>
-      <button id="live" type="button" class="chip">live</button>
-      <button id="timelapse" type="button" class="chip">time lapse</button>
+      <button id="live" type="button" class="chip" data-i18n>live</button>
+      <button id="timelapse" type="button" class="chip" data-i18n>time lapse</button>
     </div>
     <div class="row chips" id="weather-chips"></div>
     <div class="row quality-row">
-      <span>quality</span>
+      <span data-i18n>quality</span>
       <div class="chips row" id="quality-chips"></div>
     </div>
   </div>
 
-  <p id="hint">Tap trees, water and buildings · double-click to look closer</p>
+  <p id="hint" data-i18n>Tap trees, water and buildings · double-click to look closer</p>
 
   <form id="visit" class="bar">
     <input id="seed-input" type="text" maxlength="40" autocomplete="off" spellcheck="false"
            placeholder="Type any word to grow a land" aria-label="Land name or seed">
-    <button type="submit" class="primary">visit</button>
+    <button type="submit" class="primary" data-i18n>visit</button>
     <button type="button" id="dice" class="icon" aria-label="Visit a random land" title="Random land">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle class="pip" cx="8.5" cy="8.5" r="1.4"/><circle class="pip" cx="12" cy="12" r="1.4"/><circle class="pip" cx="15.5" cy="15.5" r="1.4"/></svg>
     </button>
@@ -97,15 +102,17 @@
 </div>
 
 <div id="photo-ui" class="panel" hidden>
-  <label>exposure <input id="photo-exposure" type="range" min="-1" max="1" step="0.05" value="0"></label>
-  <label>focus blur <input id="photo-blur" type="range" min="0" max="14" step="0.5" value="5"></label>
+  <label><span data-i18n>exposure</span> <input id="photo-exposure" type="range" min="-1" max="1" step="0.05" value="0"></label>
+  <label><span data-i18n>focus blur</span> <input id="photo-blur" type="range" min="0" max="14" step="0.5" value="5"></label>
   <div class="row">
-    <button id="photo-save" type="button" class="chip primary-chip">save picture</button>
-    <button id="photo-done" type="button" class="chip">done</button>
+    <button id="photo-save" type="button" class="chip primary-chip" data-i18n>save picture</button>
+    <button id="photo-done" type="button" class="chip" data-i18n>done</button>
   </div>
 </div>
 
-<p class="fallback">Welcome to <span class="magic">PaCaLand.</span></p>
+<button type="button" id="lang" class="lang-switch" lang="zh-CN" title="Switch language" aria-label="Switch language">中文</button>
+
+<p class="fallback"><span data-i18n>Welcome to</span> <span class="magic">PaCaLand.</span></p>
 
 </body>
 </html>

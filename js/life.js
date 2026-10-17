@@ -507,12 +507,13 @@ export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, wat
   const lush = ['meadow', 'highlands', 'autumn', 'blossom'].includes(biomeKey);
 
   add(buildBirds(r, r.int(6, 10)));
-  add(buildButterflies(spots.slice(0, 40), r, { meadow: 14, blossom: 16, dream: 16, autumn: 10, highlands: 8, desert: 4, snowfield: 0 }[biomeKey]));
+  add(buildButterflies(spots.slice(0, 40), r, { meadow: 14, blossom: 16, dream: 16, autumn: 10, highlands: 8, desert: 4, snowfield: 0, coral: 8, toadstool: 10, gilded: 12, jungle: 18, savanna: 6, heath: 6, lavender: 18, cloudisle: 8, sugar: 14 }[biomeKey]));
   add(buildBats(r, biomeKey === 'snowfield' ? 0 : r.int(5, 8), 0.9 + biome.hills * 0.6, note));
   add(buildRabbits({ spots, shape, r, count: biomeKey === 'dream' ? 0 : r.int(4, 7), coat: COATS[biomeKey] ?? '#a07850', sound, note, bursts }));
   add(buildDeer({ spots, shape, r, count: lush ? r.int(2, 4) : 0, sound, note }));
   let fish = null;
-  if (water) {
+  // Nothing swims in lava.
+  if (water && !biome.water.lava) {
     // The open-water radius: the nearest the shore comes to the lake's middle.
     let open = Infinity;
     for (let i = 0; i < 24; i++) open = Math.min(open, shape.shoreDistance(shape.lake, (i / 24) * TAU));

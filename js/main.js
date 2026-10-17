@@ -10,10 +10,15 @@ import { fxUniforms, createLightShafts, createFinishPass, createReflection, useS
 import { createInteraction } from './interact.js';
 import { createSoundscape } from './sound.js';
 import { createSkyGrab } from './skygrab.js';
-import { createJournal, tierTag } from './journal.js';
+import { createJournal, tierTag, showToast } from './journal.js';
+import { createVoyage } from './voyage.js';
 import { landRarity } from './rarity.js';
 import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
+import { t, lang, setLang, translatePage } from './i18n.js';
+
+// The page's own words, in the chosen language, before anything can fail.
+translatePage();
 
 const HOME = 'pacaland';
 const $ = (sel) => document.querySelector(sel);
@@ -188,12 +193,15 @@ function arrive(next) {
   }
   leaving = null;
   seed = next;
-  land = generateLand(seed);
+  land = generateLand(seed, voyage.landOptions(seed));
   land.setDetail(QUALITY[quality].grass);
   land.hooks.sound = (kind) => sound.play(kind);
-  land.hooks.note = (kind) => journal.note(kind);
+  land.hooks.note = (kind) => {
+    journal.note(kind);
+    voyage.note(kind);
+  };
   scene.add(land.group);
-  vibe = isHome() ? null : landVibe(seed, land.biome);
+  vibe = voyage.vibe(seed, land) ?? (isHome() ? null : landVibe(seed, land.biome));
   // Every land arrives in its own time and weather; picks from the panel don't follow you.
   weatherOverride = null;
   timeOverride = null;
@@ -213,13 +221,21 @@ function arrive(next) {
   bornAt = vibeStart = clock.elapsedTime;
   rise = -0.05;
   perf.settleUntil = performance.now() + 3000;
-  $('#land-name').textContent = land.name;
+  // On a voyage, an island is called what you said (as the sky heard it).
+  const name = voyage.active ? voyage.word().replace(/^./, (c) => c.toUpperCase()) : land.name;
+  $('#land-name').textContent = name;
   const rarity = landRarity(land);
-  $('#land-meta').replaceChildren(`${land.biome.label} · #${seed} · `, tierTag(rarity));
-  explainRarity(rarity);
-  journal.visit(land, seed, rarity);
-  document.title = isHome() ? 'PaCaLand' : `${land.name} · PaCaLand`;
+  // A voyage's words can put landmarks where the generator never would, so
+  // rarity (counted from free lands) doesn't apply there.
+  if (voyage.active) $('#land-meta').textContent = t(land.biome.label);
+  else {
+    $('#land-meta').replaceChildren(`${t(land.biome.label)} · #${seed} · `, tierTag(rarity));
+    explainRarity(rarity);
+  }
+  journal.visit(land, seed, rarity, voyage.active);
+  document.title = isHome() ? 'PaCaLand' : `${name} · PaCaLand`;
   renderChips();
+  voyage.arrived(land, seed);
 }
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -228,21 +244,22 @@ const fahrenheit = /^en-US/.test(navigator.language);
 const formatTemp = (c) => (fahrenheit ? `${Math.round(c * 1.8 + 32)}°F` : `${Math.round(c)}°C`);
 
 function phaseName(e, hours) {
-  if (e < -0.12) return 'night';
-  if (e < 0) return hours < 12 ? 'dawn' : 'dusk';
-  if (e < 0.18) return hours < 12 ? 'sunrise' : 'golden hour';
-  return hours < 11 ? 'morning' : hours < 15 ? 'midday' : 'afternoon';
+  if (e < -0.12) return t('night');
+  if (e < 0) return hours < 12 ? t('dawn') : t('dusk');
+  if (e < 0.18) return hours < 12 ? t('sunrise') : t('golden hour');
+  return hours < 11 ? t('morning') : hours < 15 ? t('midday') : t('afternoon');
 }
 
 function conditionsText(hours, env) {
   const weather = weatherOverride ?? naturalWeather();
   const parts = [];
-  if (timeOverride !== null) parts.push(`${formatHours(hours)} (scrubbed)`);
-  else if (isHome()) parts.push(`${formatHours(hours)} ${place.label === 'your sky' ? 'your time' : `in ${place.label}`}`);
-  else parts.push(`${formatHours(hours)} here`);
+  if (voyage.active) parts.push(formatHours(hours));
+  else if (timeOverride !== null) parts.push(t('{time} (scrubbed)', { time: formatHours(hours) }));
+  else if (isHome()) parts.push(place.label === 'your sky' ? t('{time} your time', { time: formatHours(hours) }) : t('{time} in {place}', { time: formatHours(hours), place: place.label }));
+  else parts.push(t('{time} here', { time: formatHours(hours) }));
   parts.push(phaseName(env.e, hours));
-  parts.push(WEATHERS[weather].label);
-  if (isHome() && live && !weatherOverride) parts.push(`${formatTemp(live.temperature)}, live`);
+  parts.push(t(WEATHERS[weather].label));
+  if (isHome() && live && !weatherOverride) parts.push(t('{temp}, live', { temp: formatTemp(live.temperature) }));
   return parts.join(' · ');
 }
 
@@ -251,13 +268,21 @@ function conditionsText(hours, env) {
 const input = $('#seed-input');
 $('#visit').addEventListener('submit', (event) => {
   event.preventDefault();
+  // On a voyage, the word is where you fly next.
+  if (voyage.active) {
+    if (voyage.submit(input.value)) input.blur();
+    return;
+  }
   const value = input.value.trim().toLowerCase();
   if (!value) return;
   location.hash = encodeURIComponent(value);
   input.value = '';
   input.blur();
 });
+input.addEventListener('input', () => voyage.preview(input.value));
 $('#dice').addEventListener('click', () => {
+  // A voyage's words are yours to choose (the dice are hidden then, too).
+  if (voyage.active) return;
   location.hash = randomSeed();
 });
 $('#share').addEventListener('click', async () => {
@@ -276,7 +301,7 @@ function explainRarity(rarity) {
   const tag = $('#land-meta .tier');
   tag.removeAttribute('title');
   why.hidden = true;
-  why.replaceChildren(...[`rarer than ${rarity.rarerThan}% of lands. it has:`, ...rarity.reasons].map((text) => Object.assign(document.createElement('p'), { textContent: text })));
+  why.replaceChildren(...[t('rarer than {n}% of lands. it has:', { n: rarity.rarerThan }), ...rarity.reasons].map((text) => Object.assign(document.createElement('p'), { textContent: text })));
   tag.addEventListener('pointerenter', (event) => {
     if (event.pointerType === 'mouse') why.hidden = false;
   });
@@ -308,8 +333,40 @@ const journal = createJournal({
 });
 journal.restore();
 $('#journal-button').addEventListener('click', () => {
+  // On a voyage, the book is the sky's language instead.
+  if (voyage.active) return voyage.toggleBook();
   setPanel(false);
   journal.toggle();
+});
+
+// A voyage to the Edge of the Sky, where every destination is a word (see voyage.js).
+const voyage = createVoyage({
+  fly: (next) => visit(next),
+  // Back to the land in the address bar.
+  leave: () => visit(readSeed()),
+  // Hours spent on a voyage swing the sun over rather than jumping it.
+  setClock: (hours) => {
+    glide.from.sunDir.copy(skyState.sunDir);
+    glide.from.moonDir.copy(skyState.moonDir);
+    glide.k = 0;
+    timeOverride = hours;
+  },
+  clearStorm: () => {
+    weatherOverride = 'cloudy';
+    applyWeather('fade');
+  },
+  toast: (emoji, text) => showToast($('#toasts'), emoji, text),
+});
+
+// 中文 / English. Switching reloads the page (the words are read once, as it
+// loads); a voyage under way is picked up again where it was.
+const langButton = $('#lang');
+langButton.textContent = lang === 'zh' ? 'English' : '中文';
+langButton.addEventListener('click', () => {
+  try {
+    if (voyage.active) sessionStorage.setItem('paca-resume', '1');
+  } catch {}
+  setLang(lang === 'zh' ? 'en' : 'zh');
 });
 
 const timeSlider = $('#time');
@@ -330,7 +387,7 @@ const timelapseButton = $('#timelapse');
 function setTimelapse(on) {
   timelapse = on ? { start: clock.elapsedTime, from: landHours() } : null;
   timelapseButton.setAttribute('aria-pressed', String(on));
-  timelapseButton.textContent = on ? 'stop time lapse' : 'time lapse';
+  timelapseButton.textContent = on ? t('stop time lapse') : t('time lapse');
 }
 timelapseButton.addEventListener('click', () => setTimelapse(!timelapse));
 function updateTimelapse() {
@@ -415,18 +472,18 @@ function chipRow(container, options, selected, onPick) {
 }
 
 function renderChips() {
-  const natural = WEATHERS[naturalWeather()].label;
+  const natural = t(WEATHERS[naturalWeather()].label);
   chipRow($('#weather-chips'), [
-    [null, isHome() && live ? `live (${natural})` : `natural (${natural})`],
-    ...Object.entries(WEATHERS).map(([name, w]) => [name, w.label]),
+    [null, isHome() && live ? t('live ({weather})', { weather: natural }) : t('natural ({weather})', { weather: natural })],
+    ...Object.entries(WEATHERS).map(([name, w]) => [name, t(w.label)]),
   ], weatherOverride, (name) => {
     weatherOverride = name;
     applyWeather(false);
     renderChips();
   });
   chipRow($('#quality-chips'), [
-    ['auto', `auto (${QUALITY[quality].label})`],
-    ...QUALITY.map((q, i) => [i, q.label]),
+    ['auto', t('auto ({quality})', { quality: t(QUALITY[quality].label) })],
+    ...QUALITY.map((q, i) => [i, t(q.label)]),
   ], qualityMode, (mode) => {
     qualityMode = mode;
     if (mode !== 'auto') quality = mode;
@@ -435,7 +492,10 @@ function renderChips() {
   });
 }
 
-addEventListener('hashchange', () => visit(readSeed()));
+// On a voyage the address bar isn't the way to travel.
+addEventListener('hashchange', () => {
+  if (!voyage.active) visit(readSeed());
+});
 
 function readSeed() {
   let raw = '';
@@ -526,7 +586,8 @@ function sizeRenderer() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   // Phones give the word box a row of its own (main.css), so only the narrowest need the short one.
-  input.placeholder = w < 360 ? 'Name a land…' : 'Type any word to grow a land';
+  // (A voyage keeps its own placeholder.)
+  if (!voyage.active) input.placeholder = w < 360 ? t('Name a land…') : t('Type any word to grow a land');
   return true;
 }
 
@@ -634,7 +695,7 @@ controls.addEventListener('end', () => {
 
 // Two things worth knowing, one after the other, then out of the way (or gone at the first tap).
 const hint = $('#hint');
-if (lowPower) hint.textContent = 'Tap trees, water and buildings · double-tap to look closer';
+if (lowPower) hint.textContent = t('Tap trees, water and buildings · double-tap to look closer');
 let hintDismissed = false;
 function dismissHint() {
   hintDismissed = true;
@@ -645,14 +706,15 @@ setTimeout(() => {
   hint.classList.add('gone');
   setTimeout(() => {
     if (hintDismissed) return;
-    hint.textContent = 'Drag the sun or moon to change the time';
+    hint.textContent = t('Drag the sun or moon to change the time');
     hint.classList.remove('gone');
   }, 1200);
 }, 7000);
 setTimeout(dismissHint, 14000);
 
 const interaction = createInteraction(renderer.domElement, camera, () => (leaving ? [] : land?.clickables ?? []), {
-  onClick: () => {
+  onClick: (picked, event) => {
+    voyage.tapped(event);
     idleSince = performance.now();
     dismissHint();
     why.hidden = true;
@@ -663,6 +725,8 @@ const interaction = createInteraction(renderer.domElement, camera, () => (leavin
 // Grab the sun (or the moon) and drag it to set the time.
 const skyGrab = createSkyGrab(renderer.domElement, camera, {
   sky, state: skyState, skyAt: skyAtHours, hours: landHours, label: formatHours,
+  // On a voyage, time is part of the game.
+  enabled: () => !voyage.active,
   onGrab: () => {
     // Holding the sun takes over from the opening flight and from a sky still swinging over
     // (the grab stops the pointerdown that would otherwise end the flight).
@@ -688,7 +752,12 @@ addEventListener('resize', resize);
 new ResizeObserver(resize).observe(document.documentElement);
 applyQuality();
 resize();
-visit(readSeed());
+let resuming = false;
+try {
+  resuming = sessionStorage.getItem('paca-resume') === '1';
+  sessionStorage.removeItem('paca-resume');
+} catch {}
+if (!(resuming && voyage.pickUp())) visit(readSeed());
 if (!reducedMotion) startIntro();
 refreshLiveWeather();
 setInterval(refreshLiveWeather, 15 * 60 * 1000);
@@ -751,6 +820,7 @@ function renderFrame() {
   fxUniforms.uRain.value = env.rain;
   land.update(t, dt, env);
   journal.watch(env, skyState, land);
+  voyage.update(env);
 
   // New lands grow up out of the clouds; old ones spin on down into them,
   // from wherever they were, even halfway up.
@@ -770,7 +840,7 @@ function renderFrame() {
   document.body.classList.toggle('in-flight', Boolean(leaving) || rise < 0);
 
   // Aurora needs a cold place: a snowy or high land, fresh snow, or a freezing night at home.
-  sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1));
+  sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
   updateIntro(dt);
   updateFocus(t);
   controls.autoRotate = !intro && !reducedMotion && !photo.on && nowMs - idleSince > 8000;

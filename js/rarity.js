@@ -1,4 +1,5 @@
 import { BIOMES } from './world.js';
+import { t } from './i18n.js';
 
 // How rare a land is, from what it's made of: its biome, its landmark, its
 // water and whether a balloon drifts by. The odds of each landmark and kind of
@@ -41,7 +42,7 @@ const TIERS = [['legendary', 3.153], ['epic', 2.865], ['rare', 2.4], ['uncommon'
 const PLURAL = { meadow: 'meadows', highlands: 'highlands', autumn: 'autumn woods', desert: 'desert mesas', snowfield: 'snowfields', blossom: 'blossom vales', dream: 'dreamlands' };
 const LANDMARK_NAMES = { stones: 'standing stones', wizard: "wizard's tower", none: 'no landmark' };
 const WATER_NAMES = { falls: 'a waterfall', lake: 'a lake, no waterfall', dry: 'no lake' };
-const percent = (p) => (p < 0.01 ? 'under 1%' : p < 0.1 ? `${+(p * 100).toFixed(1)}%` : `${Math.round(p * 100)}%`);
+const percent = (p) => (p < 0.01 ? t('under 1%') : p < 0.1 ? `${+(p * 100).toFixed(1)}%` : `${Math.round(p * 100)}%`);
 
 // { tier, rarerThan (percent of lands), score (higher is rarer), reasons (rarest first) }
 export function landRarity(land) {
@@ -59,6 +60,6 @@ export function landRarity(land) {
     tier: TIERS.find(([, at]) => score >= at)[0],
     rarerThan: Math.min(99, PERCENTILES.filter((q) => q < score).length),
     score,
-    reasons: parts.sort((x, y) => x[1] - y[1]).map(([what, p, of]) => `${what} · ${percent(p)} of ${of}`),
+    reasons: parts.sort((x, y) => x[1] - y[1]).map(([what, p, of]) => `${t(what)} · ${t('{p} of {of}', { p: percent(p), of: t(of) })}`),
   };
 }

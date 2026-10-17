@@ -101,7 +101,7 @@ export function buildDetails({ top, under, shape, biome, biomeKey, trees, landma
 
   // Reeds and cattails at the water's edge, lily pads out on the water.
   let pads = null;
-  if (shape.lake && !biome.water.frozen) {
+  if (shape.lake && !biome.water.frozen && !biome.water.lava) {
     // Every pool's own waterline, ponds included.
     const shore = [];
     for (const v of top.rings.flat()) {

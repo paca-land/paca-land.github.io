@@ -105,7 +105,7 @@ export function createInteraction(canvas, camera, getTargets, { onClick, onDoubl
     if (!still) return;
     const picked = pick(event);
     if (picked) picked.target.userData.onClick(picked.hit);
-    onClick?.(picked);
+    onClick?.(picked, event);
     if (!touching) return;
     const now = performance.now();
     if (lastTap && now - lastTap.t < 320 && Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y) < 30) {

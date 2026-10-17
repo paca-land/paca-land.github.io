@@ -1,8 +1,10 @@
 // The field journal: things to find across lands, and little badges for the
 // things you keep doing. It lives in this browser's localStorage; nothing
-// leaves the page.
+// leaves the page. Names are kept in English here and translated when shown.
+import { t, lang } from './i18n.js';
 
 const KEY = 'paca-journal';
+const COLON = lang === 'zh' ? '：' : ': ';
 
 // [id, emoji, name, hint while it's still missing]
 export const SECTIONS = [
@@ -96,9 +98,20 @@ function merge(into, from) {
 }
 
 // `onGo(seed)` visits a land, from an entry you've already found.
+// A little message that floats up above the controls for a few seconds.
+export function showToast(toasts, emoji, text) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = `${emoji} ${text}`;
+  toasts.append(el);
+  while (toasts.children.length > 3) toasts.firstChild.remove();
+  setTimeout(() => el.classList.add('gone'), 3200);
+  setTimeout(() => el.remove(), 4000);
+}
+
 export function createJournal({ button, panel, toasts, onGo }) {
   const data = load();
-  let seed = null, rarity = null, lastFlash = 0, saveTimer = 0;
+  let seed = null, rarity = null, lastFlash = 0, saveTimer = 0, voyaging = false;
 
   function save() {
     // Counters tick often (dragging the sun), so writes are batched. Another
@@ -117,15 +130,7 @@ export function createJournal({ button, panel, toasts, onGo }) {
     if (!panel.hidden) render();
   });
 
-  function toast(emoji, text) {
-    const el = document.createElement('div');
-    el.className = 'toast';
-    el.textContent = `${emoji} ${text}`;
-    toasts.append(el);
-    while (toasts.children.length > 3) toasts.firstChild.remove();
-    setTimeout(() => el.classList.add('gone'), 3200);
-    setTimeout(() => el.remove(), 4000);
-  }
+  const toast = (emoji, text) => showToast(toasts, emoji, text);
 
   const progress = (counter) => (counter === 'found' ? Object.keys(data.found).length : counter === 'lands' ? Object.keys(data.lands).length : data.counts[counter] ?? 0);
 
@@ -133,7 +138,7 @@ export function createJournal({ button, panel, toasts, onGo }) {
     for (const [id, emoji, name, , counter, goal] of BADGES) {
       if (data.badges[id] || progress(counter) < goal) continue;
       data.badges[id] = Date.now();
-      toast(emoji, `badge earned: ${name}`);
+      toast(emoji, t('badge earned: {name}', { name: t(name) }));
       flagNews();
     }
   }
@@ -147,8 +152,9 @@ export function createJournal({ button, panel, toasts, onGo }) {
   function find(id) {
     if (data.found[id] || !ENTRIES.has(id) || seed === null) return;
     const [, emoji, name] = ENTRIES.get(id);
-    data.found[id] = { seed, at: Date.now() };
-    toast(emoji, `new in your journal: ${name}`);
+    // Voyage lands (see voyage.js) only exist on a voyage, so those finds can't be revisited.
+    data.found[id] = voyaging ? { seed, at: Date.now(), voyage: true } : { seed, at: Date.now() };
+    toast(emoji, t('new in your journal: {name}', { name: t(name) }));
     flagNews();
     checkBadges();
     save();
@@ -164,15 +170,15 @@ export function createJournal({ button, panel, toasts, onGo }) {
     const found = Object.keys(data.found).length;
     const head = document.createElement('div');
     head.className = 'journal-head';
-    head.append(Object.assign(document.createElement('strong'), { textContent: 'journal' }), ` ${found} / ${ENTRIES.size} found`);
+    head.append(Object.assign(document.createElement('strong'), { textContent: t('journal') }), ` ${t('{n} / {total} found', { n: found, total: ENTRIES.size })}`);
 
     const lines = [];
-    if (rarity) {
-      lines.push(line(`this land: `, tierTag(rarity), ` · rarer than ${rarity.rarerThan}% of lands`));
-      lines.push(line(`its rarest feature: ${rarity.reasons[0]}`));
+    if (rarity && !voyaging) {
+      lines.push(line(`${t('this land')}${COLON}`, tierTag(rarity), ` · ${t('rarer than {n}% of lands', { n: rarity.rarerThan })}`));
+      lines.push(line(`${t('its rarest feature')}${COLON}${rarity.reasons[0]}`));
     }
-    if (data.best) lines.push(line(`best find: `, tierTag(data.best), ` · ${data.best.name} (#${data.best.seed})`));
-    const status = line('tap something you’ve found to go back there');
+    if (data.best) lines.push(line(`${t('best find')}${COLON}`, tierTag(data.best), ` · ${data.best.name} (#${data.best.seed})`));
+    const status = line(t('tap something you’ve found to go back there'));
     status.className = 'journal-status';
 
     const sections = SECTIONS.map(([title, items]) => {
@@ -183,15 +189,16 @@ export function createJournal({ button, panel, toasts, onGo }) {
         const cell = document.createElement('button');
         cell.type = 'button';
         cell.className = got ? 'entry' : 'entry missing';
-        cell.append(Object.assign(document.createElement('span'), { className: 'entry-icon', textContent: emoji }), name);
+        cell.append(Object.assign(document.createElement('span'), { className: 'entry-icon', textContent: emoji }), t(name));
         cell.addEventListener('click', () => {
-          if (got) onGo(got.seed);
-          else status.textContent = `${name}: ${hint}`;
+          if (got?.voyage) status.textContent = t('{name}: found on a voyage, at “{word}”', { name: t(name), word: got.seed.slice(1) });
+          else if (got) onGo(got.seed);
+          else status.textContent = `${t(name)}${COLON}${t(hint)}`;
         });
-        if (got) cell.title = `found on #${got.seed}`;
+        if (got) cell.title = got.voyage ? t('found on a voyage') : t('found on #{seed}', { seed: got.seed });
         grid.append(cell);
       }
-      return [Object.assign(document.createElement('h3'), { textContent: title }), grid];
+      return [Object.assign(document.createElement('h3'), { textContent: t(title) }), grid];
     });
 
     const badges = document.createElement('div');
@@ -204,14 +211,14 @@ export function createJournal({ button, panel, toasts, onGo }) {
       bar.style.setProperty('--k', String(have / goal));
       row.append(
         Object.assign(document.createElement('span'), { className: 'entry-icon', textContent: emoji }),
-        Object.assign(document.createElement('span'), { className: 'badge-text', textContent: `${name} · ${task}` }),
+        Object.assign(document.createElement('span'), { className: 'badge-text', textContent: `${t(name)} · ${t(task)}` }),
         bar,
         Object.assign(document.createElement('span'), { className: 'badge-count', textContent: counter === 'sunHours' ? `${Math.floor(have)} / ${goal} h` : `${Math.floor(have)} / ${goal}` }),
       );
       badges.append(row);
     }
 
-    panel.replaceChildren(head, ...lines, ...sections.flat(), Object.assign(document.createElement('h3'), { textContent: 'badges' }), badges, status);
+    panel.replaceChildren(head, ...lines, ...sections.flat(), Object.assign(document.createElement('h3'), { textContent: t('badges') }), badges, status);
   }
 
   function line(...parts) {
@@ -223,9 +230,11 @@ export function createJournal({ button, panel, toasts, onGo }) {
 
   return {
     // Arriving on a land: its biome, landmark and curiosities go in the journal.
-    visit(land, landSeed, landRarity) {
+    // `onVoyage`: a land reached on a voyage (its finds count, but it can't be revisited).
+    visit(land, landSeed, landRarity, onVoyage = false) {
       seed = landSeed;
       rarity = landRarity;
+      voyaging = onVoyage;
       const firstTime = !data.lands[seed];
       data.lands[seed] = data.lands[seed] ?? Date.now();
       find(`land:${land.biomeKey}`);
@@ -234,11 +243,11 @@ export function createJournal({ button, panel, toasts, onGo }) {
       if (land.hasWaterfall) find('odd:waterfall');
       if (land.hasLake && land.biomeKey === 'desert') find('odd:oasis');
       if (land.hasLake && land.biomeKey === 'snowfield') find('odd:ice');
-      if (firstTime && (rarity.tier === 'epic' || rarity.tier === 'legendary')) {
-        toast(rarity.tier === 'legendary' ? '👑' : '💎', `${rarity.tier} land · rarer than ${rarity.rarerThan}% of lands`);
+      if (!voyaging && firstTime && (rarity.tier === 'epic' || rarity.tier === 'legendary')) {
+        toast(rarity.tier === 'legendary' ? '👑' : '💎', t('{tier} land · rarer than {n}% of lands', { tier: t(rarity.tier), n: rarity.rarerThan }));
       }
-      if (firstTime && rarity.tier === 'legendary') count('legendary');
-      if (!data.best || rarity.score > data.best.score) data.best = { seed, name: land.name, tier: rarity.tier, score: rarity.score, rarerThan: rarity.rarerThan };
+      if (!voyaging && firstTime && rarity.tier === 'legendary') count('legendary');
+      if (!voyaging && (!data.best || rarity.score > data.best.score)) data.best = { seed, name: land.name, tier: rarity.tier, score: rarity.score, rarerThan: rarity.rarerThan };
       checkBadges();
       save();
       if (!panel.hidden) render();
@@ -289,7 +298,7 @@ export function createJournal({ button, panel, toasts, onGo }) {
 export function tierTag({ tier, rarerThan }) {
   const tag = document.createElement('span');
   tag.className = `tier tier-${tier}`;
-  tag.textContent = tier;
-  if (rarerThan !== undefined) tag.title = `rarer than ${rarerThan}% of lands`;
+  tag.textContent = t(tier);
+  if (rarerThan !== undefined) tag.title = t('rarer than {n}% of lands', { n: rarerThan });
   return tag;
 }

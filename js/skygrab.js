@@ -9,7 +9,8 @@ const SUN_R = 500, MOON_R = 420;
 // moment puts it closest to the pointer.
 // `state` is the live sky (sun and moon directions), `skyAt(hours, out)` the
 // sky at any hour, `hours()` the time now.
-export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label, onGrab, onDrag, onRelease }) {
+// `enabled()` can switch it off (on a voyage, time is part of the game).
+export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label, onGrab, onDrag, onRelease, enabled = () => true }) {
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2(), v = new THREE.Vector3();
   const probe = newSkyState();
@@ -39,6 +40,10 @@ export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label,
 
   // Keep the handle on the screen's edge, in the direction of the body.
   function placeHandle() {
+    if (!enabled()) {
+      handle.hidden = true;
+      return;
+    }
     const kind = activeBody();
     const rect = canvas.getBoundingClientRect();
     worldPoint(kind, state, v).project(camera);
@@ -96,6 +101,7 @@ export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label,
 
   // Capture on the window, so the camera controls and taps never see a grab.
   addEventListener('pointerdown', (event) => {
+    if (!enabled()) return;
     if (event.target !== canvas && event.target.closest?.('.sky-handle') !== handle) return;
     if (held) {
       event.stopImmediatePropagation(); // one finger on the sun at a time
@@ -148,7 +154,7 @@ export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label,
         tag.hidden = false;
       }
       placeHandle();
-      hover = held ? null : pointer && bodyAt(pointer.x, pointer.y, false);
+      hover = held || !enabled() ? null : pointer && bodyAt(pointer.x, pointer.y, false);
       canvas.classList.toggle('can-grab', Boolean(hover));
       // The sun or moon swells a little under the mouse, and more while held.
       const kind = held?.kind ?? hover ?? glowKind;

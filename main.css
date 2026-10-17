@@ -21,7 +21,7 @@ body {
   overflow: hidden;
   background-color: #111115;
   color: #ededed;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'IBM Plex Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
 }
 
 @keyframes background-drift {
@@ -342,6 +342,41 @@ button {
 
 #share[data-state='failed']::after {
   content: 'Copy the address bar instead';
+}
+
+:root[lang='zh-CN'] #share[data-state='copied']::after {
+  content: '链接已复制';
+}
+
+:root[lang='zh-CN'] #share[data-state='failed']::after {
+  content: '请直接复制地址栏';
+}
+
+/* 中文 / English, in the corner. */
+.lang-switch {
+  position: fixed;
+  z-index: 2;
+  top: 14px;
+  right: 14px;
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  color: #f6f3ec;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.lang-switch:hover {
+  background: var(--glass-strong);
+}
+
+body.photo .lang-switch,
+.no-webgl .lang-switch {
+  display: none;
 }
 
 .panel {
@@ -785,5 +820,382 @@ body.is-day .hud-top .tier-epic {
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
+  }
+}
+
+/* --- Voyages (voyage.js) --------------------------------------------------- */
+
+.sail-pill {
+  margin-top: 10px;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  color: #f6f3ec;
+  font-size: 0.85rem;
+  text-shadow: none;
+  pointer-events: auto;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.sail-pill:hover {
+  background: var(--glass-strong);
+}
+
+.sail-pill[hidden],
+.voyage-gauges[hidden],
+.voyage-progress[hidden],
+.voyage-card[hidden],
+.voyage-book[hidden],
+.voyage-read[hidden],
+.voyage-status[hidden] {
+  display: none;
+}
+
+.voyage-gauges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gauge {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  color: #f6f3ec;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: help;
+  /* The title block lets drags through to the land; gauges answer hovers and taps. */
+  pointer-events: auto;
+}
+
+/* What a gauge means, under the gauges (voyage.js). */
+.voyage-tip {
+  max-width: min(440px, 100%);
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.voyage-tip p.tip-head {
+  color: #f6f3ec;
+}
+
+.gauge.danger {
+  border-color: rgba(255, 140, 120, 0.7);
+  color: #ffd2c8;
+}
+
+/* Who and what rides along: the omen, passengers, keepsakes. */
+.voyage-aboard {
+  margin-top: 6px;
+}
+
+.voyage-aboard .gauge {
+  padding: 2px 7px;
+  font-size: 0.85rem;
+}
+
+/* The voyage so far, as a line along the top of the screen. */
+.voyage-progress {
+  position: fixed;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.voyage-progress-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #5aa9ff, #ffcf5a);
+  box-shadow: 0 0 8px rgba(255, 207, 90, 0.6);
+  transition: width 1.2s ease;
+}
+
+/* The gates on the way. */
+.voyage-gate-mark {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 8px;
+  margin-left: -1px;
+  background: #f6f3ec;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+.voyage-card,
+.voyage-book {
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.voyage-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.voyage-text {
+  margin: 0;
+  line-height: 1.45;
+  color: rgba(246, 243, 236, 0.88);
+}
+
+.voyage-poem {
+  margin: 2px 0 0;
+  font-style: italic;
+  line-height: 1.5;
+  color: #ffe2a0;
+}
+
+.voyage-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voyage-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  text-align: left;
+}
+
+.voyage-option:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.voyage-option.primary {
+  border-color: transparent;
+  background: var(--accent);
+}
+
+.voyage-option:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.option-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.option-note {
+  font-size: 0.78rem;
+  color: rgba(246, 243, 236, 0.7);
+}
+
+.voyage-option.primary .option-note {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.book-entry {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: rgba(246, 243, 236, 0.88);
+}
+
+.book-entry.unknown {
+  font-style: italic;
+  color: rgba(246, 243, 236, 0.45);
+}
+
+.book-words {
+  color: rgba(246, 243, 236, 0.55);
+}
+
+/* What the sky makes of the word you're typing, or what it just told you. */
+.voyage-read {
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--glass-strong);
+  color: #f6f3ec;
+  font-size: 0.85rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.voyage-read p {
+  margin: 2px 0;
+  line-height: 1.4;
+}
+
+.read-head strong {
+  letter-spacing: 0.06em;
+}
+
+.read-story {
+  font-size: 0.92rem;
+}
+
+.read-line {
+  color: rgba(246, 243, 236, 0.78);
+}
+
+.read-warn {
+  color: #ffcf8a;
+}
+
+.read-good {
+  color: #b9f0c4;
+}
+
+.read-problem {
+  color: #ff9b9b;
+}
+
+.voyage-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: rgba(246, 243, 236, 0.85);
+  text-shadow: 0 1px 8px rgba(5, 8, 20, 0.6);
+}
+
+.status-gate {
+  flex-basis: 100%;
+  text-align: center;
+  color: #ffe2a8;
+}
+
+/* What a tap gave, floating up from where you tapped. */
+.voyage-popup {
+  position: fixed;
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--glass-strong);
+  color: #f6f3ec;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  animation: voyage-pop 1.6s ease forwards;
+}
+
+@keyframes voyage-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -190%);
+  }
+}
+
+/* A word the sky can't take shakes its head. */
+.bar input.shake,
+.voyage-password.shake {
+  animation: shake 0.35s ease;
+}
+
+/* The alpha's password, on its own card before the first voyage. */
+.voyage-password {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  margin: 10px 0 2px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6f3ec;
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.voyage-password:focus {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.voyage-wrong {
+  color: #ffd2c8;
+}
+
+.voyage-wrong[hidden] {
+  display: none;
+}
+
+@keyframes shake {
+  20% {
+    transform: translateX(-5px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* On a voyage, time and weather aren't yours to pick, links don't apply, and
+   the words are yours to choose (no dice). */
+body.voyaging #dice,
+body.voyaging #share,
+body.voyaging #tweak,
+body.voyaging #panel,
+body.voyaging #journal,
+body.voyaging #hint,
+body.photo .voyage-progress {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  /* The word and "fly" on top; sound, photo and the book underneath. */
+  body.voyaging .bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  body.voyaging .bar input {
+    grid-column: 1 / 3;
+  }
+
+  /* The gauges wrap to two rows here: keep them in sight. */
+  .voyage-card,
+  .voyage-book {
+    max-height: 50vh;
   }
 }

@@ -12,6 +12,21 @@ const STYLES = {
   snowfield: { density: 0 },
   blossom: { density: 1 },
   dream: { density: 0.9 },
+  mire: { density: 0.9, tip: '#a8a860' },
+  coral: { density: 0 },
+  toadstool: { density: 0.85 },
+  stormcrag: { density: 0.6 },
+  glass: { density: 0.5, tip: '#ffffff' },
+  ember: { density: 0 },
+  gilded: { density: 0.8, tip: '#fff0a0' },
+  jungle: { density: 1, tip: '#6fbf4a' },
+  savanna: { density: 0.9, tip: '#f0d890' },
+  heath: { density: 0.8, tip: '#a080a0' },
+  // Purple-tipped blades read as rows of lavender.
+  lavender: { density: 1, tip: '#9a7ad8' },
+  cloudisle: { density: 0.6, tip: '#ffffff' },
+  withered: { density: 0.5, tip: '#8a8070' },
+  sugar: { density: 0.7, tip: '#ffffff' },
 };
 const MAX_BLADES = 16000;
 

@@ -102,6 +102,164 @@ export const BIOMES = {
     weather: [['clear', 3], ['mist', 2], ['cloudy', 1]],
     ambient: ['sparkles'],
   },
+
+  // Islands only a voyage reaches (weight 0: free lands never roll them). Words
+  // call them up (lexicon.js), and the deeper sky is full of them (voyage.js).
+  mire: {
+    label: 'the mire', weight: 0,
+    grass: ['#5b6439', '#737a48'], dirt: '#4a3e2c', rock: ['#5f5a4c', '#46423a'], sand: '#7d7350',
+    hills: 1.3, peak: 0.8,
+    water: { color: '#55704a', opacity: 0.92 }, lake: 0.95, river: 0.3,
+    flora: { kind: 'round', count: 60, groves: 0.2, colors: ['#3f5236', '#4d5e3a', '#36472f', '#58663e'] },
+    tufts: ['#c8d870', '#e6f0a0'],
+    landmark: [['ruins', 2], ['cabin', 2], ['shrine', 1], ['stones', 1]], path: '#6e6040',
+    weather: [['mist', 5], ['rain', 2], ['cloudy', 2], ['storm', 1]],
+    ambient: ['wisps'],
+  },
+  coral: {
+    label: 'coral shoal', weight: 0,
+    grass: ['#e8d49a', '#f4e4b4'], dirt: '#d4b07a', rock: ['#f29a86', '#d97a66'], sand: '#fff0c8',
+    hills: 1.5, peak: 1.0,
+    water: { color: '#22d1cc', opacity: 0.8 }, lake: 0.95, river: 0.2,
+    flora: { kind: 'round', count: 40, groves: 0, colors: ['#ff7f6a', '#ff9e80', '#ff6f91', '#ffc26a'] },
+    tufts: ['#ffffff', '#ff9e80'],
+    landmark: [['lighthouse', 4], ['village', 2], ['campsite', 1]], path: '#f6e2b0',
+    weather: [['clear', 5], ['cloudy', 2], ['rain', 1]],
+    ambient: [],
+  },
+  toadstool: {
+    label: 'toadstool wood', weight: 0,
+    grass: ['#5e8f4a', '#7aa85c'], dirt: '#5a4030', rock: ['#7a7068', '#5a524a'], sand: '#d9c69a',
+    hills: 2.0, peak: 1.4,
+    water: { color: '#4fa39a', opacity: 0.86 }, lake: 0.7, river: 0.6,
+    flora: { kind: 'round', count: 70, groves: 0.2, colors: ['#d8452f', '#f0e2c8', '#c9753a', '#e8c06a', '#b8382a'] },
+    tufts: ['#ffffff', '#ff6a5a'],
+    landmark: [['wizard', 2], ['cabin', 2], ['shrine', 1], ['stones', 1]], path: '#9a7a52',
+    weather: [['mist', 3], ['rain', 2], ['cloudy', 2], ['clear', 1]],
+    ambient: ['spores'],
+  },
+  stormcrag: {
+    label: 'storm crag', weight: 0,
+    grass: ['#5d6e66', '#76877c'], dirt: '#4a4f52', rock: ['#5f666e', '#43484f'], sand: '#a8aaa0',
+    hills: 1.6, peak: 4.8, snowLine: 4.0,
+    water: { color: '#3b6d86', opacity: 0.9 }, lake: 0.45, river: 0.9,
+    flora: { kind: 'fir', count: 50, groves: -0.2, colors: ['#2a4a40', '#33554a', '#22403a'] },
+    tufts: ['#d8e0e8'],
+    landmark: [['lighthouse', 2], ['castle', 2], ['ruins', 2], ['stones', 1]], path: '#8a8a84',
+    weather: [['storm', 3], ['cloudy', 3], ['mist', 2], ['rain', 2]],
+    ambient: [],
+  },
+  glass: {
+    label: 'glass isle', weight: 0,
+    grass: ['#c4dde8', '#e6f3f8'], dirt: '#94a8ba', rock: ['#b8c8d8', '#8fa3b8'], sand: '#e6f0f4',
+    hills: 2.0, peak: 3.0,
+    water: { color: '#8feeff', opacity: 0.7 }, lake: 0.8, river: 0.5,
+    flora: { kind: 'poplar', count: 45, groves: 0, colors: ['#a8e6ff', '#c8f0ff', '#e0d0ff', '#9fd8f0'] },
+    tufts: ['#ffffff', '#bfefff'],
+    crystals: true,
+    landmark: [['wizard', 3], ['stones', 2], ['shrine', 1], ['lighthouse', 1]], path: '#dce8f0',
+    weather: [['clear', 4], ['mist', 2], ['snow', 1]],
+    ambient: ['sparkles'],
+  },
+  ember: {
+    label: 'ember isle', weight: 0,
+    grass: ['#4a3f3a', '#5c4d44'], dirt: '#2e2622', rock: ['#3a3433', '#262222'], sand: '#6a5448',
+    hills: 1.8, peak: 3.8,
+    water: { color: '#ff5a1f', opacity: 0.96, lava: true }, lake: 0.6, river: 0.5,
+    flora: { kind: 'pine', count: 22, groves: -0.6, colors: ['#3b2f2a', '#4a3a30', '#2f2622'] },
+    tufts: ['#ff7a2a', '#ffb03a'],
+    landmark: [['ruins', 3], ['stones', 2], ['shrine', 1], ['wizard', 1]], path: '#7a5a48',
+    weather: [['clear', 3], ['cloudy', 2], ['mist', 2], ['storm', 1]],
+    ambient: ['embers'],
+  },
+  gilded: {
+    label: 'gilded isle', weight: 0,
+    grass: ['#cfae45', '#e8cf78'], dirt: '#8a6a30', rock: ['#c9a85a', '#a3843e'], sand: '#f6e3a6',
+    hills: 2.0, peak: 1.6,
+    water: { color: '#4ec3e0', opacity: 0.84 }, lake: 0.8, river: 0.7,
+    flora: { kind: 'round', count: 55, groves: 0.1, colors: ['#f2c94c', '#ffd96a', '#e0a82e', '#fff0a0'] },
+    tufts: ['#fff4c0', '#ffd36e'],
+    landmark: [['castle', 3], ['village', 2], ['shrine', 1], ['wizard', 1]], path: '#e8d090',
+    weather: [['clear', 6], ['cloudy', 1]],
+    ambient: ['sparkles'],
+  },
+  jungle: {
+    label: 'jungle', weight: 0,
+    grass: ['#2f7a3a', '#4d9a45'], dirt: '#5a3f28', rock: ['#5f6a55', '#45503f'], sand: '#c9b37a',
+    hills: 2.4, peak: 2.6,
+    water: { color: '#2f8f7a', opacity: 0.88 }, lake: 0.8, river: 0.95,
+    flora: { kind: 'round', count: 95, groves: 0.3, colors: ['#1f6a32', '#2e7d3a', '#3f8f3a', '#175a2b'] },
+    tufts: ['#ff5a7a', '#ffcf3a'],
+    landmark: [['ruins', 3], ['campsite', 2], ['shrine', 1], ['wizard', 1]], path: '#8a6a40',
+    weather: [['rain', 4], ['mist', 2], ['cloudy', 2], ['clear', 1], ['storm', 1]],
+    ambient: ['fireflies'],
+  },
+  savanna: {
+    label: 'savanna', weight: 0,
+    grass: ['#c9a94a', '#dcc070'], dirt: '#9a6a3a', rock: ['#a88a6a', '#86684c'], sand: '#e8d39a',
+    hills: 1.4, peak: 1.0,
+    water: { color: '#5aa6b8', opacity: 0.85 }, lake: 0.5, river: 0.3,
+    flora: { kind: 'oak', count: 18, groves: -0.8, colors: ['#6a8a3a', '#7a9a45', '#5a7a32'] },
+    tufts: ['#e8c870', '#ffffff'],
+    landmark: [['campsite', 3], ['village', 2], ['ruins', 1], ['stones', 1]], path: '#c9a46a',
+    weather: [['clear', 6], ['cloudy', 2], ['storm', 1]],
+    ambient: [],
+  },
+  heath: {
+    label: 'heath', weight: 0,
+    grass: ['#6a6a48', '#8a7a5a'], dirt: '#5a4a38', rock: ['#7a7a74', '#5a5a56'], sand: '#c8bc98',
+    hills: 2.2, peak: 1.8,
+    water: { color: '#4a6a7a', opacity: 0.9 }, lake: 0.6, river: 0.6,
+    flora: { kind: 'bush', count: 50, groves: 0, colors: ['#7a4a7a', '#8a5a8a', '#6a3a6a', '#5a6a3a'] },
+    tufts: ['#b070c0', '#d090e0'],
+    landmark: [['stones', 3], ['cabin', 2], ['ruins', 1], ['castle', 1]], path: '#9a8a6a',
+    weather: [['mist', 3], ['cloudy', 3], ['rain', 2], ['clear', 1]],
+    ambient: [],
+  },
+  lavender: {
+    label: 'lavender fields', weight: 0,
+    grass: ['#7a8a5a', '#9aa070'], dirt: '#7a5a40', rock: ['#a09a90', '#7a766e'], sand: '#e8dcc0',
+    hills: 1.6, peak: 1.2,
+    water: { color: '#6aa0c8', opacity: 0.84 }, lake: 0.6, river: 0.5,
+    flora: { kind: 'poplar', count: 30, groves: -0.3, colors: ['#4a6a32', '#5a7a3a', '#6a8a42'] },
+    tufts: ['#9a7ad8', '#b08ae8', '#8a6ac8'],
+    landmark: [['windmill', 3], ['village', 2], ['shrine', 1], ['cabin', 1]], path: '#d8c8a0',
+    weather: [['clear', 5], ['cloudy', 2]],
+    ambient: ['fireflies'],
+  },
+  cloudisle: {
+    label: 'cloud isle', weight: 0,
+    grass: ['#e8eef8', '#ffffff'], dirt: '#c8d0e0', rock: ['#dfe6f2', '#b8c4d8'], sand: '#f4f6fb',
+    hills: 2.2, peak: 1.6,
+    water: { color: '#a8d8ff', opacity: 0.7 }, lake: 0.7, river: 0.7,
+    flora: { kind: 'round', count: 40, groves: 0.2, colors: ['#ffffff', '#f0f4ff', '#e0e8ff', '#fff0f8'] },
+    tufts: ['#ffffff', '#ffd6f0'],
+    landmark: [['shrine', 2], ['wizard', 2], ['castle', 1], ['windmill', 1]], path: '#ffffff',
+    weather: [['clear', 5], ['cloudy', 2]],
+    ambient: ['sparkles'],
+  },
+  withered: {
+    label: 'withered wood', weight: 0,
+    grass: ['#5a5448', '#6e6656'], dirt: '#3e362e', rock: ['#4e4a46', '#36332f'], sand: '#7a7060',
+    hills: 2.0, peak: 2.2,
+    water: { color: '#3a4a48', opacity: 0.92 }, lake: 0.6, river: 0.4,
+    flora: { kind: 'fir', count: 45, groves: 0, colors: ['#4a4038', '#5a5048', '#3a332c'] },
+    tufts: ['#8a1a2a', '#5a2a4a'],
+    landmark: [['ruins', 3], ['stones', 2], ['wizard', 1], ['cabin', 1]], path: '#6a5e50',
+    weather: [['mist', 4], ['cloudy', 3], ['storm', 2], ['rain', 1]],
+    ambient: ['wisps'],
+  },
+  sugar: {
+    label: 'sugar isle', weight: 0,
+    grass: ['#ffc8e0', '#ffe0ee'], dirt: '#c88a6a', rock: ['#fff0d0', '#f0d0a0'], sand: '#fff4e0',
+    hills: 2.0, peak: 1.8,
+    water: { color: '#ff9ad0', opacity: 0.8 }, lake: 0.85, river: 0.8,
+    flora: { kind: 'round', count: 50, groves: 0.1, colors: ['#ff8ab8', '#8ae0c8', '#ffe08a', '#b8a0ff'] },
+    tufts: ['#ffffff', '#ff5a8a', '#8ad8ff'],
+    landmark: [['village', 3], ['windmill', 2], ['castle', 1]], path: '#fff0f8',
+    weather: [['clear', 6], ['cloudy', 1]],
+    ambient: ['sparkles'],
+  },
 };
 
 const SNOW = new THREE.Color('#f4f7fb');
@@ -124,8 +282,10 @@ function tintBiome(b, r) {
 }
 
 // The land's shape as pure functions of position, so meshes, trees and
-// water all agree on where the ground is.
-function makeShape(seed, biome) {
+// water all agree on where the ground is. `want` can insist on a lake or a
+// river (a voyage's words, see lexicon.js); the dice are still rolled, so
+// lands without wishes come out exactly as before.
+function makeShape(seed, biome, want = {}) {
   const r = makeRandom(seed, 'shape');
   const coast = createNoise2D(r);
   const terrain = createNoise2D(r);
@@ -188,7 +348,8 @@ function makeShape(seed, biome) {
 
   const pools = [];
   let lake = null, river = null;
-  if (r.chance(biome.lake)) {
+  const rollLake = r.chance(biome.lake);
+  if (want.lake ?? rollLake) {
     // Keep water away from the mountain so they don't fight for space.
     const a = peakAngle + Math.PI + r.range(-0.8, 0.8);
     const size = r.weighted([[r.range(0.9, 1.4), 2], [r.range(1.5, 2.3), 3], [r.range(2.4, 3.1), 2]]);
@@ -201,7 +362,8 @@ function makeShape(seed, biome) {
     lake.z = Math.sin(a) * d;
     pools.push(lake);
 
-    if (r.chance(biome.river)) {
+    const rollRiver = r.chance(biome.river);
+    if (want.river ?? rollRiver) {
       const ra = a + r.range(-0.5, 0.5);
       const dx = Math.cos(ra), dz = Math.sin(ra);
       const bend = r.range(0.4, 1.1) * (r.chance(0.5) ? 1 : -1), freq = r.range(0.35, 0.6), phase = r.range(0, TAU);
@@ -557,6 +719,7 @@ const WATER_FRAGMENT = /* glsl */ `
   uniform sampler2D uRipples;
   uniform vec3 uDeep;
   uniform vec3 uShallow;
+  uniform vec3 uLava;
   uniform vec3 uKeyDir;
   uniform vec3 uKeyColor;
   uniform vec3 uAmbient;
@@ -603,7 +766,7 @@ const WATER_FRAGMENT = /* glsl */ `
 
   void main() {
     vec2 p = vWorldP.xz;
-    float ice = smoothstep(0.55, 0.95, uSnow);
+    float ice = smoothstep(0.55, 0.95, uSnow) * step(dot(uLava, uLava), 0.0);
     vec2 slope = ripple(p * 0.3, vFlow * 1.5) + ripple(p * 0.85 + 3.7, vFlow * 2.5) * 0.6;
     slope *= (1.0 + uRain * 0.6) * (0.75 + 0.25 * uWind) * (1.0 - ice * 0.9);
     slope += (raindrops(p * 2.2) + raindrops(p * 2.2 + 17.0)) * uRain * (1.0 - ice) * 1.2;
@@ -646,6 +809,7 @@ const WATER_FRAGMENT = /* glsl */ `
     float lap = sin(uTime * 1.6 + (p.x + p.y) * 1.3);
     float foam = smoothstep(0.1 + lap * 0.04, 0.0, depth + (foamNoise - 0.5) * 0.12) * (0.75 + 0.25 * lap);
     col = mix(col, uAmbient * 1.6 + uKeyColor * 0.35 * shadow, foam * 0.75 * (1.0 - ice));
+    col += uLava * (0.55 + 0.45 * foamNoise);
 
     // A long snowfall freezes the water over, dusted with snow.
     vec3 iceColor = vec3(0.78, 0.88, 0.95) * (uAmbient * 1.4 + uKeyColor * 0.35 * shadow);
@@ -717,6 +881,7 @@ function buildWater(top, shape, biome) {
     uRipples: { value: null },
     uDeep: { value: color.clone().multiplyScalar(0.28) },
     uShallow: { value: color.clone().lerp(biome.sand, 0.35).multiplyScalar(1.1) },
+    uLava: { value: biome.water.lava ? color.clone().multiplyScalar(1.4) : new THREE.Color(0, 0, 0) },
   }]);
   uniforms.uRipples.value = rippleNormals();
   uniforms.uRain = fxUniforms.uRain;
@@ -761,6 +926,8 @@ const FALL_VERTEX = /* glsl */ `
 const FALL_FRAGMENT = /* glsl */ `
   uniform float uTime;
   uniform vec3 uColor;
+  uniform vec3 uFoam;
+  uniform vec3 uGlow;
   uniform sampler2D uRipples;
   uniform vec3 uKeyColor;
   uniform vec3 uAmbient;
@@ -774,7 +941,7 @@ const FALL_FRAGMENT = /* glsl */ `
     float fade = smoothstep(0.0, 0.75, vUv.y);
     float lip = smoothstep(0.9, 1.0, vUv.y);
     vec3 white = clamp(vec3(streak * 0.75 + lip * 0.6 + (1.0 - fade) * 0.4), 0.0, 1.0);
-    vec3 col = mix(uColor, vec3(1.0), white) * (uAmbient * 1.3 + uKeyColor * 0.25);
+    vec3 col = mix(uColor, uFoam, white) * (uAmbient * 1.3 + uKeyColor * 0.25) + uGlow * (0.6 + streak * 0.6);
     gl_FragColor = vec4(col, sides * fade * (0.4 + streak * 0.5 + lip * 0.3));
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -792,6 +959,7 @@ function buildWaterfall(shape, biome, r) {
   group.rotation.y = Math.atan2(exit.dx, exit.dz);
 
   const H = 7, W = river.width * 2.2;
+  const lava = Boolean(biome.water.lava);
   const geo = new THREE.PlaneGeometry(W, H, 1, 18);
   geo.translate(0, -H / 2, 0);
   const pos = geo.attributes.position;
@@ -800,7 +968,10 @@ function buildWaterfall(shape, biome, r) {
     ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
     uTime: { value: 0 },
     uRipples: { value: rippleNormals() },
-    uColor: { value: biome.water.color.clone().lerp(new THREE.Color('#ffffff'), 0.35) },
+    uColor: { value: biome.water.color.clone().lerp(new THREE.Color('#ffffff'), lava ? 0 : 0.35) },
+    // Lava falls glow, with hot yellow streaks instead of white water.
+    uFoam: { value: new THREE.Color(lava ? '#ffd27a' : '#ffffff') },
+    uGlow: { value: lava ? biome.water.color.clone().multiplyScalar(0.9) : new THREE.Color(0, 0, 0) },
     uKeyColor: skyUniforms.uKeyColor,
     uAmbient: skyUniforms.uAmbient,
   };
@@ -821,7 +992,7 @@ function buildWaterfall(shape, biome, r) {
   const dropGeo = new THREE.BufferGeometry();
   dropGeo.setAttribute('position', new THREE.BufferAttribute(dropPos, 3));
   const points = new THREE.Points(dropGeo, new THREE.PointsMaterial({
-    color: '#ffffff', size: 0.1, map: softDot(), transparent: true, opacity: 0.7, depthWrite: false,
+    color: lava ? '#ffa04a' : '#ffffff', size: 0.1, map: softDot(), transparent: true, opacity: 0.7, depthWrite: false,
   }));
   points.frustumCulled = false;
   group.add(points);
@@ -832,7 +1003,7 @@ function buildWaterfall(shape, biome, r) {
       uniforms.uTime.value = t;
       mist.rotation.y += dt * 0.12;
       mist.material.uniforms.uOpacity.value = 0.4 + env.wet * 0.35;
-      points.material.color.setScalar(1 - env.night * 0.75 - env.overcast * 0.25);
+      if (!lava) points.material.color.setScalar(1 - env.night * 0.75 - env.overcast * 0.25);
       drops.forEach((d, i) => {
         d.life += dt * 0.45;
         if (d.life > 1) Object.assign(d, { life: 0, lat: (Math.random() - 0.5) * W, out: 0.4 + Math.random() * 0.6 });
@@ -867,6 +1038,20 @@ const TREE_SPECIES = {
   snowfield: [['pine', 3], ['fir', 3]],
   blossom: [['round', 4], ['oak', 1], ['bush', 1]],
   dream: [['round', 3], ['poplar', 2], ['bush', 1]],
+  mire: [['round', 2], ['bush', 3], ['poplar', 1]],
+  coral: [['bush', 3], ['round', 2]],
+  toadstool: [['round', 3], ['bush', 2]],
+  stormcrag: [['fir', 3], ['pine', 2], ['bush', 1]],
+  glass: [['poplar', 3], ['fir', 2]],
+  ember: [['pine', 2], ['shrub', 2]],
+  gilded: [['round', 3], ['poplar', 2], ['oak', 1]],
+  jungle: [['round', 3], ['poplar', 2], ['bush', 2], ['oak', 1]],
+  savanna: [['oak', 3], ['shrub', 2]],
+  heath: [['bush', 4], ['shrub', 2], ['pine', 1]],
+  lavender: [['poplar', 3], ['round', 1], ['bush', 1]],
+  cloudisle: [['round', 3], ['bush', 3]],
+  withered: [['fir', 2], ['shrub', 2], ['bush', 1]],
+  sugar: [['round', 3], ['poplar', 1], ['bush', 2]],
 };
 // How high each crown sits, for leaves shaken loose.
 const CROWN_TOP = { round: 1, oak: 1.1, birch: 1.4, fir: 1.4, poplar: 1.5, bush: 0.35, shrub: 0.3, pine: 1.2, cactus: 0.9 };
@@ -1171,6 +1356,9 @@ function buildAmbient(kind, top, shape, r) {
     sparkles: { count: 70, size: 0.16, colors: ['#ffffff', '#ffd6fb', '#b7fff3'], glow: 2, night: false },
     petals: { count: 80, size: 0.12, colors: ['#ffc4d6', '#ffe0ea'], fall: true },
     leaves: { count: 70, size: 0.13, colors: ['#e07a2c', '#f0b03a', '#c2452d'], fall: true },
+    embers: { count: 60, size: 0.13, colors: ['#ff8a3a', '#ffb84a', '#ff5a1f'], glow: 2.5, night: false },
+    spores: { count: 60, size: 0.12, colors: ['#e8ffd0', '#fff2c0', '#d0f0ff'], glow: 1.6, night: false },
+    wisps: { count: 16, size: 0.3, colors: ['#9dffb0', '#c8ffe0'], glow: 3, night: false },
   };
   const cfg = configs[kind];
   const spots = groundSpots(top, r).filter((v) => !shape.isWet(v.x, v.z));
@@ -1253,11 +1441,14 @@ function coastToward(shape, r, from) {
   return { x: Math.cos(a) * d, z: Math.sin(a) * d };
 }
 
-export function generateLand(seed) {
+// `want` (from a voyage's word) can choose the biome and landmark and insist on
+// water or a balloon; anything it leaves out is up to the seed as usual.
+export function generateLand(seed, want = {}) {
   const meta = makeRandom(seed, 'biome');
-  const biomeKey = meta.weighted(Object.entries(BIOMES).map(([key, b]) => [key, b.weight]));
+  const rolledBiome = meta.weighted(Object.entries(BIOMES).filter(([, b]) => b.weight > 0).map(([key, b]) => [key, b.weight]));
+  const biomeKey = want.biome ?? rolledBiome;
   const biome = tintBiome(BIOMES[biomeKey], meta);
-  const shape = makeShape(seed, biome);
+  const shape = makeShape(seed, biome, want);
 
   const group = new THREE.Group();
   const updaters = [];
@@ -1284,7 +1475,8 @@ export function generateLand(seed) {
   };
   // If the land can't fit the landmark it rolled, try the biome's others.
   let landmark = null;
-  for (const type of [ctx.r.weighted(biome.landmark), ...biome.landmark.map(([name]) => name), 'campsite', 'stones']) {
+  const rolledLandmark = ctx.r.weighted(biome.landmark);
+  for (const type of [want.landmark, rolledLandmark, ...biome.landmark.map(([name]) => name), 'campsite', 'stones'].filter(Boolean)) {
     landmark = buildLandmark(type, ctx);
     if (landmark) break;
   }
@@ -1312,7 +1504,7 @@ export function generateLand(seed) {
   add(landmark);
   const lanterns = path && buildLanterns(ctx, path);
   add(lanterns);
-  if (shape.lake && !biome.water.frozen && xr.chance(0.6)) add(buildDock(ctx, xr, landmark?.door ?? { x: 0, z: 0 }));
+  if (shape.lake && !biome.water.frozen && !biome.water.lava && xr.chance(0.6)) add(buildDock(ctx, xr, landmark?.door ?? { x: 0, z: 0 }));
   if (landmark) add(buildProps(ctx, xr, landmark, trees));
   add(buildLightPools([...(landmark?.lights ?? []), ...(lanterns?.lights ?? [])], shape));
 
@@ -1334,7 +1526,8 @@ export function generateLand(seed) {
   add(islets);
   for (const kind of biome.ambient) add(buildAmbient(kind, top, shape, makeRandom(seed, `ambient:${kind}`)));
   add(buildGroundMist(top, shape, makeRandom(seed, 'mist')));
-  const balloon = xr.chance(0.15) ? buildBalloon(xr, mats) : null;
+  const rollBalloon = xr.chance(0.15);
+  const balloon = (want.balloon ?? rollBalloon) ? buildBalloon(xr, mats) : null;
   add(balloon);
 
   // Wildlife: birds, butterflies, bats and dragonflies in the air; rabbits and
@@ -1374,7 +1567,10 @@ export function generateLand(seed) {
       hooks.note('splash');
     };
   } else if (water) {
-    water.userData.onClick = (hit) => bursts.spawn(local(hit), { count: 12, colors: ['#ffffff'], glow: true, speed: 0.6, up: 0.5, gravity: -1, life: 1 });
+    water.userData.onClick = (hit) => {
+      bursts.spawn(local(hit), { count: 12, colors: ['#ffffff'], glow: true, speed: 0.6, up: 0.5, gravity: -1, life: 1 });
+      hooks.note('ice');
+    };
   }
   for (const mesh of flora.meshes) {
     mesh.userData.onClick = (hit) => {
@@ -1395,6 +1591,7 @@ export function generateLand(seed) {
     landmark.object.userData.onClick = (hit) => {
       landmark.poke(clock());
       hooks.sound('chime');
+      hooks.note('landmark');
       const cool = landmark.type === 'wizard' || landmark.type === 'stones';
       bursts.spawn(local(hit), { count: 26, colors: cool ? ['#9ff7ff', '#c9b6ff'] : ['#ffd27a', '#fff1c0'], glow: true, speed: 1.2, up: 1.4, gravity: -1.5, life: 1.4 });
     };
