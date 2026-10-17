@@ -7,7 +7,8 @@ const STYLES = {
   meadow: { density: 1 },
   highlands: { density: 0.85 },
   autumn: { density: 0.8, tip: '#c9b25a' },
-  desert: { density: 0.22, base: '#8a7a4a', tip: '#d8c27a' },
+  // Bare sand and rock: the cacti and dry shrubs are the only green on a mesa.
+  desert: { density: 0 },
   snowfield: { density: 0 },
   blossom: { density: 1 },
   dream: { density: 0.9 },

@@ -10,10 +10,10 @@ const smoothstep = (e0, e1, x) => {
 
 // `high` clouds drift around the land; `low` ones form the cloud sea below it.
 export const WEATHERS = {
-  clear: { label: 'clear skies', high: 4, low: 12, overcast: 0, rain: 0, snow: 0, fogNear: 70, fogFar: 260 },
-  cloudy: { label: 'clouds drifting by', high: 14, low: 16, overcast: 0.45, rain: 0, snow: 0, fogNear: 50, fogFar: 200 },
+  clear: { label: 'clear', high: 4, low: 12, overcast: 0, rain: 0, snow: 0, fogNear: 70, fogFar: 260 },
+  cloudy: { label: 'partly cloudy', high: 14, low: 16, overcast: 0.45, rain: 0, snow: 0, fogNear: 50, fogFar: 200 },
   rain: { label: 'rain', high: 18, low: 16, overcast: 0.8, rain: 1, snow: 0, fogNear: 30, fogFar: 140 },
-  snow: { label: 'snowfall', high: 15, low: 16, overcast: 0.55, rain: 0, snow: 1, fogNear: 30, fogFar: 150 },
+  snow: { label: 'snow', high: 15, low: 16, overcast: 0.55, rain: 0, snow: 1, fogNear: 30, fogFar: 150 },
   mist: { label: 'mist', high: 6, low: 16, overcast: 0.35, rain: 0, snow: 0, fogNear: 8, fogFar: 62 },
   storm: { label: 'thunderstorm', high: 20, low: 16, overcast: 0.92, rain: 1, snow: 0, storm: 1, fogNear: 24, fogFar: 120 },
 };
@@ -825,6 +825,10 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       env.gloom = Math.max(env.night, o * 0.65);
       env.wind = windBase + state.rain * 1.2 + state.snow * 0.4 + o * 0.3;
       env.flash = flash;
+      // How much of each rare sight is up right now (the journal watches these).
+      env.aurora = state.aurora;
+      env.meteor = meteor.visible ? clearDark : 0;
+      env.rainbow = skyUniforms.uRainbow.value;
       return env;
     },
   };

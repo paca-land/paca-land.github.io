@@ -10,6 +10,8 @@ import { fxUniforms, createLightShafts, createFinishPass, createReflection, useS
 import { createInteraction } from './interact.js';
 import { createSoundscape } from './sound.js';
 import { createSkyGrab } from './skygrab.js';
+import { createJournal, tierTag } from './journal.js';
+import { landRarity } from './rarity.js';
 import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
 
@@ -42,7 +44,8 @@ const HOME_TARGET = new THREE.Vector3(0, -1.2, 0);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(HOME_TARGET);
 Object.assign(controls, {
-  enableDamping: true, enablePan: false, minDistance: 6, maxDistance: 100,
+  // Scroll and pinch head for whatever is under the pointer, like a map (see keepNearHome).
+  enableDamping: true, enablePan: false, zoomToCursor: true, minDistance: 6, maxDistance: 100,
   maxPolarAngle: Math.PI * 0.78, autoRotateSpeed: 0.35,
 });
 
@@ -170,7 +173,7 @@ let rise = 0; // seconds the land on screen has been rising; below 0 it waits
 
 function visit(next) {
   if (next === (leaving?.next ?? seed)) return;
-  if (focus.zoomed) focusOn(null);
+  if (zoomedIn()) focusOn(null);
   if (!land || reducedMotion) return arrive(next);
   // Picked again mid-flight: only the last pick gets grown.
   if (leaving) leaving.next = next;
@@ -188,6 +191,7 @@ function arrive(next) {
   land = generateLand(seed);
   land.setDetail(QUALITY[quality].grass);
   land.hooks.sound = (kind) => sound.play(kind);
+  land.hooks.note = (kind) => journal.note(kind);
   scene.add(land.group);
   vibe = isHome() ? null : landVibe(seed, land.biome);
   // Every land arrives in its own time and weather; picks from the panel don't follow you.
@@ -210,7 +214,10 @@ function arrive(next) {
   rise = -0.05;
   perf.settleUntil = performance.now() + 3000;
   $('#land-name').textContent = land.name;
-  $('#land-meta').textContent = `${land.biome.label} · #${seed}`;
+  const rarity = landRarity(land);
+  $('#land-meta').replaceChildren(`${land.biome.label} · #${seed} · `, tierTag(rarity));
+  explainRarity(rarity);
+  journal.visit(land, seed, rarity);
   document.title = isHome() ? 'PaCaLand' : `${land.name} · PaCaLand`;
   renderChips();
 }
@@ -263,10 +270,46 @@ $('#share').addEventListener('click', async () => {
   }
   setTimeout(() => delete button.dataset.state, 1600);
 });
+// Why a land is as rare as it is: hover its tier (or tap it on a phone).
+const why = $('#rarity-why');
+function explainRarity(rarity) {
+  const tag = $('#land-meta .tier');
+  tag.removeAttribute('title');
+  why.hidden = true;
+  why.replaceChildren(...[`rarer than ${rarity.rarerThan}% of lands. it has:`, ...rarity.reasons].map((text) => Object.assign(document.createElement('p'), { textContent: text })));
+  tag.addEventListener('pointerenter', (event) => {
+    if (event.pointerType === 'mouse') why.hidden = false;
+  });
+  tag.addEventListener('pointerleave', (event) => {
+    if (event.pointerType === 'mouse') why.hidden = true;
+  });
+  tag.addEventListener('click', () => {
+    if (lowPower) why.hidden = !why.hidden;
+  });
+}
+
+// One panel at a time: time & weather, or the journal.
+function setPanel(open) {
+  $('#panel').hidden = !open;
+  $('#tweak').setAttribute('aria-expanded', String(open));
+}
 $('#tweak').addEventListener('click', () => {
-  const panel = $('#panel');
-  panel.hidden = !panel.hidden;
-  $('#tweak').setAttribute('aria-expanded', String(!panel.hidden));
+  journal.toggle(false);
+  setPanel($('#panel').hidden);
+});
+
+// What you've found across lands, and badges (see journal.js).
+const journal = createJournal({
+  button: $('#journal-button'), panel: $('#journal'), toasts: $('#toasts'),
+  onGo: (next) => {
+    journal.toggle(false);
+    location.hash = next === HOME ? '' : encodeURIComponent(next);
+  },
+});
+journal.restore();
+$('#journal-button').addEventListener('click', () => {
+  setPanel(false);
+  journal.toggle();
 });
 
 const timeSlider = $('#time');
@@ -280,19 +323,16 @@ $('#live').addEventListener('click', () => {
 });
 
 // A whole day and night in a minute, then back to the land's own time.
-// The button stays lit while it runs; tap it again to stop.
+// The button stays lit while it runs; tap it again to stop right where it
+// is ("live" goes back to the land's own time).
 let timelapse = null;
 const timelapseButton = $('#timelapse');
 function setTimelapse(on) {
   timelapse = on ? { start: clock.elapsedTime, from: landHours() } : null;
   timelapseButton.setAttribute('aria-pressed', String(on));
-  timelapseButton.textContent = on ? 'Stop time lapse' : 'Time lapse';
+  timelapseButton.textContent = on ? 'stop time lapse' : 'time lapse';
 }
-timelapseButton.addEventListener('click', () => {
-  const on = !timelapse;
-  setTimelapse(on);
-  if (!on) timeOverride = null;
-});
+timelapseButton.addEventListener('click', () => setTimelapse(!timelapse));
 function updateTimelapse() {
   if (!timelapse) return;
   const k = (clock.elapsedTime - timelapse.start) / 60;
@@ -353,6 +393,7 @@ $('#photo-save').addEventListener('click', () => {
   composer.render(0);
   renderer.domElement.toBlob((blob) => {
     if (!blob) return;
+    journal.count('photos');
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `${land.name}.png`;
@@ -376,7 +417,7 @@ function chipRow(container, options, selected, onPick) {
 function renderChips() {
   const natural = WEATHERS[naturalWeather()].label;
   chipRow($('#weather-chips'), [
-    [null, isHome() && live ? `Live (${natural})` : `Natural (${natural})`],
+    [null, isHome() && live ? `live (${natural})` : `natural (${natural})`],
     ...Object.entries(WEATHERS).map(([name, w]) => [name, w.label]),
   ], weatherOverride, (name) => {
     weatherOverride = name;
@@ -384,7 +425,7 @@ function renderChips() {
     renderChips();
   });
   chipRow($('#quality-chips'), [
-    ['auto', `Auto (${QUALITY[quality].label})`],
+    ['auto', `auto (${QUALITY[quality].label})`],
     ...QUALITY.map((q, i) => [i, q.label]),
   ], qualityMode, (mode) => {
     qualityMode = mode;
@@ -484,28 +525,50 @@ function sizeRenderer() {
   shafts.uniforms.uAspect.value = w / h;
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  input.placeholder = w < 520 ? 'Name a land…' : 'Type any word to grow a land';
+  // Phones give the word box a row of its own (main.css), so only the narrowest need the short one.
+  input.placeholder = w < 360 ? 'Name a land…' : 'Type any word to grow a land';
   return true;
 }
 
 // Far enough back that the whole land fits across narrow screens too.
 const fitDistance = () => Math.max(34, 38 / camera.aspect);
 
+let fitted = 0; // the distance the view was last fitted at
+// Looking closer than the whole land: zoomed in, or circling something off-center.
+const zoomedIn = () => camera.position.distanceTo(controls.target) < fitted * 0.9 || controls.target.distanceTo(HOME_TARGET) > 0.5;
+
 function resize() {
-  if (!sizeRenderer() || focus.zoomed || intro) return;
+  if (!sizeRenderer() || intro || zoomedIn()) return;
   const offset = camera.position.clone().sub(controls.target);
-  camera.position.copy(controls.target).add(offset.setLength(fitDistance()));
+  fitted = fitDistance();
+  camera.position.copy(controls.target).add(offset.setLength(fitted));
 }
 
-// Double-click glides the camera in to look closer; double-click the sky to pull back.
-const focus = { from: new THREE.Vector3(), to: new THREE.Vector3(), fromDist: 0, toDist: 0, start: -1, zoomed: false };
+// Double-click (or double-tap) steps in toward a spot, like a map; double-click
+// the sky to pull back out to the whole land.
+const focus = { from: new THREE.Vector3(), to: new THREE.Vector3(), fromDist: 0, toDist: 0, start: -1 };
 function focusOn(point) {
   focus.from.copy(controls.target);
   focus.to.copy(point ?? HOME_TARGET);
   focus.fromDist = camera.position.distanceTo(controls.target);
-  focus.toDist = point ? 13 : fitDistance();
+  focus.toDist = point ? Math.max(controls.minDistance + 1, Math.min(focus.fromDist * 0.45, 16)) : fitDistance();
+  if (!point) fitted = focus.toDist;
   focus.start = clock.elapsedTime;
-  focus.zoomed = Boolean(point);
+}
+
+// Up close, the camera circles whatever you zoomed toward; as you pull back
+// out, that spot drifts home, so from afar it always circles the whole land.
+const drift = new THREE.Vector3();
+function keepNearHome(dt) {
+  const fit = fitDistance();
+  const room = 11 * smoothstep(fit, fit * 0.55, camera.position.distanceTo(controls.target));
+  drift.copy(controls.target).sub(HOME_TARGET);
+  const over = drift.length() - room;
+  if (over <= 0.001) return;
+  // The camera slides along with it, so the view pans home rather than swinging.
+  drift.setLength(over * Math.min(1, dt * 8));
+  controls.target.sub(drift);
+  camera.position.sub(drift);
 }
 const offsetDir = new THREE.Vector3();
 function updateFocus(t) {
@@ -571,6 +634,7 @@ controls.addEventListener('end', () => {
 
 // Two things worth knowing, one after the other, then out of the way (or gone at the first tap).
 const hint = $('#hint');
+if (lowPower) hint.textContent = 'Tap trees, water and buildings · double-tap to look closer';
 let hintDismissed = false;
 function dismissHint() {
   hintDismissed = true;
@@ -591,6 +655,7 @@ const interaction = createInteraction(renderer.domElement, camera, () => (leavin
   onClick: () => {
     idleSince = performance.now();
     dismissHint();
+    why.hidden = true;
   },
   onDoubleClick: (picked) => focusOn(picked ? picked.hit.point : null),
 });
@@ -608,6 +673,8 @@ const skyGrab = createSkyGrab(renderer.domElement, camera, {
     dismissHint();
   },
   onDrag: (hours) => {
+    // How far the sun moved, either way around the clock (the sundial badge).
+    journal.count('sunHours', Math.abs(((hours - landHours() + 36) % 24) - 12));
     timeOverride = hours;
     timeSlider.value = hours.toFixed(2);
     $('#time-out').textContent = formatHours(hours);
@@ -683,6 +750,7 @@ function renderFrame() {
   fxUniforms.uSnow.value = env.snowCover;
   fxUniforms.uRain.value = env.rain;
   land.update(t, dt, env);
+  journal.watch(env, skyState, land);
 
   // New lands grow up out of the clouds; old ones spin on down into them,
   // from wherever they were, even halfway up.
@@ -707,6 +775,8 @@ function renderFrame() {
   updateFocus(t);
   controls.autoRotate = !intro && !reducedMotion && !photo.on && nowMs - idleSince > 8000;
   controls.update(dt);
+  // Photo mode pans freely; a glide sets its own course.
+  if (!photo.on && focus.start < 0) keepNearHome(dt);
   if (tilt) camera.rotateX(tilt);
   interaction.update();
   skyGrab.update(dt);

@@ -71,6 +71,7 @@ body {
 /* The time, floating by the pointer while you drag the sun. */
 .sky-tag {
   position: fixed;
+  z-index: 2;
   left: 0;
   top: 0;
   padding: 4px 10px;
@@ -159,8 +160,10 @@ body.photo .sky-handle {
 
 /* Title block */
 
+/* Above the sun handle, which slides along the screen's edge underneath. */
 .hud-top {
   position: fixed;
+  z-index: 1;
   top: 20px;
   left: 16px;
   right: 16px;
@@ -218,10 +221,11 @@ body.photo .sky-handle {
 
 .hud-bottom {
   position: fixed;
+  z-index: 1;
   left: 50%;
   bottom: 20px;
   transform: translateX(-50%);
-  width: min(580px, calc(100vw - 32px));
+  width: min(640px, calc(100vw - 32px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -482,12 +486,304 @@ body.photo .hud-bottom {
   border-color: transparent;
 }
 
+/* Toasts: news from the journal, just above whatever is open at the bottom. */
+
+.toasts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toasts:empty {
+  display: none;
+}
+
+.toast {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass-strong);
+  color: #f6f3ec;
+  font-size: 0.85rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: toast-in 0.35s ease;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.toast.gone {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* The journal: what you've found, what's still out there, and badges. */
+
+.journal {
+  max-height: min(60vh, 540px);
+  overflow-y: auto;
+  gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.journal[hidden] {
+  display: none;
+}
+
+.journal h3 {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(246, 243, 236, 0.6);
+}
+
+.journal-head strong {
+  margin-right: 4px;
+}
+
+.journal-line,
+.journal-status {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(246, 243, 236, 0.8);
+}
+
+.journal-status {
+  margin-top: 4px;
+  color: rgba(246, 243, 236, 0.65);
+}
+
+.journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.entry:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.entry.missing {
+  color: rgba(246, 243, 236, 0.45);
+}
+
+.entry-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.entry.missing .entry-icon,
+.badge:not(.earned) .entry-icon {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.journal-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.badge {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  font-size: 0.8rem;
+  color: rgba(246, 243, 236, 0.6);
+}
+
+.badge.earned {
+  color: #f6f3ec;
+}
+
+.badge .entry-icon {
+  grid-row: span 2;
+}
+
+.badge-count {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-bar {
+  position: relative;
+  grid-column: 2 / 4;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.badge-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(var(--k));
+  background: var(--accent);
+}
+
+.badge.earned .badge-bar::after {
+  background: #ffc24b;
+}
+
+/* Something new in the journal since you last looked. */
+#journal-button.has-news::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffc24b;
+  box-shadow: 0 0 6px #ffc24b;
+}
+
+/* Rarity tiers, by the land's name and in the journal. */
+
+.tier {
+  font-weight: 600;
+}
+
+.tier-uncommon {
+  color: #6fd08c;
+}
+
+.tier-rare {
+  color: #5aa9ff;
+}
+
+.tier-epic {
+  color: #c38bff;
+}
+
+.tier-legendary {
+  color: transparent;
+  background: linear-gradient(90deg, #ffcf5a, #ff8a3c, #ffcf5a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: 200%;
+  animation: background-drift 3s linear infinite;
+}
+
+/* The tier by the land's name explains itself on hover (or tap). */
+.hud-top .tier {
+  pointer-events: auto;
+  cursor: help;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.rarity-why {
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px auto 0;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--glass-strong);
+  color: #f6f3ec;
+  text-shadow: none;
+  text-align: left;
+  font-size: 0.8rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.rarity-why[hidden],
+.in-flight .rarity-why {
+  display: none;
+}
+
+.rarity-why p {
+  margin: 2px 0;
+}
+
+.rarity-why p:first-child {
+  margin-bottom: 4px;
+  color: rgba(246, 243, 236, 0.7);
+}
+
+/* The rarest thing about it. */
+.rarity-why p:nth-child(2) {
+  font-weight: 600;
+}
+
+/* Deeper shades against a bright day sky. */
+body.is-day .hud-top .tier-uncommon {
+  color: #1d8a48;
+}
+
+body.is-day .hud-top .tier-rare {
+  color: #1561c4;
+}
+
+body.is-day .hud-top .tier-epic {
+  color: #7a35c8;
+}
+
+/* Phones: the word box gets a row of its own with "visit", and the buttons
+   spread out beneath it; in the panel, the time lapse buttons drop below the
+   slider and the quality chips below their label. */
 @media (max-width: 520px) {
-  .bar .icon {
-    width: 36px;
+  .bar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
   }
 
-  .bar {
-    gap: 4px;
+  .bar input {
+    grid-column: 1 / 6;
+    height: 42px;
+  }
+
+  .bar .primary {
+    padding: 0 6px;
+  }
+
+  .bar .icon {
+    width: auto;
+  }
+
+  .time-row {
+    flex-wrap: wrap;
+  }
+
+  .time-row .chip {
+    flex: 1 1 calc(50% - 5px);
+  }
+
+  .quality-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 }

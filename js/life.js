@@ -159,7 +159,7 @@ function buildButterflies(spots, r, count) {
   };
 }
 
-function buildBats(r, count, height) {
+function buildBats(r, count, height, note) {
   if (!count) return null;
   const body = part(new THREE.IcosahedronGeometry(0.04, 0), '#24222a', [0, 0, 0], { s: [1, 0.9, 1.6] });
   const colony = flyers(count, body, wing([[0, 0.04], [0.12, 0.06], [0.2, 0.0], [0.16, -0.03], [0.12, -0.0], [0.08, -0.05], [0, -0.04]], '#2a2830', '#1a181e'), material(), material({ side: THREE.DoubleSide }));
@@ -170,6 +170,7 @@ function buildBats(r, count, height) {
       const out = env.night * (1 - env.rain) * (1 - env.snow);
       colony.visible = out > 0.05;
       if (out <= 0.05) return;
+      if (out > 0.5) note('bats');
       bats.forEach((b, i) => {
         // Bats jink about rather than gliding in circles.
         const a = t * b.speed + b.phase + Math.sin(t * 2.7 + b.phase) * 0.4;
@@ -207,7 +208,7 @@ function buildDragonflies(shape, waterLevel, r) {
 }
 
 // Rabbits nibble, then hop off somewhere nearby; tap one and it bolts.
-function buildRabbits({ spots, shape, r, count, coat, sound, bursts }) {
+function buildRabbits({ spots, shape, r, count, coat, sound, note, bursts }) {
   if (!count || spots.length < 8) return null;
   const geo = model(
     part(new THREE.IcosahedronGeometry(0.1, 1), coat, [0, 0.11, 0], { s: [1, 0.85, 1.35] }),
@@ -245,6 +246,7 @@ function buildRabbits({ spots, shape, r, count, coat, sound, bursts }) {
     const away = r.range(-0.6, 0.6) + Math.atan2(b.x - hit.point.x, b.z - hit.point.z);
     hopToward(b, b.x + Math.sin(away) * 1.6, b.z + Math.cos(away) * 1.6, true);
     sound('rustle');
+    note('rabbit');
   };
   return {
     object: mesh,
@@ -290,7 +292,7 @@ function buildRabbits({ spots, shape, r, count, coat, sound, bursts }) {
 }
 
 // Deer graze, look up now and then, and wander; tap one and it bounds away.
-function buildDeer({ spots, shape, r, count, sound }) {
+function buildDeer({ spots, shape, r, count, sound, note }) {
   if (!count || spots.length < 8) return null;
   const coat = '#9a6a44', belly = '#c9a27a';
   const bodyGeo = model(
@@ -330,7 +332,9 @@ function buildDeer({ spots, shape, r, count, sound }) {
   for (const mesh of [bodies, heads]) {
     mesh.userData.onClick = (hit) => {
       const d = herd[hit.instanceId];
-      if (d) startle(d, hit.point);
+      if (!d) return;
+      startle(d, hit.point);
+      note('deer');
     };
   }
   return {
@@ -383,7 +387,7 @@ function buildDeer({ spots, shape, r, count, sound }) {
 }
 
 // Ducks paddle about the lake, leaving soft wakes; tap one and it flaps off with a quack.
-function buildDucks({ lake, open, water, waterLevel, r, count, sound }) {
+function buildDucks({ lake, open, water, waterLevel, r, count, sound, note }) {
   const geo = model(
     part(new THREE.IcosahedronGeometry(0.1, 1), '#8a6a4a', [0, 0.04, 0], { s: [1, 0.75, 1.6] }),
     part(new THREE.IcosahedronGeometry(0.055, 1), '#2f6b3a', [0, 0.14, 0.13]),
@@ -404,6 +408,7 @@ function buildDucks({ lake, open, water, waterLevel, r, count, sound }) {
     if (!d) return;
     d.flap = 1;
     sound('quack');
+    note('duck');
   };
   return {
     object: mesh,
@@ -429,7 +434,7 @@ function buildDucks({ lake, open, water, waterLevel, r, count, sound }) {
 }
 
 // Now and then a fish leaps out of the lake, and sometimes when you tap the water.
-function buildFish({ lake, open, water, waterLevel, bursts, koi }) {
+function buildFish({ lake, open, water, waterLevel, bursts, koi, note }) {
   const fishMaterial = new THREE.MeshStandardMaterial({ color: koi ? '#ff8a3c' : '#b9c8d4', metalness: 0.35, roughness: 0.3, flatShading: true });
   const fish = new THREE.Group();
   fish.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0).scale(0.55, 0.65, 1.9), fishMaterial));
@@ -447,6 +452,7 @@ function buildFish({ lake, open, water, waterLevel, bursts, koi }) {
     const dir = Math.random() * TAU;
     jump = { t, x, z, dx: Math.sin(dir), dz: Math.cos(dir), dir };
     splash(x - jump.dx * 0.6, z - jump.dz * 0.6, t);
+    note('fish');
   }
   let pending = null;
   return {
@@ -481,7 +487,7 @@ function buildFish({ lake, open, water, waterLevel, bursts, koi }) {
 
 const COATS = { snowfield: '#f4f4f2', desert: '#c8a47a', highlands: '#8a8478' };
 
-export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, water, waterLevel, sound }) {
+export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, water, waterLevel, sound, note }) {
   const group = new THREE.Group();
   const updaters = [], clickables = [];
   const add = (part) => {
@@ -502,17 +508,17 @@ export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, wat
 
   add(buildBirds(r, r.int(6, 10)));
   add(buildButterflies(spots.slice(0, 40), r, { meadow: 14, blossom: 16, dream: 16, autumn: 10, highlands: 8, desert: 4, snowfield: 0 }[biomeKey]));
-  add(buildBats(r, biomeKey === 'snowfield' ? 0 : r.int(5, 8), 0.9 + biome.hills * 0.6));
-  add(buildRabbits({ spots, shape, r, count: biomeKey === 'dream' ? 0 : r.int(4, 7), coat: COATS[biomeKey] ?? '#a07850', sound, bursts }));
-  add(buildDeer({ spots, shape, r, count: lush ? r.int(2, 4) : 0, sound }));
+  add(buildBats(r, biomeKey === 'snowfield' ? 0 : r.int(5, 8), 0.9 + biome.hills * 0.6, note));
+  add(buildRabbits({ spots, shape, r, count: biomeKey === 'dream' ? 0 : r.int(4, 7), coat: COATS[biomeKey] ?? '#a07850', sound, note, bursts }));
+  add(buildDeer({ spots, shape, r, count: lush ? r.int(2, 4) : 0, sound, note }));
   let fish = null;
   if (water) {
     // The open-water radius: the nearest the shore comes to the lake's middle.
     let open = Infinity;
     for (let i = 0; i < 24; i++) open = Math.min(open, shape.shoreDistance(shape.lake, (i / 24) * TAU));
     add(buildDragonflies(shape, waterLevel, r));
-    add(buildDucks({ lake: shape.lake, open, water, waterLevel, r, count: r.int(2, 4), sound }));
-    fish = buildFish({ lake: shape.lake, open, water, waterLevel, bursts, koi: biomeKey === 'blossom' || biomeKey === 'dream' });
+    add(buildDucks({ lake: shape.lake, open, water, waterLevel, r, count: r.int(2, 4), sound, note }));
+    fish = buildFish({ lake: shape.lake, open, water, waterLevel, bursts, note, koi: biomeKey === 'blossom' || biomeKey === 'dream' });
     add(fish);
   }
 

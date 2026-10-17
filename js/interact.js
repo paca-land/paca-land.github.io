@@ -92,19 +92,32 @@ export function createInteraction(canvas, camera, getTargets, { onClick, onDoubl
     return null;
   }
 
+  // Touch screens don't reliably send dblclick, so double-taps are spotted here.
+  let lastTap = null, touching = false;
   canvas.addEventListener('pointerdown', (event) => {
     down = { x: event.clientX, y: event.clientY, t: performance.now() };
+    touching = event.pointerType === 'touch';
   });
   canvas.addEventListener('pointerup', (event) => {
     if (!down) return;
-    const still = Math.hypot(event.clientX - down.x, event.clientY - down.y) < 6 && performance.now() - down.t < 450;
+    const still = Math.hypot(event.clientX - down.x, event.clientY - down.y) < (touching ? 10 : 6) && performance.now() - down.t < 450;
     down = null;
     if (!still) return;
     const picked = pick(event);
     if (picked) picked.target.userData.onClick(picked.hit);
     onClick?.(picked);
+    if (!touching) return;
+    const now = performance.now();
+    if (lastTap && now - lastTap.t < 320 && Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y) < 30) {
+      lastTap = null;
+      onDoubleClick?.(picked);
+    } else {
+      lastTap = { t: now, x: event.clientX, y: event.clientY };
+    }
   });
-  canvas.addEventListener('dblclick', (event) => onDoubleClick?.(pick(event)));
+  canvas.addEventListener('dblclick', (event) => {
+    if (!touching) onDoubleClick?.(pick(event));
+  });
 
   // Show a pointer over things that react, checked at most once a frame.
   let hoverEvent = null;

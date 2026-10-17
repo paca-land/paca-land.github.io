@@ -1271,8 +1271,9 @@ export function generateLand(seed) {
   const under = buildUnderside(top, shape, makeRandom(seed, 'underside'));
   const bursts = createBursts();
   let lastEnv = { snowCover: 0, night: 0 };
-  // main.js fills in hooks.sound, so taps can make a noise.
-  const hooks = { sound() {} };
+  // main.js fills these in, so taps can make a noise and the journal hears
+  // about what you did and saw (`note('tree')`, `note('bats')`…).
+  const hooks = { sound() {}, note() {} };
 
   // The landmark and what surrounds it come first, so trees and paint can make room.
   const mats = makeMaterials(biomeKey);
@@ -1340,7 +1341,7 @@ export function generateLand(seed) {
   // deer on the ground; ducks and fish in the lake.
   const life = buildLife({
     top, shape, biome, biomeKey, blocked, bursts, r: makeRandom(seed, 'life'),
-    water: water?.ripple ? water : null, waterLevel: WATER_LEVEL, sound: (kind) => hooks.sound(kind),
+    water: water?.ripple ? water : null, waterLevel: WATER_LEVEL, sound: (kind) => hooks.sound(kind), note: (kind) => hooks.note(kind),
   });
   add(life);
   const fish = life.fish;
@@ -1355,6 +1356,7 @@ export function generateLand(seed) {
       sendGust(at.x, at.z, clock());
       garden.plant(at, clock());
       hooks.sound('pop');
+      hooks.note('flower');
       bursts.spawn(at, { count: 10, colors: lastEnv.snowCover > 0.4 ? ['#ffffff'] : ['#c9b48a', '#9c8a66'], speed: 0.6, up: 0.8, gravity: -3, life: 0.8 });
     } else {
       // Tapping the cliffs knocks a few chips loose.
@@ -1369,6 +1371,7 @@ export function generateLand(seed) {
       bursts.spawn(at, { count: 14, colors: ['#e8f6ff', '#ffffff'], speed: 0.5, up: 2.2, gravity: -9, life: 0.7, drag: 0.4 });
       fish?.jumpNear(at, clock());
       hooks.sound('splash');
+      hooks.note('splash');
     };
   } else if (water) {
     water.userData.onClick = (hit) => bursts.spawn(local(hit), { count: 12, colors: ['#ffffff'], glow: true, speed: 0.6, up: 0.5, gravity: -1, life: 1 });
@@ -1379,6 +1382,7 @@ export function generateLand(seed) {
       if (tree == null) return;
       flora.shake(tree, clock());
       hooks.sound('rustle');
+      hooks.note('tree');
       const snowy = lastEnv.snowCover > 0.4;
       const color = flora.crownColor(tree);
       bursts.spawn(flora.crownTop(tree), {
@@ -1414,7 +1418,9 @@ export function generateLand(seed) {
     biomeKey,
     name: landName(makeRandom(seed, 'name')),
     landmark: landmark?.type ?? 'none',
+    hasLake: Boolean(shape.lake),
     hasWaterfall: Boolean(shape.river),
+    hasBalloon: Boolean(balloon),
     clickables,
     hooks,
     // What the soundscape should play here.
@@ -1440,6 +1446,7 @@ export function generateLand(seed) {
       // A tapped landmark lights its lamps for a while, day or night.
       env.poke = landmark ? landmark.boost(clock()) : 0;
       env.gloom = Math.max(env.gloom, env.poke);
+      if (env.night > 0.6 && biome.ambient.includes('fireflies')) hooks.note('fireflies');
       updateMaterials(mats, env);
       for (const update of updaters) update(t, dt, env);
     },
