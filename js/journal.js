@@ -50,8 +50,28 @@ export const SECTIONS = [
     ['odd:oasis', '🌴', 'oasis', 'water in the desert'],
     ['odd:ice', '🧊', 'frozen lake', 'a snowfield, or snow that lasts'],
   ]],
+  // Islands only a voyage reaches (Drift: they never turn up on an ordinary land).
+  ['voyage islands', [
+    ['land:mire', '🐸', 'the mire', 'say something swampy on a voyage'],
+    ['land:coral', '🐠', 'coral shoal', 'say something tropical on a voyage'],
+    ['land:toadstool', '🍄', 'toadstool wood', 'say something mushroomy on a voyage'],
+    ['land:stormcrag', '🌩️', 'storm crag', 'say something wild and lonely on a voyage'],
+    ['land:glass', '💎', 'glass isle', 'say something glassy on a voyage'],
+    ['land:ember', '🌋', 'ember isle', 'say something volcanic on a voyage'],
+    ['land:gilded', '🪙', 'gilded isle', 'say something golden on a voyage'],
+    ['land:jungle', '🐒', 'jungle', 'say something jungly on a voyage'],
+    ['land:savanna', '🦒', 'savanna', 'say something from a safari on a voyage'],
+    ['land:heath', '🐑', 'heath', 'say something from the moors on a voyage'],
+    ['land:lavender', '💜', 'lavender fields', 'say something purple on a voyage'],
+    ['land:cloudisle', '☁️', 'cloud isle', 'say something soft on a voyage'],
+    ['land:withered', '🥀', 'withered wood', 'say something dark on a voyage (it bites)'],
+    ['land:sugar', '🍬', 'sugar isle', 'say something sweet on a voyage'],
+  ]],
 ];
 const ENTRIES = new Map(SECTIONS.flatMap(([, items]) => items.map((item) => [item[0], item])));
+// Voyage islands are a bonus: Drift is behind a password, so the naturalist
+// badge asks only for what ordinary lands hold.
+const VOYAGE_ONLY = new Set(SECTIONS.find(([title]) => title === 'voyage islands')[1].map(([id]) => id));
 
 // [id, emoji, name, what to do, counter, goal]
 export const BADGES = [
@@ -64,7 +84,7 @@ export const BADGES = [
   ['duck-whisperer', '🦆', 'duck whisperer', 'make the ducks quack 20 times', 'ducks', 20],
   ['photographer', '📷', 'photographer', 'save 5 pictures', 'photos', 5],
   ['legend-hunter', '👑', 'legend hunter', 'find a legendary land', 'legendary', 1],
-  ['naturalist', '📖', 'naturalist', 'fill the whole journal', 'found', ENTRIES.size],
+  ['naturalist', '📖', 'naturalist', 'fill the journal, voyage islands aside', 'found', ENTRIES.size - VOYAGE_ONLY.size],
 ];
 
 // What the land's hooks report, and what each one counts toward.
@@ -132,7 +152,8 @@ export function createJournal({ button, panel, toasts, onGo }) {
 
   const toast = (emoji, text) => showToast(toasts, emoji, text);
 
-  const progress = (counter) => (counter === 'found' ? Object.keys(data.found).length : counter === 'lands' ? Object.keys(data.lands).length : data.counts[counter] ?? 0);
+  const progress = (counter) => (counter === 'found' ? Object.keys(data.found).filter((id) => !VOYAGE_ONLY.has(id)).length
+    : counter === 'lands' ? Object.keys(data.lands).length : data.counts[counter] ?? 0);
 
   function checkBadges() {
     for (const [id, emoji, name, , counter, goal] of BADGES) {
@@ -191,7 +212,9 @@ export function createJournal({ button, panel, toasts, onGo }) {
         cell.className = got ? 'entry' : 'entry missing';
         cell.append(Object.assign(document.createElement('span'), { className: 'entry-icon', textContent: emoji }), t(name));
         cell.addEventListener('click', () => {
-          if (got?.voyage) status.textContent = t('{name}: found on a voyage, at “{word}”', { name: t(name), word: got.seed.slice(1) });
+          if (got?.voyage) {
+            status.textContent = got.seed ? t('{name}: found on a voyage, at “{word}”', { name: t(name), word: got.seed.slice(1) }) : t('{name}: found on a voyage', { name: t(name) });
+          }
           else if (got) onGo(got.seed);
           else status.textContent = `${t(name)}${COLON}${t(hint)}`;
         });
@@ -289,6 +312,19 @@ export function createJournal({ button, panel, toasts, onGo }) {
     },
 
     restore() {
+      // Voyage islands reached before the journal listed them are in Wa's book (voyage.js).
+      let islands = {};
+      try {
+        islands = JSON.parse(localStorage.getItem('paca-language') ?? '{}').islands ?? {};
+      } catch {}
+      let added = false;
+      for (const [key, at] of Object.entries(islands)) {
+        const id = `land:${key}`;
+        if (!VOYAGE_ONLY.has(id) || data.found[id]) continue;
+        data.found[id] = { seed: null, at, voyage: true };
+        added = true;
+      }
+      if (added) save();
       if (data.news) button.classList.add('has-news');
     },
   };

@@ -1441,8 +1441,9 @@ function coastToward(shape, r, from) {
   return { x: Math.cos(a) * d, z: Math.sin(a) * d };
 }
 
-// `want` (from a voyage's word) can choose the biome and landmark and insist on
-// water or a balloon; anything it leaves out is up to the seed as usual.
+// `want` (from a voyage's word, or the owner's #! link) can choose the biome and
+// landmark and insist on water (or none) or a balloon; anything it leaves out
+// is up to the seed as usual.
 export function generateLand(seed, want = {}) {
   const meta = makeRandom(seed, 'biome');
   const rolledBiome = meta.weighted(Object.entries(BIOMES).filter(([, b]) => b.weight > 0).map(([key, b]) => [key, b.weight]));
@@ -1474,9 +1475,11 @@ export function generateLand(seed, want = {}) {
     spots: groundSpots(top, makeRandom(seed, 'spots')),
   };
   // If the land can't fit the landmark it rolled, try the biome's others.
+  // (`want.landmark: 'none'` leaves the land empty.)
   let landmark = null;
   const rolledLandmark = ctx.r.weighted(biome.landmark);
-  for (const type of [want.landmark, rolledLandmark, ...biome.landmark.map(([name]) => name), 'campsite', 'stones'].filter(Boolean)) {
+  const tries = want.landmark === 'none' ? [] : [want.landmark, rolledLandmark, ...biome.landmark.map(([name]) => name), 'campsite', 'stones'];
+  for (const type of tries.filter(Boolean)) {
     landmark = buildLandmark(type, ctx);
     if (landmark) break;
   }

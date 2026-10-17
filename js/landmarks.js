@@ -527,6 +527,9 @@ function addSmoke(group, at) {
   };
 }
 
+// Every kind there is (for the owner's #! links, main.js).
+export const LANDMARK_TYPES = Object.keys(LANDMARKS);
+
 export function buildLandmark(type, ctx) {
   const def = LANDMARKS[type];
   const spot = def && findSpot(ctx, def.find);

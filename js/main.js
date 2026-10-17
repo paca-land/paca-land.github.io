@@ -4,7 +4,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { generateLand } from './world.js';
+import { generateLand, BIOMES } from './world.js';
+import { LANDMARK_TYPES } from './landmarks.js';
 import { createSky, WEATHERS, skyUniforms } from './sky.js';
 import { fxUniforms, createLightShafts, createFinishPass, createReflection, useSoftShadows } from './effects.js';
 import { createInteraction } from './interact.js';
@@ -21,6 +22,36 @@ import { t, lang, setLang, translatePage } from './i18n.js';
 translatePage();
 
 const HOME = 'pacaland';
+
+// The owner's door to every kind of island: #!ember/castle/lake/falls/balloon/
+// storm/23/kettle grows "kettle" as an ember isle with a castle, a lake and a
+// waterfall, a balloon overhead, in a storm at 23:00. Any part can be left out
+// or reordered; `none` means no landmark and `dry` no water; with no word, it's
+// the home land. Like a voyage's words, it's applied after every die is
+// rolled, so ordinary links don't change; and like voyage lands, these skip
+// rarity and the journal. No island's name starts with "!", so it can't clash.
+// (Owner-only, so not translated. Not a secret, just not advertised.)
+const ADMIN = '!';
+const ADMIN_HOURS = { dawn: 6.5, morning: 9, noon: 12.5, afternoon: 15, golden: 17.5, dusk: 19.4, night: 23 };
+function adminLand(raw) {
+  if (!raw.startsWith(ADMIN)) return null;
+  const parts = raw.slice(ADMIN.length).split('/');
+  const out = { word: HOME, want: {}, weather: null, hour: null, asked: parts.filter(Boolean).length };
+  for (const part of parts.filter(Boolean)) {
+    if (BIOMES[part]) out.want.biome = part;
+    else if (LANDMARK_TYPES.includes(part) || part === 'none') out.want.landmark = part;
+    else if (part === 'lake') out.want.lake = true;
+    else if (part === 'falls' || part === 'waterfall' || part === 'river') Object.assign(out.want, { lake: true, river: true });
+    else if (part === 'dry') Object.assign(out.want, { lake: false, river: false });
+    else if (part === 'balloon') out.want.balloon = true;
+    else if (WEATHERS[part]) out.weather = part;
+    else if (ADMIN_HOURS[part] !== undefined) out.hour = ADMIN_HOURS[part];
+    else if (/^\d{1,2}(\.\d+)?$/.test(part)) out.hour = Number(part) % 24;
+    else out.word = part;
+  }
+  return out;
+}
+const ADMIN_HELP = `admin · #${ADMIN}island/landmark/lake|falls|dry/balloon/weather/hour/word · islands: ${Object.keys(BIOMES).join(' ')} · landmarks: ${LANDMARK_TYPES.join(' ')} none · weather: ${Object.keys(WEATHERS).join(' ')} · hours: 0–23 or ${Object.keys(ADMIN_HOURS).join(' ')}`;
 const $ = (sel) => document.querySelector(sel);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lowPower = matchMedia('(pointer: coarse)').matches;
@@ -83,6 +114,7 @@ let vibeStart = 0;
 
 let land = null;
 let seed = null;
+let admin = null; // the parsed #! link, on an admin island
 let bornAt = 0;
 let timeOverride = null; // hours from the slider, or null for the land's own time
 let weatherOverride = null; // a weather name, or null for the land's own weather
@@ -193,7 +225,9 @@ function arrive(next) {
   }
   leaving = null;
   seed = next;
-  land = generateLand(seed, voyage.landOptions(seed));
+  admin = voyage.active ? null : adminLand(seed);
+  const grown = admin ? admin.word : seed;
+  land = generateLand(grown, voyage.landOptions(seed) ?? admin?.want);
   land.setDetail(QUALITY[quality].grass);
   land.hooks.sound = (kind) => sound.play(kind);
   land.hooks.note = (kind) => {
@@ -201,10 +235,11 @@ function arrive(next) {
     voyage.note(kind);
   };
   scene.add(land.group);
-  vibe = voyage.vibe(seed, land) ?? (isHome() ? null : landVibe(seed, land.biome));
-  // Every land arrives in its own time and weather; picks from the panel don't follow you.
-  weatherOverride = null;
-  timeOverride = null;
+  vibe = voyage.vibe(seed, land) ?? (isHome() ? null : landVibe(grown, land.biome));
+  // Every land arrives in its own time and weather; picks from the panel don't
+  // follow you. (An admin link can set them.)
+  weatherOverride = admin?.weather ?? null;
+  timeOverride = admin?.hour ?? null;
   setTimelapse(false);
   // A new land arrives with its weather already settled on the ground; after
   // a flight the sky still blends over from the last one.
@@ -228,11 +263,12 @@ function arrive(next) {
   // A voyage's words can put landmarks where the generator never would, so
   // rarity (counted from free lands) doesn't apply there.
   if (voyage.active) $('#land-meta').textContent = t(land.biome.label);
+  else if (admin) $('#land-meta').textContent = admin.asked ? `${t(land.biome.label)} · #${admin.word} · admin` : ADMIN_HELP;
   else {
     $('#land-meta').replaceChildren(`${t(land.biome.label)} · #${seed} · `, tierTag(rarity));
     explainRarity(rarity);
   }
-  journal.visit(land, seed, rarity, voyage.active);
+  if (!admin) journal.visit(land, seed, rarity, voyage.active);
   document.title = isHome() ? 'PaCaLand' : `${name} · PaCaLand`;
   renderChips();
   voyage.arrived(land, seed);
@@ -504,7 +540,9 @@ function readSeed() {
   } catch {
     raw = location.hash.slice(1);
   }
-  return raw.trim().toLowerCase().slice(0, 40) || HOME;
+  const word = raw.trim().toLowerCase();
+  // An admin link can be long; any other word is cut at 40 letters, as it always was.
+  return word.slice(0, word.startsWith(ADMIN) ? 160 : 40) || HOME;
 }
 
 // --- Quality ------------------------------------------------------------
@@ -819,7 +857,7 @@ function renderFrame() {
   fxUniforms.uSnow.value = env.snowCover;
   fxUniforms.uRain.value = env.rain;
   land.update(t, dt, env);
-  journal.watch(env, skyState, land);
+  if (!admin) journal.watch(env, skyState, land);
   voyage.update(env);
 
   // New lands grow up out of the clouds; old ones spin on down into them,
