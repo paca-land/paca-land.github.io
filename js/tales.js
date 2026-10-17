@@ -26,7 +26,7 @@ export const STORY = {
       t('Your grandmother Wa was a sky-sailor. The sky up there has a language: say a word, and an island of that name rises out of the clouds for you to fly to.'),
       t('Twenty years ago she set off for the Edge of the Sky, the farthest island anyone has ever reached. She never came back. This morning her balloon came drifting home, empty, with her book in the basket. Most of the pages are blank. On the last one, in her big loopy writing: “Come and find me. Bring words.”'),
     ]),
-    t('The Edge is {goal} miles away, past three gates that open only for the right word. Each letter you say burns one fuel and carries you about a mile, give or take the wind. On each island you have a few hours to gather food and fuel. Keep an eye on fuel, food and the balloon’s hearts: lose the last heart, and the voyage is over.', { goal }),
+    t('The Edge is {goal} miles away, and three gates on the way open only for the right word (the last gate is the Edge itself). Each letter you say burns one fuel and carries you about a mile, give or take the wind. On each island you have a few hours, and every tree, pond or building you tap takes one of them. Keep an eye on fuel, food and the balloon’s hearts: lose the last heart, and the voyage is over.', { goal }),
   ],
   harbor: (found) => (found
     ? t('“Off again?” says the harbor master. “Wa left a few more things for you.” He heaves open her old sea chest. “Take one.”')
@@ -104,7 +104,7 @@ export const WA_NOTES = {
   night: t('Never fly in the dark without a lantern. The sky gets your words wrong.'),
   wind: t('Save wind words for when the fuel runs low.'),
   fire: t('Fire words leave kindling. Mind your eyebrows.'),
-  riches: t('Spend your coins. There’s nothing to buy at the Edge.'),
+  riches: t('Spend coins when you need to. A full purse never mended a balloon.'),
   feast: t('Eat before you fly. Always.'),
   mend: t('Patch early, not late.'),
   dark: t('Dark places pay, but they bite. I still have the scar.'),
@@ -152,7 +152,7 @@ export const RIDDLES = {
   noe: { tier: 1, ask: t('a word without an E'), test: (w) => !w.includes('e') },
   ends: { tier: 1, ask: t('a word that starts and ends with the same letter'), test: (w) => w.length > 1 && w[0] === w[w.length - 1] },
   weather: { tier: 1, ask: t('a word that changes the weather (rain, snow, storm, sunshine…)'), test: (w, r) => meant(r, WEATHERY) },
-  vowels: { tier: 2, ask: t('a word with three different vowels'), test: (w) => new Set(w.match(/[aeiou]/g) ?? []).size >= 3 },
+  vowels: { tier: 2, ask: t('a word with three different vowels (a, e, i, o, u)'), test: (w) => new Set(w.match(/[aeiou]/g) ?? []).size >= 3 },
   unique: { tier: 2, ask: t('a word of six letters or more, with no letter twice'), test: (w) => w.length >= 6 && new Set(w).size === w.length },
   endy: { tier: 2, ask: t('a word that ends in Y'), test: (w) => w.endsWith('y') },
   kvwz: { tier: 2, ask: t('a word with a K, V, W or Z in it'), test: (w) => /[kvwz]/.test(w) },
@@ -165,7 +165,7 @@ export const RIDDLES = {
 export const OMENS = {
   hungry: { name: t('a hungry sky'), line: t('Every flight eats one more food, but trees and water give one more food too.') },
   vowels: { name: t('heavy vowels'), line: t('Every vowel after the first in a word costs an extra fuel, but you set out with eight more fuel.') },
-  gusty: { name: t('restless winds'), line: t('Wind words cost only a quarter of the fuel, but storms come twice as often.') },
+  gusty: { name: t('restless winds'), line: t('Wind words (breeze, gust, flight…) cost only a quarter of the fuel, but storms come twice as often.') },
   gilded: { name: t('a gilded sky'), line: t('Every coin you find is doubled, but the balloon sets out with only four hearts.') },
   long: { name: t('long days'), line: t('Four hours on every island instead of three, but the Hush, a silence that follows you once you pass the first gate, moves faster.') },
   short: { name: t('short breath'), line: t('The sky can’t hear words longer than eight letters, but words of four letters or fewer carry you a mile further.') },
@@ -179,14 +179,14 @@ export const KEEPSAKES = {
   kite: { icon: '🪁', name: t('kite string'), line: t('Wind words (breeze, gust, flight…) cost a quarter of the fuel.') },
   lodestone: { icon: '🧲', name: t('lodestone'), line: t('J, Q, X and Z burn no fuel.') },
   feather: { icon: '🪶', name: t('raven feather'), line: t('At night, the sky never changes a letter of your word, lantern or not.') },
-  bell: { icon: '🔔', name: t('silver bell'), line: t('Dark words (doom, nightmare…) won’t cost you a heart when you land. They still pay double.') },
+  bell: { icon: '🔔', name: t('silver bell'), line: t('Dark words (doom, nightmare…) won’t cost you a heart when you land. They still pay double coins.') },
   stormglass: { icon: '⚗️', name: t('storm glass'), line: t('Flying out of a storm never tears the balloon.') },
   hourglass: { icon: '⏳', name: t('hourglass'), line: t('An extra hour on every island.') },
   tinderbox: { icon: '🪵', name: t('tinderbox'), line: t('Every tree gives an extra fuel.') },
   net: { icon: '🥅', name: t('fishing net'), line: t('Every fish you catch gives two more food.') },
   shell: { icon: '🐚', name: t('singing shell'), line: t('Every sea word you fly to (harbor, wave, anchor…) mends a heart when you land.') },
   inkwell: { icon: '🖋️', name: t('inkwell'), line: t('Each kind of word you use for the first time this voyage pays 2 coins.') },
-  coin: { icon: '🍀', name: t('lucky clover'), line: t('Every gamble falls your way.') },
+  coin: { icon: '🍀', name: t('lucky clover'), line: t('Every gamble goes your way (ruins, a falling star, a ship of fog…).') },
 };
 
 // --- Passengers -----------------------------------------------------------------
@@ -207,7 +207,7 @@ export const CREW = {
   cartographer: {
     icon: '🗺️', name: t('the cartographer'), help: t('knows the shortcuts: every flight goes a mile further'), wish: t('a waterfall, to finish her map'),
     hint: ['falls'], home: (land) => land.hasWaterfall,
-    reward: (g) => t('She inks in the waterfall, and pays you for the ride. {got} {keepsake}', { got: g.give({ glimmer: 5 }), keepsake: g.keepsake() }),
+    reward: (g) => t('The cartographer inks in the waterfall, and pays you for the ride. {got} {keepsake}', { got: g.give({ glimmer: 5 }), keepsake: g.keepsake() }),
   },
   poet: {
     icon: '📜', name: t('the poet'), help: t('writes it all down: each kind of word you use for the first time this voyage pays 1 coin'), wish: t('an island in the evening, at golden hour'),
@@ -260,19 +260,19 @@ export const HUSH = {
   light: 6, // how far a sunny, morning or evening word drives it back
   music: 5, // and a music word
   arrive: (found) => ({
-    title: found ? t('the hush') : t('a page on the wall'),
-    text: found ? t('Behind you, the birds go quiet. The Hush has found you again.')
+    title: found ? t('the Hush') : t('a page on the wall'),
+    text: found ? t('Something slips through the wall behind you, the way it once followed Wa. The Hush is back.')
       : t('Pinned to the far side of the wall is a page in Wa’s handwriting: {page}', { page: STORY.pages.wall() }),
     options: [{ label: t('fly on, and quickly'), act: () => t('Behind you, the birds have gone quiet. It’s coming.') }],
   }),
   catch: (g) => {
     const letter = pickLetter(Math.random, g.run.banned);
     return {
-      title: t('the hush catches you'),
+      title: t('the Hush catches you'),
       text: t('The Hush wraps the basket in silence. You can’t hear the wind, or the burner, or your own voice. It wants something.'),
       options: [
         {
-          label: t('let it take the letter {letter}', { letter: letter.toUpperCase() }), note: t('no word with it will fly until you win it back'),
+          label: t('let it take the letter {letter}', { letter: letter.toUpperCase() }), note: t('no word with it will fly until a shrine or a wizard wins it back'),
           disabled: g.run.banned.length >= 3, act: () => g.ban(letter),
         },
         { label: t('feed it coins'), note: '−8 🪙', disabled: g.run.glimmer < 8, act: () => t('It swallows the coins, and lets go. {got}', { got: g.give({ glimmer: -8 }) }) },
@@ -317,8 +317,8 @@ export const SKY_EVENTS = [
     id: 'stowaway', weight: 2, when: (g) => g.room && !g.met('fox'),
     title: t('a stowaway'), text: t('Something rustles in the food sacks: a fox, very thin, and very polite about it.'),
     options: [
-      { label: t('let it stay'), note: t('{help} · eats 1 🍞 a flight · wants {wish}', { help: CREW.fox.help, wish: CREW.fox.wish }), act: (g) => `${g.board('fox')} ${g.give({ food: -1 })}` },
-      { label: t('feed it, and set it down'), note: '−1 🍞', act: (g) => t('It eats, and bows, and leaves you a coin it found. {got}', { got: g.give({ food: -1, glimmer: 2 }) }) },
+      { label: t('let it stay'), note: t('{help} · eats 1 🍞 a flight · wants {wish}', { help: CREW.fox.help, wish: CREW.fox.wish }), act: (g) => g.board('fox') },
+      { label: t('feed it, and set it down'), note: '−1 🍞', act: (g) => t('It eats, bows, and leaves you some coins it found. {got}', { got: g.give({ food: -1, glimmer: 2 }) }) },
     ],
   },
   {
@@ -326,7 +326,7 @@ export const SKY_EVENTS = [
     title: t('a torn balloon'), text: t('A torn balloon drifts past, its pilot clinging to the ropes.'),
     options: [
       { label: t('take her aboard'), note: t('{help} · eats 1 🍞 a flight · wants {wish}', { help: CREW.balloonist.help, wish: CREW.balloonist.wish }), act: (g) => g.board('balloonist') },
-      { label: t('lend her fuel'), note: '−3 🔥 → +5 🪙', disabled: (g) => g.run.fuel < 3, act: (g) => t('She limps off, and pays you in old coins. {got}', { got: g.give({ fuel: -3, glimmer: 5 }) }) },
+      { label: t('spare her some fuel'), note: '−3 🔥 → +5 🪙', disabled: (g) => g.run.fuel < 3, act: (g) => t('She limps off, and pays you in old coins. {got}', { got: g.give({ fuel: -3, glimmer: 5 }) }) },
       { label: t('fly on'), act: () => t('She waves, a little sadly, as you go.') },
     ],
   },
@@ -343,7 +343,7 @@ export const SKY_EVENTS = [
           label: t('take their dare'), note: t('your next word must be a real word starting with {letter}: +8 🪙, or −1 ❤️ −3 🪙', { letter }),
           act: () => { g.run.dare = { id: 'pirates', letter: g.flag('dare') }; return t('“A real word, mind, starting with {letter},” the captain says. “Next island. We’ll be listening.”', { letter }); },
         },
-        { label: t('fight them off'), note: t('a gamble'), act: () => (g.chance(0.5) ? t('They flee, dropping their loot. {got}', { got: g.give({ glimmer: 6 }) }) : t('They swarm aboard, and cut a rope before they go. {hurt}', { hurt: g.hurt(1) })) },
+        { label: t('fight them off'), note: t('a gamble: +6 🪙, or −1 ❤️'), act: () => (g.chance(0.5) ? t('They flee, dropping their loot. {got}', { got: g.give({ glimmer: 6 }) }) : t('They swarm aboard, and cut a rope before they go. {hurt}', { hurt: g.hurt(1) })) },
       ];
     },
   },
@@ -351,7 +351,7 @@ export const SKY_EVENTS = [
     id: 'star', weight: 2, when: (g) => g.night,
     title: t('a falling star'), text: t('A star falls past the basket, close enough to catch.'),
     options: [
-      { label: t('catch it'), note: t('a gamble'), act: (g) => (g.chance(0.6) ? t('It’s warm, and it hums, and it fits in your pocket: {keepsake}', { keepsake: g.keepsake() }) : t('It burns straight through the basket. {hurt}', { hurt: g.hurt(1) })) },
+      { label: t('catch it'), note: t('a gamble: a keepsake, or −1 ❤️'), act: (g) => (g.chance(0.6) ? t('It’s warm, and it hums, and it fits in your pocket: {keepsake}', { keepsake: g.keepsake() }) : t('It burns straight through the basket. {hurt}', { hurt: g.hurt(1) })) },
       { label: t('wish on it'), note: '+1 ❤️', act: (g) => t('You wish for the balloon to hold. It does. {got}', { got: g.give({ hull: 1 }) }) },
     ],
   },
@@ -438,12 +438,12 @@ export const SKY_EVENTS = [
     title: t('the night post'), text: t('A postman with bat wings has a parcel with your name on it. Postage due: 3 coins.'),
     options: [
       {
-        label: t('pay the postage'), note: t('−3 🪙 · who knows'), disabled: (g) => g.run.glimmer < 3, act: (g) => {
+        label: t('pay the postage'), note: t('−3 🪙 · could be anything'), disabled: (g) => g.run.glimmer < 3, act: (g) => {
           const paid = g.give({ glimmer: -3 });
-          if (g.chance(0.4)) return t('{paid} Inside, wrapped in newspaper: {keepsake}', { paid, keepsake: g.keepsake() });
+          if (g.chance(0.4)) return t('Inside, wrapped in newspaper: {keepsake} {paid}', { paid, keepsake: g.keepsake() });
           return g.chance(0.5)
-            ? t('{paid} Inside: a cake from home. {got}', { paid, got: g.give({ food: 5 }) })
-            : t('{paid} Inside: a letter Wa posted twenty years ago. “Keep your lantern lit,” it says. You read it twice and put it in your pocket. {got}', { paid, got: g.give({ hull: 1 }) });
+            ? t('Inside: a cake from home. {paid} {got}', { paid, got: g.give({ food: 5 }) })
+            : t('Inside: a letter Wa posted twenty years ago. “Keep your lantern lit,” it says. You read it twice and put it in your pocket. {paid} {got}', { paid, got: g.give({ hull: 1 }) });
         },
       },
       { label: t('refuse it'), act: () => t('The postman sighs, and flaps off with it.') },
@@ -474,7 +474,7 @@ export const SKY_EVENTS = [
     title: t('a ship of fog'), text: t('A ship made of fog drifts alongside, its lanterns burning green. Nobody is at the wheel.'),
     options: [
       {
-        label: t('board it'), note: t('a gamble'), act: (g) => (g.chance(0.5)
+        label: t('board it'), note: t('a gamble: +10 🪙, or −1 ❤️'), act: (g) => (g.chance(0.5)
           ? t('The hold is full of drowned treasure. {got}', { got: g.give({ glimmer: 10 }) })
           : t('The deck gives way under you, and you barely make it back. {hurt} {hush}', { hurt: g.hurt(1), hush: g.hushGains(4) })),
       },

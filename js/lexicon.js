@@ -79,13 +79,13 @@ const MEANINGS_SPEC = [
   ['bread', 'bread words turn windmills', 'The windmill sails turn, slow and patient.', { landmark: 'windmill' },
     'mill windmill miller flour bread grain wheat barley rye oat bake baker bakery loaf loaves dough oven pastry croissant muffin bagel biscuit holland dutch scone crumpet toast sourdough knead yeast granary',
     'windmill bread flour wheat'],
-  ['sea', 'sea words light lighthouses', 'A lighthouse keeps watch over the edge.', { landmark: 'lighthouse' },
+  ['sea', 'sea words light lighthouses', 'A lighthouse stands at the island’s edge, keeping watch.', { landmark: 'lighthouse' },
     'lighthouse light lamp beacon lantern harbor harbour port pier jetty dock ship boat sail sailor captain anchor coast coastal shore seashore sea ocean wave tide gull seagull pirate voyage compass keeper buoy reef shell seashell starfish crab lobster octopus oyster squid jellyfish maritime nautical navy mermaid whale dolphin cove bay driftwood salt salty brine kelp seaweed foghorn mariner navigator',
     'lighthouse harbor harbour beacon lantern ocean sailor'],
   ['home', 'home words build cabins', 'Smoke curls from a cabin chimney.', { landmark: 'cabin' },
     'cabin hut home homely cottage house hermit log woodsman lumberjack cozy cosy hearth chimney quilt blanket fireplace nook retreat lodge shelter kettle soup stew broth grandma grandpa granny grandmother grandfather slippers chair table teapot teacup porch rocking candle knitting yarn sofa homestead shack bungalow attic cellar pantry',
     'cabin cottage hermit hearth'],
-  ['town', 'town words gather villages', 'Lamplit windows crowd around a little square.', { landmark: 'village' },
+  ['town', 'town words gather villages', 'Little houses crowd around a market square.', { landmark: 'village' },
     'village town market folk neighbor neighbour inn tavern pub square fair festival carnival parade shop merchant trade gossip hamlet community family cobbler smith blacksmith well street lane chapel church townsfolk fete postman laundry city paris london',
     'village market festival carnival'],
   ['trail', 'trail words pitch camps', 'Someone has left a campfire burning low.', { landmark: 'campsite' },
@@ -134,13 +134,13 @@ const MEANINGS_SPEC = [
   ['golden', 'evening words arrive at golden hour', 'Everything glows gold and long-shadowed.', { hour: 17.5 },
     'golden sunset sundown evening twilight dusk afterglow teatime glow',
     'sunset evening twilight'],
-  ['night', 'night words arrive after dark', 'Night has fallen, and the stars are out.', { hour: 23 },
+  ['night', 'night words arrive after dark', 'Night fell while you were flying.', { hour: 23 },
     'night nightfall midnight moon moonlight moonlit dark darkness owl bat nocturne nocturnal nightingale insomnia vampire werewolf witching firefly fireflies starlit eclipse',
     'night moon midnight nocturn'],
 
   // --- Gifts and dangers ---------------------------------------------------
   ['wind', 'wind words fly for half the fuel', 'A wind scoops up the balloon and does half the work.', { wind: true },
-    'wind windy breeze breezy gust gusty sky air airy wing feather kite bird swallow swift soar glide flight fly flying flutter balloon airship zeppelin blimp whirl whirlwind blow updraft jetstream aloft aerial',
+    'wind windy breeze breezy gust gusty gale sky air airy wing feather kite bird swallow swift soar glide flight fly flying flutter balloon airship zeppelin blimp whirl whirlwind blow updraft jetstream aloft aerial',
     'wind breeze feather flight'],
   ['falls', 'river words make waterfalls', 'A river runs off the edge into the clouds.', { lake: true, river: true },
     'waterfall cascade river stream rapids torrent creek brook',
@@ -160,7 +160,7 @@ const MEANINGS_SPEC = [
   ['mend', 'kind words mend the balloon', 'Someone kind has left a needle and thread.', { heal: 1 },
     'mend heal healing care caring nurse doctor medicine remedy cure patch stitch sew sewing needle thread bandage kind kindness hug comfort rest restore repair fix',
     'heal stitch bandage remedy repair'],
-  ['dark', 'dark words call withered woods: they cost a heart, but pay double', 'A dead wood, and something in it that bites. But it guards a hoard: double coins.', { danger: true, glimmer: 3, biome: 'withered' },
+  ['dark', 'dark words call withered woods: they cost a heart, but pay double coins', 'A dead wood, and something in it that bites. But it guards a hoard: double coins.', { danger: true, glimmer: 3, biome: 'withered' },
     'dark darkness doom dread nightmare curse cursed poison venom plague disaster despair abyss void death grave skull bones haunted horror terror fear wicked evil demon devil wraith banshee reaper peril danger dangerous',
     'nightmare haunt horror terror doom'],
   ['fast', 'fast words carry you further', 'You got here so fast your hat nearly blew off.', { leagues: 2 },
@@ -195,9 +195,9 @@ MEANINGS.push({
 // How the shape of a word bends the trip. Each is discovered the first time it happens.
 export const RULES = {
   chain: { name: 'tailwinds', line: 'Begin where the last word ended, and a tailwind carries you for half the fuel.', hint: 'where one word ends and the next begins' },
-  double: { name: 'double letters make lakes', line: 'Where a letter doubles, water gathers: the land will have a lake.', hint: 'letters that keep each other company' },
-  odd: { name: 'rare letters', line: 'J, Q, X and Z are rare letters. Each one adds 2 coins when you land, and the trees and water there give one extra.', hint: 'the rarest letters of all' },
-  mirror: { name: 'mirror words', line: 'A word that reads the same both ways lands somewhere doubled: everything you gather counts twice.', hint: 'words that read the same backwards' },
+  double: { name: 'double letters make lakes', line: 'Where a letter doubles, water gathers, and the island will have a lake.', hint: 'letters that keep each other company' },
+  odd: { name: 'rare letters', line: 'J, Q, X and Z each add 2 coins when you land, and the trees and water there give one extra.', hint: 'the rarest letters of all' },
+  mirror: { name: 'mirror words', line: 'A word that reads the same backwards (level, noon…) doubles everything you gather on its island.', hint: 'words that read the same backwards' },
   echo: { name: 'echoes', line: 'Shuffle the letters of a word you already said, and you return to an echo of that land, with an extra hour to spend.', hint: 'an old word, rearranged' },
   mishear: { name: 'the night mishears', line: 'In the dark, the sky changes one letter of your word (never the first), which can change where you land. A lantern stops it.', hint: 'speaking in the dark' },
 };
@@ -212,11 +212,11 @@ export const SECRETS = {
   goodnight: { line: 'You arrive at bedtime and sleep well: 3 hearts mended.', effect: { heal: 3, hour: 22 } },
   kettle: { line: 'A hot meal and a heart mended. Wa always put the kettle on.', effect: { heal: 1, food: 3 } },
   faraway: { line: 'It carries you ten miles further.', effect: { leagues: 10 } },
-  abracadabra: { line: 'The island is extra rich, with more coins when you land and more from its trees and water.', effect: { wonder: 2 } },
+  abracadabra: { line: 'The island it takes you to is extra rich: more coins when you land, and more from its trees and water.', effect: { wonder: 2 } },
   aurora: { line: 'Northern lights, a clear night, and a few coins.', effect: { glimmer: 3, hour: 23.5, weather: 'clear', aurora: true } },
-  sunday: { line: 'Fair weather for three islands, starting with this one.', effect: { calm: 3 } },
+  sunday: { line: 'Fair weather on three islands in a row, starting with the one it takes you to.', effect: { calm: 3 } },
   surprise: { line: 'Coins, food and fuel, a little of each.', effect: { glimmer: 3, food: 3, fuel: 3 } },
-  wa: { line: 'The sky remembers her name, and tells you what the next gate wants.', effect: { gossip: true } },
+  wa: { line: 'The sky remembers her name. If a gate is still ahead, it tells you what that gate wants.', effect: { gossip: true } },
 };
 for (const secret of Object.values(SECRETS)) secret.line = t(secret.line);
 
@@ -286,7 +286,7 @@ export function readWord(raw, { used = [], last = null } = {}) {
   const reading = { word, problem: null, leagues: word.length, fuel: word.length, meanings: [], effect: {}, rules: [], wonder: 0, secret: null, echoOf: null };
   if (!word) return { ...reading, problem: 'empty' };
   if (/[^a-z]/.test(word)) return { ...reading, problem: t('only English letters, please') };
-  if (word.length < 2) return { ...reading, problem: t('a little longer') };
+  if (word.length < 2) return { ...reading, problem: t('a word needs at least two letters') };
   if (word.length > 14) return { ...reading, problem: t('too long to say in one breath') };
   if (!VOWELS.test(word) || /(.)\1\1/.test(word)) return { ...reading, problem: t('the sky can’t say that') };
   if (used.includes(word)) return { ...reading, problem: t('you’ve already said that word') };
