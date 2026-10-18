@@ -1,0 +1,31 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "paca-land",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8417",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 8417
+    },
+    {
+      "name": "paca-head",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8418",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "C:\\Users\\patrick\\AppData\\Local\\Temp\\claude\\C--Users-patrick-Dropbox-GitHub-paca-land\\1d2f3935-eb10-4b15-8e92-11ff8a573516\\scratchpad\\head"
+      ],
+      "port": 8418
+    }
+  ]
+}
