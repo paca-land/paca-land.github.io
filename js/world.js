@@ -1365,11 +1365,17 @@ function buildFlora(placed, biome, biomeKey, r) {
   const group = new THREE.Group();
   const m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
   const kinds = placed.map(() => r.weighted(TREE_SPECIES[biomeKey] ?? [[biome.flora.kind, 1]]));
+  // On a storm crag the wind never lets up, so every tree leans downwind (the
+  // way the grass gusts run), by an amount set by where it stands: no dice.
+  const lean = biomeKey === 'stormcrag' && new THREE.Vector3(0.35, 0, -1).normalize();
   const poses = placed.map((v, i) => {
-    const size = kinds[i] === 'bush' || kinds[i] === 'shrub' ? r.range(0.8, 1.3) : r.range(0.75, 1.35);
+    const low = kinds[i] === 'bush' || kinds[i] === 'shrub';
+    const size = low ? r.range(0.8, 1.3) : r.range(0.75, 1.35);
+    const q = new THREE.Quaternion().setFromAxisAngle(up, r.range(0, TAU));
+    if (lean) q.premultiply(new THREE.Quaternion().setFromAxisAngle(lean, (low ? 0.12 : 0.26) + Math.sin(v.x * 2.1 + v.z * 1.3) * 0.06));
     return {
       p: new THREE.Vector3(v.x, v.y - 0.05, v.z),
-      q: new THREE.Quaternion().setFromAxisAngle(up, r.range(0, TAU)),
+      q,
       s: new THREE.Vector3(size, size * r.range(0.9, kinds[i] === 'fir' ? 1.45 : 1.25), size),
     };
   });
@@ -1414,7 +1420,7 @@ function buildFlora(placed, biome, biomeKey, r) {
       shakes.set(i, { t, axis: new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize() });
     },
     crownTop(i) {
-      return poses[i].p.clone().add(new THREE.Vector3(0, poses[i].s.y * CROWN_TOP[where[i].kind], 0));
+      return poses[i].p.clone().add(new THREE.Vector3(0, poses[i].s.y * CROWN_TOP[where[i].kind], 0).applyQuaternion(poses[i].q));
     },
     crownColor(i) {
       const color = new THREE.Color();
