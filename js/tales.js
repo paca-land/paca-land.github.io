@@ -73,7 +73,7 @@ export const STORY = {
       ? t('Then she looks at you properly. “Ca? Look at you, all grown up.” You tell her the name you go by now. “{name},” she says, trying it out. “It suits you.”', { name })
       : t('Then she looks at you properly, and her voice cracks. “Ca. Look at you. You got tall.”'),
     t('“I got all the way here,” she says, “and found I couldn’t say it. Twenty years of trying. So I sent the balloon home for words.” She taps her book. “And for you.”'),
-    t('Behind you, the Hush has followed all the way. Up close it isn’t a monster at all. It’s the kind of quiet that comes before someone says something hard, and it was never after you: it followed her book. Wa stands, faces it, and says the word she didn’t say twenty years ago. It isn’t meant for you, so you don’t hear it. The Hush comes apart like a flock of startled birds.'),
+    t('The Hush has followed you all the way. Up close it isn’t a monster at all, just a held breath the size of a cloud. It was never after you: it followed her book. Wa gets up, faces it, and says the word she didn’t say twenty years ago. It isn’t meant for you, so you don’t hear it. The Hush bursts apart like a flock of startled birds.'),
     t('Then she reads your words aloud, one by one: {words}. Behind you the islands light up again, a road of them, all the way home.', { words }),
     // Tobias, the hermit (stories.js), if you've heard his story.
     ...(tobias === 'goggles' ? [t('You hand her the old flying goggles. “Tobias!” she says. “Twenty years he took to give these back.”')]
@@ -360,7 +360,7 @@ export const SKY_EVENTS = [
     options: [
       { label: t('sing into it'), note: t('drives the Hush back'), act: (g) => t('You sing the first thing that comes into your head, badly and loud. {hush}', { hush: g.hushBack(5) }) },
       { label: t('listen'), act: () => t('You listen. It doesn’t say anything else, but you know who it was talking about.') },
-      { label: t('keep moving'), act: () => t('You don’t look back. You don’t need to. It isn’t after you.') },
+      { label: t('keep moving'), act: () => t('You keep your eyes on the next cloud and fly on. Behind you, the voice doesn’t come again.') },
     ],
   },
   {

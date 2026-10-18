@@ -907,7 +907,8 @@ export function createVoyage(api) {
         } else if (Math.random() < 0.5) {
           const misheard = mishear(said, Math.random);
           const again = readWord(misheard, context());
-          if (!again.problem) {
+          // Two-letter words can't be misheard (the first letter always stays).
+          if (misheard !== said && !again.problem) {
             heard = again;
             learnRule('mishear');
             toast('🌙', t('the night misheard you: “{said}” became “{heard}”', { said, heard: misheard }));
