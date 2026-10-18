@@ -506,6 +506,8 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   scene.add(meteor);
   const meteorStart = new THREE.Vector3(), meteorVel = new THREE.Vector3(), head = new THREE.Vector3(), tail = new THREE.Vector3();
   let meteorWait = 4, meteorAge = 9;
+  // A shower of them over the Edge of the Sky (see setShower).
+  let shower = false;
 
   // Aurora curtains across the northern sky, on cold clear nights.
   const auroraUniforms = { uTime: { value: 0 }, uOpacity: { value: 0 } };
@@ -650,6 +652,11 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       cold = value;
     },
 
+    setShower(value) {
+      if (value && !shower) meteorWait = Math.min(meteorWait, 1);
+      shower = value;
+    },
+
     // How much the sun or moon is being hovered (0.5) or held (1), see skygrab.js.
     setGrab(body, amount) {
       if (body === 'sun') skyUniforms.uSunGrab.value = amount;
@@ -748,7 +755,7 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
         meteorStart.set(Math.random() - 0.5, 0.12 + Math.random() * 0.25, Math.random() - 0.5).normalize();
         meteorVel.set(Math.random() - 0.5, -0.08 - Math.random() * 0.12, Math.random() - 0.5).projectOnPlane(meteorStart).setLength(0.45);
         meteorAge = 0;
-        meteorWait = 4 + Math.random() * 11;
+        meteorWait = shower ? 0.4 + Math.random() * 1.4 : 4 + Math.random() * 11;
       }
       meteorAge += dt;
       meteor.visible = meteorAge < 0.8;

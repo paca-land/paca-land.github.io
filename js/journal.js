@@ -85,6 +85,7 @@ export const SECTIONS = [
     ['landmark:post', '📮', 'post office', 'say something about stamps or pigeons on a voyage'],
     ['landmark:workshop', '🧵', 'balloon workshop', 'say something about tools on a voyage'],
     ['landmark:bandstand', '🎺', 'bandstand', 'say something about a brass band on a voyage'],
+    ['landmark:edge', '🏮', 'Wa’s stone', 'reach the Edge of the Sky'],
   ]],
   ['voyage wildlife', [
     ['life:frog', '🐸', 'frog', 'in a swamp or a jungle, on a voyage'],

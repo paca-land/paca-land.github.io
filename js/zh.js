@@ -1686,4 +1686,13 @@ export const ZH = {
   "say something about tools on a voyage": "航程中说个和工具有关的词",
   "bandstand": "音乐亭",
   "say something about a brass band on a voyage": "航程中说个和铜管乐队有关的词",
+  // --- The Edge of the Sky: Wa’s stone, and staying a while (landmarks.js, voyage.js) ---
+  "Wa’s stone": "Wa 的平石",
+  "The flat stone where Wa waited all those years. Her lantern is lit again.": "Wa 等了那么多年的那块平石。她的灯笼又亮起来了。",
+  "A flat stone worn smooth, a folded blanket, a teacup, and a lantern that went out long ago.": "一块磨得光溜溜的平石，一条叠好的毯子，一只茶杯，还有一盏早已熄灭的灯笼。",
+  "stay a while": "多待一会儿",
+  "look round the Edge, then fly home": "在天边四处看看，再飞回家",
+  "⛵ fly Wa home": "⛵ 载 Wa 回家",
+  "⛵ fly home": "⛵ 飞回家",
+  "reach the Edge of the Sky": "飞到天边",
 };

@@ -1607,7 +1607,9 @@ function pickMooring(shape, islets, landmark) {
   return { x: Math.cos(a) * (edge + 1), y: stake.y + 1.6, z: Math.sin(a) * (edge + 1), stake };
 }
 
-function buildIslets(biome, r) {
+// `lanterns`: at the Edge of the Sky, each islet carries a lantern, and they light
+// one after another once Wa's does (env.relit): the road of islands home.
+function buildIslets(biome, r, lanterns = false) {
   const group = new THREE.Group();
   const rockMat = new THREE.MeshStandardMaterial({ color: biome.rock[1], flatShading: true, roughness: 1 });
   const topMat = new THREE.MeshStandardMaterial({ color: biome.grass[0], flatShading: true, roughness: 1 });
@@ -1634,14 +1636,29 @@ function buildIslets(biome, r) {
       islet.userData.spin += 5;
       islet.userData.hop = 1;
     };
+    if (lanterns) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.4, 5).translate(0, 0.2, 0), new THREE.MeshStandardMaterial({ color: '#4a3526', flatShading: true }));
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.14, 0.11), new THREE.MeshStandardMaterial({ color: '#3b3226', emissive: '#ffb347', emissiveIntensity: 0, flatShading: true }));
+      post.position.set(-size * 0.45, 0.12, 0);
+      lamp.position.set(-size * 0.45, 0.58, 0);
+      islet.add(post, lamp);
+      islet.userData.lamp = lamp;
+    }
     islet.traverse((o) => { o.castShadow = o.receiveShadow = true; });
     group.add(islet);
     items.push(islet);
   }
+  let since = 0;
   return {
     object: group,
     clickables: items,
-    update(t, dt) {
+    update(t, dt, env) {
+      since = env.relit ? since + dt : 0;
+      items.forEach((it, i) => {
+        if (!it.userData.lamp) return;
+        const m = it.userData.lamp.material;
+        m.emissiveIntensity += ((since > 1.2 + i * 0.8 ? 2.6 : 0) - m.emissiveIntensity) * Math.min(1, dt * 1.5);
+      });
       for (const it of items) {
         const u = it.userData;
         u.spin *= Math.exp(-dt * 1.2);
@@ -1843,7 +1860,7 @@ export function generateLand(seed, want = {}) {
   add(bursts);
   add(buildTufts(top, shape, biome, makeRandom(seed, 'tufts'), blocked));
   if (biome.crystals) add(buildCrystals(top, shape, makeRandom(seed, 'crystals')));
-  const islets = buildIslets(biome, makeRandom(seed, 'islets'));
+  const islets = buildIslets(biome, makeRandom(seed, 'islets'), want.landmark === 'edge');
   add(islets);
   for (const kind of biome.ambient) add(buildAmbient(kind, top, shape, makeRandom(seed, `ambient:${kind}`)));
   add(buildGroundMist(top, shape, makeRandom(seed, 'mist')));
