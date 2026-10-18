@@ -14,6 +14,14 @@ body.is-day {
   --shadow: 0 1px 16px rgba(255, 255, 255, 0.55);
 }
 
+/* iOS enlarges text when a phone turns sideways unless told not to, and would
+   pinch- or double-tap-zoom the page around the controls (the land zooms itself). */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: pan-x pan-y;
+}
+
 html,
 body {
   margin: 0;
@@ -472,6 +480,32 @@ body.photo .lang-switch,
   }
 }
 
+/* Phones held sideways: little height to spare, so the title shrinks and keeps
+   clear of the island. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hud-top {
+    top: 10px;
+  }
+
+  .welcome {
+    font-size: 0.85rem;
+  }
+
+  #land-name {
+    font-size: 1.6rem;
+  }
+
+  #land-meta,
+  #conditions {
+    margin-top: 2px;
+    font-size: 0.75rem;
+  }
+
+  .hud-bottom {
+    bottom: 10px;
+  }
+}
+
 /* Sound toggle: speaker waves when on, a cross when muted. */
 
 #sound .mute {
@@ -839,6 +873,14 @@ body.is-day .hud-top .tier-epic {
   -webkit-backdrop-filter: blur(14px);
 }
 
+@media (max-height: 500px) and (orientation: landscape) {
+  .sail-pill {
+    margin-top: 6px;
+    padding: 3px 12px;
+    font-size: 0.75rem;
+  }
+}
+
 .sail-pill:hover {
   background: var(--glass-strong);
 }
@@ -1197,5 +1239,31 @@ body.photo .voyage-progress {
   .voyage-card,
   .voyage-book {
     max-height: 50vh;
+  }
+
+  /* Room for the land: the welcome goes and the island's name shrinks. */
+  body.voyaging .welcome {
+    display: none;
+  }
+
+  body.voyaging #land-name {
+    font-size: 1.7rem;
+  }
+}
+
+/* Phones held sideways during a voyage: the same, and only the newest two
+   toasts, which otherwise stacked up over the title. */
+@media (max-height: 500px) and (orientation: landscape) {
+  body.voyaging .welcome {
+    display: none;
+  }
+
+  .toast:nth-last-child(n + 3) {
+    display: none;
+  }
+
+  .voyage-card,
+  .voyage-book {
+    max-height: 58vh;
   }
 }

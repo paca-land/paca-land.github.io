@@ -610,8 +610,11 @@ function watchPerformance(realDt) {
 // --- Sizing and camera ---------------------------------------------------
 
 const size = { w: 0, h: 0 };
+// The layout viewport, not innerWidth/innerHeight: on iOS those shrink when the
+// page itself gets pinch-zoomed, and sizing the canvas to them shrank the land.
+const viewport = () => [document.documentElement.clientWidth, document.documentElement.clientHeight];
 function sizeRenderer() {
-  const w = innerWidth, h = innerHeight;
+  const [w, h] = viewport();
   // A hidden tab can report 0×0; sizing to that would poison the camera with NaN.
   if (!w || !h) return false;
   Object.assign(size, { w, h });
@@ -622,6 +625,8 @@ function sizeRenderer() {
   reflection.setSize(w * renderer.getPixelRatio() * 0.5, h * renderer.getPixelRatio() * 0.5);
   shafts.uniforms.uAspect.value = w / h;
   camera.aspect = w / h;
+  camera.clearViewOffset();
+  frame.applied = 0;
   camera.updateProjectionMatrix();
   // Phones give the word box a row of its own (main.css), so only the narrowest need the short one.
   // (A voyage keeps its own placeholder.)
@@ -629,8 +634,10 @@ function sizeRenderer() {
   return true;
 }
 
-// Far enough back that the whole land fits across narrow screens too.
-const fitDistance = () => Math.max(34, 38 / camera.aspect);
+// Far enough back that the whole land fits across narrow screens too. On a
+// phone held upright the island itself spans the width, letting the islets
+// around it go off the edges, or it looked lost in a tall column of sky.
+const fitDistance = () => Math.max(34, (camera.aspect < 0.8 ? 32 : 38) / camera.aspect);
 
 let fitted = 0; // the distance the view was last fitted at
 // Looking closer than the whole land: zoomed in, or circling something off-center.
@@ -669,6 +676,32 @@ function keepNearHome(dt) {
   controls.target.sub(drift);
   camera.position.sub(drift);
 }
+// On a phone the title and gauges above and the controls and cards below take
+// much of the screen, and the land hid behind them: shift the view so the land
+// sits in the middle of the sky that's left.
+const hudTop = document.querySelector('.hud-top');
+const hudBottom = document.querySelector('.hud-bottom');
+const frame = { lift: 0, applied: 0 };
+function frameBetweenHud(dt) {
+  const { w, h } = size;
+  let aim = 0;
+  if (!photo.on && (w < 700 || h < 500)) {
+    let top = 0, bottom = h;
+    if (hudTop.getClientRects().length) top = hudTop.getBoundingClientRect().bottom;
+    for (const node of hudBottom.children) {
+      // Toasts come and go; they shouldn't make the land bob.
+      if (node.classList.contains('toasts') || !node.getClientRects().length) continue;
+      bottom = Math.min(bottom, node.getBoundingClientRect().top);
+    }
+    aim = THREE.MathUtils.clamp((top + bottom) / 2 - h / 2, -0.12 * h, 0.12 * h);
+  }
+  frame.lift += (aim - frame.lift) * Math.min(1, dt * 3);
+  if (Math.abs(frame.lift - frame.applied) < 0.5) return;
+  frame.applied = frame.lift;
+  if (Math.abs(frame.lift) < 0.5) camera.clearViewOffset();
+  else camera.setViewOffset(w, h, 0, -frame.lift, w, h);
+}
+
 const offsetDir = new THREE.Vector3();
 function updateFocus(t) {
   if (focus.start < 0) return;
@@ -721,11 +754,18 @@ function updateIntro(dt) {
 for (const type of ['pointerdown', 'wheel']) {
   addEventListener(type, () => (intro = null), { passive: true });
 }
+// iOS pinch-zooms the whole page when a finger lands on the bar or a card, and
+// stays zoomed; the land has its own pinch, so the page never zooms.
+for (const type of ['gesturestart', 'gesturechange']) {
+  document.addEventListener(type, (event) => event.preventDefault());
+}
 
 // The camera drifts around the land, pausing for a while whenever you take over.
 let idleSince = -Infinity;
 controls.addEventListener('start', () => {
   idleSince = Infinity;
+  // A pinch or drag takes over from a double-tap's glide rather than fighting it.
+  focus.start = -1;
 });
 controls.addEventListener('end', () => {
   idleSince = performance.now();
@@ -839,7 +879,8 @@ function renderFrame() {
   watchPerformance((nowMs - lastFrame) / 1000);
   lastFrame = nowMs;
   // Some viewport changes (devtools, embedded previews) never fire a resize event.
-  if (innerWidth !== size.w || innerHeight !== size.h) resize();
+  const [vw, vh] = viewport();
+  if (vw !== size.w || vh !== size.h) resize();
 
   const dt = Math.min(clock.getDelta(), 0.05);
   // Once the old land has sunk out of sight, grow the next one in its place.
@@ -881,6 +922,7 @@ function renderFrame() {
   sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
   updateIntro(dt);
   updateFocus(t);
+  frameBetweenHud(dt);
   controls.autoRotate = !intro && !reducedMotion && !photo.on && nowMs - idleSince > 8000;
   controls.update(dt);
   // Photo mode pans freely; a glide sets its own course.

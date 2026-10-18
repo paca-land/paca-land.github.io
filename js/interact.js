@@ -93,12 +93,35 @@ export function createInteraction(canvas, camera, getTargets, { onClick, onDoubl
   }
 
   // Touch screens don't reliably send dblclick, so double-taps are spotted here.
+  // A pinch is never a tap: once a second finger lands, nothing counts until
+  // every finger has lifted (each finger's lift looked like a tap, and two of
+  // them a double-tap that swooped the camera in mid-pinch).
   let lastTap = null, touching = false;
+  const fingers = new Set();
+  let pinched = false;
   canvas.addEventListener('pointerdown', (event) => {
+    // The first finger of a new touch: forget any lift that never reached us.
+    if (event.isPrimary) fingers.clear();
+    fingers.add(event.pointerId);
+    if (fingers.size > 1) pinched = true;
     down = { x: event.clientX, y: event.clientY, t: performance.now() };
     touching = event.pointerType === 'touch';
   });
+  const lift = (event) => {
+    fingers.delete(event.pointerId);
+    if (!fingers.size && pinched) {
+      pinched = false;
+      down = lastTap = null;
+      return true;
+    }
+    return pinched;
+  };
+  canvas.addEventListener('pointercancel', (event) => {
+    lift(event);
+    down = null;
+  });
   canvas.addEventListener('pointerup', (event) => {
+    if (lift(event)) return;
     if (!down) return;
     const still = Math.hypot(event.clientX - down.x, event.clientY - down.y) < (touching ? 10 : 6) && performance.now() - down.t < 450;
     down = null;
