@@ -85,6 +85,23 @@ Object.assign(controls, {
   enableDamping: true, enablePan: false, zoomToCursor: true, minDistance: 6, maxDistance: 100,
   maxPolarAngle: Math.PI * 0.78, autoRotateSpeed: 0.35,
 });
+// iPhones now and then never deliver a finger's lift (an app switch or a system
+// swipe mid-drag), and the controls go on counting that finger as down: every
+// drag after it reads as half a pinch, so the view zooms but won't turn until a
+// reload. A first finger means nothing else is touching, so anything still held is stale.
+function forgetStaleFingers() {
+  if (!controls._pointers.length) return;
+  controls._pointers.length = 0;
+  controls._pointerPositions = {};
+  controls.domElement.removeEventListener('pointermove', controls._onPointerMove);
+  controls.domElement.removeEventListener('pointerup', controls._onPointerUp);
+  controls.state = -1; // OrbitControls' NONE
+  controls.dispatchEvent({ type: 'end' });
+}
+addEventListener('pointerdown', (event) => {
+  if (event.isPrimary) forgetStaleFingers();
+}, { capture: true });
+document.addEventListener('visibilitychange', forgetStaleFingers);
 
 const sky = createSky(scene, renderer, { lowPower });
 // Wa's balloon, on a voyage (see balloon.js). A tap gives the burner a blast.

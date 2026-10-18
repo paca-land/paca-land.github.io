@@ -79,6 +79,13 @@ export const SECTIONS = [
     ['land:maze', '🧩', 'hedge maze', 'say something about mazes on a voyage'],
     ['land:giant', '🌻', 'giants’ garden', 'say something enormous on a voyage'],
   ]],
+  ['voyage landmarks', [
+    ['landmark:observatory', '🔭', 'observatory', 'say something about telescopes on a voyage'],
+    ['landmark:teahouse', '🫖', 'teahouse', 'up among the tea terraces, on a voyage'],
+    ['landmark:post', '📮', 'post office', 'say something about stamps or pigeons on a voyage'],
+    ['landmark:workshop', '🧵', 'balloon workshop', 'say something about tools on a voyage'],
+    ['landmark:bandstand', '🎺', 'bandstand', 'say something about a brass band on a voyage'],
+  ]],
   ['voyage wildlife', [
     ['life:frog', '🐸', 'frog', 'in a swamp or a jungle, on a voyage'],
     ['life:crab', '🦀', 'crab', 'on a coral shoal, on a voyage'],

@@ -13,15 +13,19 @@ import { t, lang } from './i18n.js';
 // --- Wa ---------------------------------------------------------------------------
 // You are Wa's grandchild. She called you Ca when you were three, and her
 // pages still do; at the harbour you sign the logbook with the name you go by now.
-// Twenty years ago Wa flew for the Edge of the Sky, the morning after a falling-out
-// with your mother, and neither of them said a word to the other again. The Hush
-// that follows her is made of words nobody said, and hers is the one at her heels:
-// the Cloud Wall's page says something followed her, Captain Odile tells you why
-// she left, the Wind Gate's page says what the Hush is (and that she knows whose),
-// and at the Edge you learn it was hers, following her book, and she says her word
-// to it. She couldn't, alone: that's why the balloon came home for words. Your words are the road home. Once you've found her
-// (`found`), she stays home and sends you up again.
-const PAGE_GATE = t('“I know what the Hush is now. It’s made of words nobody said: every sorry swallowed, every ‘I miss you’ saved for later. It eats islands because islands are made of words. And Ca, I think I know whose this one is. I’m going to the Edge. Up there, they say, anything can be said.”');
+// What it's about: the things we don't say grow into a silence between people, and
+// a sorry twenty years late still counts. Wa was always off flying. The night
+// before she set off for the Edge of the Sky, your mother begged her to stay home
+// for once; it ended with “If you go, don't come back” and “Then I won't”, and
+// neither of them said a word to the other again. The Hush that follows her is made
+// of words nobody said, and hers is the one at her heels: the Cloud Wall's page
+// says something followed her, Captain Odile tells you about the row, the Wind
+// Gate's page says what the Hush is and that it's hers, and at the Edge she says
+// it at last, with your words to say it with (the Hush had eaten hers: that's why
+// the balloon came home for words). Then home, where she and your mother say sorry
+// to each other's faces. Once you've found her (`found`), she stays home and sends
+// you up again.
+const PAGE_GATE = t('“I know what the Hush is now. It’s made of words nobody said: every sorry swallowed, every ‘I miss you’ saved for later. It eats islands, because islands are made of words. And Ca, I know whose this one is. It’s mine. The night before I left, your mother begged me to stay home, just once. I wouldn’t. She said, ‘If you go, don’t come back,’ and I said, ‘Then I won’t.’ Neither of us meant it, and I flew off without saying sorry. Now every time I try, the Hush swallows the words. So I’m going to the Edge, and not for the view. Up there, they say, anything can be said.”');
 export const STORY = {
   // What Wa called you, and what you're called if you don't sign another name.
   nickname: t('Ca'),
@@ -31,7 +35,7 @@ export const STORY = {
       t('“Bring me words I don’t know,” she says, and puts the book in your hands.'),
     ] : [
       t('Above the clouds, the sky has a language. Say a word, and an island of that name rises out of the clouds for you to fly to. The people who fly that way are called sky-sailors, and your grandmother Wa was the best of them.'),
-      t('Twenty years ago she flew off toward the Edge of the Sky, the farthest island anyone has ever reached, and never came back. Your mother won’t say why. This morning Wa’s balloon came drifting home, empty, with her book in the basket. On the last page, in her big loopy writing: “Come and find me, Ca. Bring words.” Ca is what she used to call you.'),
+      t('Twenty years ago she flew off toward the Edge of the Sky, the farthest island of all, where nobody had ever been, and she never came back. Your mother won’t say why. At home, nobody even says Wa’s name. This morning Wa’s balloon came drifting home, empty, with her book in the basket. On the last page, in her big loopy writing: “Come and find me, Ca. Bring words.” Ca is what she used to call you.'),
     ]),
     t('Inside the cover, in case you’d forgotten, she wrote down how it works: “The Edge is {goal} miles off. Three gates stand in the way, and each one opens only for the right word. The last one stands guard at the Edge. Every letter you say burns one fuel and carries you about a mile, give or take the wind. Each island gives you a few hours, and every tree, pond or house you stop at takes one. Mind the fuel, the food and the balloon’s hearts. Lose the last heart and you drift home.”', { goal }),
   ],
@@ -50,7 +54,7 @@ export const STORY = {
   // Her pages, kept in the book once found.
   pages: {
     last: () => t('“Come and find me, Ca. Bring words.”'),
-    wall: () => t('“The wall wanted a word, and it was fussy about it. Something came through after me. Where it passes, everything goes quiet: birds, wind, words. I call it the Hush. It doesn’t like the sun, and it doesn’t like singing. I think it has been following me since the harbour. Don’t stop anywhere for long.”'),
+    wall: () => t('“The wall wanted a word, and it was fussy about it. Something came through after me. Where it passes, everything goes quiet: birds, wind, words. I call it the Hush. It doesn’t like the sun, and it doesn’t like singing. I think it has been following me since the harbour. Don’t stop anywhere for long. I’m leaving these pages for whoever comes after me. I hope it’s you, Ca, once you’re big.”'),
     gate: () => PAGE_GATE,
     camp: (word) => t('“Almost there. The Edge won’t open for just any word. Say one of mine. Try ‘{word}’.”', { word }),
   },
@@ -61,10 +65,13 @@ export const STORY = {
     options: [{ label: t('keep going'), act: () => t('You tuck the page into her book.') }],
   },
   // The last card. `said`: the word of hers that opened the Edge; `words`: some of
-  // yours; `name`: what you signed (empty if you kept "Ca").
-  edge: ({ said, words, found, name, tobias }) => (found ? [
+  // yours; `name`: what you signed (empty if you kept "Ca"); `tobias` and
+  // `letters`: what the hermit's and the postmistress's stories left you (stories.js).
+  edge: ({ said, words, found, name, tobias, letters }) => (found ? [
     t('Past the last gate the clouds stop. On the last island is the flat stone where Wa waited all those years.'),
+    t('The Hush behind you stops at the last gate. It was never yours to answer.'),
     t('You write your words into her book: {words}. Back home, Wa reads them aloud by the window, one by one, and wants to know what every island was like.', { words }),
+    ...(letters ? [t('You put your mother’s twenty letters into Wa’s hands, too. She reads them at the kitchen table, one a day, and your mother pretends not to notice.')] : []),
     t('Then your mother calls from the kitchen that the pancakes are ready. Wa says they’re burnt, and the two of them argue about it all through breakfast, out loud, the way they used to.'),
   ] : [
     t('Past the last gate the clouds stop. On the last island, beside a lantern that went out long ago, sits Wa.'),
@@ -72,18 +79,18 @@ export const STORY = {
     name
       ? t('Then she looks at you properly. “Ca? Look at you, all grown up.” You tell her the name you go by now. “{name},” she says, trying it out. “It suits you.”', { name })
       : t('Then she looks at you properly, and her voice cracks. “Ca. Look at you. You got tall.”'),
-    t('“I got all the way here,” she says, “and found I couldn’t say it. Twenty years of trying. So I sent the balloon home for words.” She taps her book. “And for you.”'),
-    t('The Hush has followed you all the way. Up close it isn’t a monster at all, just a held breath the size of a cloud. It was never after you: it followed her book. Wa gets up, faces it, and says the word she didn’t say twenty years ago. It isn’t meant for you, so you don’t hear it. The Hush bursts apart like a flock of startled birds.'),
-    t('Then she reads your words aloud, one by one: {words}. Behind you the islands light up again, a road of them, all the way home.', { words }),
+    t('“Up here, anything can be said,” she says, “if you have the words. I didn’t. Twenty years I tried, out loud and on paper, and every time the Hush got to the words first. So I sent the balloon home for new ones.” She taps her book. “And for you.”'),
+    t('The Hush has followed you to the very end. Up close it isn’t a monster at all, just a held breath the size of a cloud: twenty years of a sorry nobody said. It was never after you. It was hers, and it had followed her book back to her.'),
+    t('Wa reads your words aloud: {words}. With every word, the Hush draws back a little. Then she stands up, turns to face home, and says it, loud enough to carry to Harbour: “I’m sorry. I didn’t mean it. I’m coming home.”', { words }),
+    t('The Hush lets go all at once, like a breath let out, and the sky is full of sound again: birdsong, wind, and somewhere far below, the gulls of Harbour. Behind you the islands light up, a road of them, all the way home.'),
     // Tobias, the hermit (stories.js), if you've heard his story.
     ...(tobias === 'goggles' ? [t('You hand her the old flying goggles. “Tobias!” she says. “Twenty years he took to give these back.”')]
       : tobias === 'waiting' ? [t('You tell her Tobias is still waiting to say sorry. Wa snorts. “He still owes me a pair of goggles.”')] : []),
+    ...(letters ? [t('Last of all, you give her the bundle from the post office: twenty letters in your mother’s handwriting, one for every year. Wa opens the top one and reads it with her hand over her mouth. “She wrote,” she says. “All this time, she wrote.”')] : []),
+    t('“Your mother,” Wa says, as you fly her home along that road of islands. “What if she won’t talk to me?” “Then you talk first,” you say. When you come down over Harbour, your mother is already on the quay, holding her basket in both hands. Neither of them moves. Then they both say sorry at once, and laugh, and argue about who said it first.'),
   ]),
-  // The lines before the poem of your words.
-  home: (found) => [
-    ...(found ? [] : [t('“Your mother,” Wa says. “Will she talk to me?” “Ask her yourself,” you say, and fly her home along that road of islands.')]),
-    t('The words that got you there:'),
-  ],
+  // The line before the poem of your words.
+  home: () => [t('The words that got you there:')],
   lost: (found) => (found
     ? t('Wa’s book is safe in the basket, with every word you learned written in it.')
     : t('Wa’s book is safe in the basket, with every word you learned written in it. She’s still out there.')),
@@ -94,7 +101,7 @@ export const WA_MEMORIES = {
   please: t('I taught you that one when you were three.'),
   thanks: t('Always thank the sky. It remembers.'),
   pancakes: t('Sunday pancakes. You remembered.'),
-  goodnight: t('I used to say that to you every night.'),
+  goodnight: t('I used to say that to you every night I was home. There weren’t enough of them.'),
   kettle: t('Put the kettle on. I’ve been waiting twenty years for a cup of tea.'),
   faraway: t('That’s what you used to call where I’d gone.'),
   abracadabra: t('You never could do the trick with the coin.'),
@@ -152,6 +159,10 @@ export const WA_NOTES = {
   lunar: t('Moon dust sells for a fortune down below. Don’t sneeze.'),
   puzzle: t('Left, left, right. Or was it right, right, left?'),
   giant: t('One giant seed feeds you for a week. Mind the snails.'),
+  stargaze: t('Stargazers always know what the weather will do. Bring them some supper: they forget to eat.'),
+  post: t('Postmistresses know everybody’s business, even what the next gate wants. Ask nicely.'),
+  tinker: t('The woman who made my balloon patches better than anyone in the sky. Don’t tell her I said so.'),
+  band: t('The Hush can’t stand a brass band. Nobody can, really.'),
 };
 
 // --- Reaches and gates --------------------------------------------------------
@@ -341,14 +352,14 @@ export const SKY_EVENTS = [
     text: t('A patched purple balloon swings alongside. The old woman in its basket squints at yours. “That’s Wa’s! And you’ll be Ca, all grown up. You have her chin.” She sticks out a hand. “Captain Odile. Your grandmother beat me to every island in the Low Sky, the old goose.”'),
     options: [
       {
-        label: t('ask why Wa left'),
-        act: () => t('Odile stops smiling. “She and your mother had a falling-out the night before she flew. Shouting, then a door. Then nothing at all. Not one word, from either of them, for twenty years.” She looks at the quiet behind you. “That’s when the Hush started.”'),
+        label: t('ask why Wa never came back'),
+        act: () => t('Odile stops smiling. “Your mother grew up waving that balloon goodbye. The night before Wa flew for the Edge, she begged her to stay home, just once. Wa wouldn’t. Your mother said, ‘If you go, don’t come back,’ and Wa said, ‘Then I won’t.’ Then a door slammed, and there hasn’t been a word between them since. Twenty years.” She looks at the quiet behind you. “That’s when the Hush started.”'),
       },
       {
         label: t('race her to the next cloud'), note: t('a gamble: +3 miles, or −2 🔥'),
         act: (g) => `${g.chance(0.5)
           ? t('You win by a basket’s width, and Odile roars with laughter. {miles}', { miles: g.leagues(3) })
-          : t('She wins easily. “Wa always said I cheat,” she shouts back. {got}', { got: g.give({ fuel: -2 }) })} ${t('Afterwards, over tea in her basket, she tells you why Wa left: a falling-out with your mother, then twenty years of silence. “That’s when the Hush started.”')}`,
+          : t('She wins easily. “Wa always said I cheat,” she shouts back. {got}', { got: g.give({ fuel: -2 }) })} ${t('Afterwards, over tea in her basket, she tells you why Wa never came home: your mother begged her to stay, just once, and it ended in a slammed door and twenty years without a word. “That’s when the Hush started.”')}`,
       },
     ],
   },
@@ -510,7 +521,7 @@ export const SKY_EVENTS = [
           if (g.chance(0.4)) return t('Inside, wrapped in newspaper: {keepsake} {paid}', { paid, keepsake: g.keepsake() });
           return g.chance(0.5)
             ? t('Inside: a cake from home. {paid} {got}', { paid, got: g.give({ food: 5 }) })
-            : t('Inside: a letter Wa posted twenty years ago. “Keep your lantern lit,” it says. You read it twice and put it in your pocket. {paid} {got}', { paid, got: g.give({ hull: 1 }) });
+            : t('Inside: one of Wa’s pages, which must have blown out of her book years ago. “Keep your lantern lit,” it says. You put it in your pocket. {paid} {got}', { paid, got: g.give({ hull: 1 }) });
         },
       },
       { label: t('refuse it'), act: () => t('The postman sighs, and flaps off with it.') },

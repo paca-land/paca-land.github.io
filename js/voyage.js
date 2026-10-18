@@ -62,6 +62,7 @@ const THANKS = {
 const LANDMARK_LABEL = {
   cabin: t('a cabin'), castle: t('a castle'), windmill: t('a windmill'), lighthouse: t('a lighthouse'), wizard: t('a wizard’s tower'), village: t('a village'),
   campsite: t('a campsite'), ruins: t('ruins'), stones: t('standing stones'), shrine: t('a shrine'),
+  observatory: t('an observatory'), teahouse: t('a teahouse'), post: t('a post office'), workshop: t('a balloon workshop'), bandstand: t('a bandstand'),
   town: t('the town'),
 };
 // The Harbour, where every voyage starts: your home town, the same every time.
@@ -231,7 +232,75 @@ const EVENTS = {
       options: [{ label: t('remember it'), secret: word, note: t('it goes in the book, to say whenever you like') }, ...lost],
     };
   },
+  // The buildings of the stranger islands. An offer marked `once` can be taken
+  // once per island.
+  observatory: (r, book, g, { first }) => {
+    const n = friend(book, 'observatory') ? 3 : 2;
+    return {
+      title: t('the observatory'),
+      text: first ? t('“Wa’s balloon!” says the professor, looking at it through the wrong end of a telescope. “She always stopped to ask me about the weather. I was nearly always right.”')
+        : r.pick([t('The dome creaks round on its rails. Inside, the professor is muttering at the sky.'), t('Star charts cover every wall, and the professor is asleep at his desk with a pencil behind his ear.')]),
+      options: [
+        {
+          label: t('bring the professor some supper'), gain: { food: -1 }, calm: n, once: 'calm', disabled: g.run.food < 1,
+          note: t('−1 🍞 · fair weather for the next {n} islands', { n }),
+        },
+        { label: t('help with the star charts'), gain: { fuel: 3 } },
+      ],
+    };
+  },
+  teahouse: (r, book, g, { first }) => ({
+    title: t('the teahouse'),
+    text: first ? t('“Wa’s balloon,” says the woman who keeps the teahouse, and sets out two cups before you’ve sat down. “I’m Auntie Plum. Wa always stayed for another pot.”')
+      : r.pick([t('Steam drifts out of the teahouse, and somebody inside is laughing.'), t('The woman who keeps the teahouse is pouring tea from a great height without spilling a drop.')]),
+    options: [
+      { label: t('stay for another pot'), stay: 2, free: true, once: 'pot', note: t('+2 hours on this island') },
+      { label: t('order the dumplings'), ...(friend(book, 'teahouse') ? {} : { pay: 2 }), gain: { food: 4 } },
+    ],
+  }),
+  post: (r, book, g, { first }) => {
+    const n = friend(book, 'post') ? 7 : 5;
+    const options = [
+      { label: t('ask if there’s any post for you'), parcel: n, once: 'parcel', note: t('a parcel from home: +{n} 🍞, 🔥 or 🪙, and now and then a keepsake', { n }) },
+      { label: t('help sort the post'), gain: { glimmer: 2 } },
+    ];
+    if (g.gate && !g.gateKnown) options.push({ label: t('ask the postmistress for the news'), gossip: true, note: t('what {gate} wants', { gate: g.gate.name }) });
+    return {
+      title: t('the post office'),
+      text: first ? t('“Wa’s balloon?” The postmistress looks up from her sorting. “She never once left a forwarding address. There might be something here for you, though.”')
+        : r.pick([t('Pigeons come and go from the loft, and the postmistress is stamping letters as fast as she can.'), t('There’s a queue of one, and it’s a goat. The postmistress waves you past it.')]),
+      options,
+    };
+  },
+  workshop: (r, book, g, { first }) => ({
+    title: t('the balloon workshop'),
+    text: first ? t('“So that’s where Wa’s balloon got to,” says the old woman in the shed, without looking up from her sewing. “Bring it here and let me look at it.”')
+      : r.pick([t('Somebody in the shed is singing through a mouthful of pins.'), t('Bolts of striped cloth are stacked by the door, and an old woman is up the scaffold with a needle.')]),
+    options: [
+      { label: t('have the balloon patched'), pay: friend(book, 'workshop') ? 2 : 4, gain: { hull: 2 } },
+      { label: t('help with the sewing'), gain: { glimmer: 4 } },
+    ],
+  }),
+  bandstand: (r, book, g, { first }) => {
+    const n = friend(book, 'bandstand') ? 9 : 6;
+    const options = [
+      { label: t('sit in for the drummer'), gain: { glimmer: 3 } },
+      { label: t('share the band’s picnic'), gain: { food: 3 } },
+    ];
+    if (g.run.hush !== null) options.unshift({ label: t('ask for something loud'), loud: n, once: 'loud', note: t('the Hush falls back {miles}', { miles: miles(n) }) });
+    return {
+      title: t('the bandstand'),
+      text: first ? t('The bandmaster sees your balloon and lowers his baton. “Wa’s! The last time she came through, she asked for the loudest thing we had,” he says. “Said something was catching her up.”')
+        : r.pick([t('The band is tuning up, which sounds a lot like the band playing.'), t('A brass band in red coats under a striped roof, playing to an audience of three sheep.')]),
+      options,
+    };
+  },
 };
+
+// What's in a parcel at the post office: mostly something useful from home.
+function parcelOf(n) {
+  return [{ food: n }, { fuel: n }, { glimmer: n }][Math.floor(Math.random() * 3)];
+}
 
 const store = {
   get(key, fallback) {
@@ -558,6 +627,9 @@ export function createVoyage(api) {
     const [title, why] = titleOf();
     const found = book.found;
     book.found = true;
+    // The postmistress's letters (stories.js) reach Wa in whichever ending comes first.
+    const letters = friend(book, 'post') && !book.lettersGiven;
+    if (letters) book.lettersGiven = true;
     record(true);
     const crew = run.crew.map((id) => CREW[id].name);
     // A few of your words, for Wa to read back.
@@ -567,11 +639,11 @@ export function createVoyage(api) {
     openCard({
       title: t('the Edge of the Sky'),
       text: [
-        ...STORY.edge({ said: run.here.said, words: some.map((w) => `“${w}”`).join(lang === 'zh' ? '……' : '… '), found, name: book.name, tobias: tobiasNews() }),
+        ...STORY.edge({ said: run.here.said, words: some.map((w) => `“${w}”`).join(lang === 'zh' ? '……' : '… '), found, name: book.name, tobias: tobiasNews(), letters }),
         why ? t('You reached the Edge in {n} words, on day {day}, and the sky will remember you as {title} ({why}).', how) : t('You reached the Edge in {n} words, on day {day}, and the sky will remember you as {title}.', how),
-        crew.length > 1 ? t('{a} and {b} ride the last of the way with you.', { a: cap(crew[0]), b: crew[1] })
-          : crew.length ? t('{a} rides the last of the way with you.', { a: cap(crew[0]) }) : '',
-        ...STORY.home(found),
+        crew.length > 1 ? t('{a} and {b} were with you at the end.', { a: cap(crew[0]), b: crew[1] })
+          : crew.length ? t('{a} was with you at the end.', { a: cap(crew[0]) }) : '',
+        ...STORY.home(),
       ].filter(Boolean),
       poem: run.words.slice(1),
       options: [
@@ -825,6 +897,12 @@ export function createVoyage(api) {
         return Boolean(book.name);
       },
       arcDone: (id) => friend(book, id),
+      // One particular word of Wa's, for a story that reveals it ('' if it's known).
+      learn: (word) => {
+        if (book.secrets[word]) return '';
+        learnSecret(word, true);
+        return `✨ ${t('One of Wa’s words: “{word}”. Say it, and {line}', { word, line: uncap(SECRETS[word].line) })}`;
+      },
       treasureMap,
     };
   }
@@ -1391,9 +1469,14 @@ export function createVoyage(api) {
     pending = null;
   }
 
+  // Offers taken on this island that can only be taken once (`once` in EVENTS).
+  const doneHere = () => (run.flags.once?.word === run.here.word ? run.flags.once.ids : []);
+
   // An offer that only fills stores that are already full (nothing to pay, no other effect).
-  const wasted = (o) => Boolean(o.gain) && Object.keys(o).every((k) => k === 'label' || k === 'gain')
-    && Object.entries(o.gain).every(([k, n]) => n <= 0 || (MAX[k] !== undefined && run[k] >= MAX[k]));
+  const full = (gain) => Object.entries(gain).every(([k, n]) => n <= 0 || (MAX[k] !== undefined && run[k] >= MAX[k]));
+  const wasted = (o) => Boolean(o.gain) && Object.keys(o).every((k) => k === 'label' || k === 'gain') && full(o.gain);
+  // Paying for stores that are already full would buy nothing.
+  const overpaid = (o) => Boolean(o.pay && o.gain) && full(o.gain);
 
   function openEvent() {
     const here = run.here;
@@ -1403,6 +1486,7 @@ export function createVoyage(api) {
     visited[here.landmark] ??= here.word;
     const seen = { first: visited[here.landmark] === here.word && !book.found, again: visited[here.landmark] !== here.word };
     const event = EVENTS[here.landmark]?.(r, book, talesView(), seen) ?? { title: t('nobody home'), text: t('The place is quiet, and nobody answers.'), options: [] };
+    event.options = event.options.filter((o) => !o.once || !doneHere().includes(o.once));
     const arc = ARCS[here.landmark];
     const chapter = book.arcs[here.landmark]?.ch ?? 0;
     if (arc && chapter < arc.chapters.length && run.flags.storied !== here.word) {
@@ -1421,8 +1505,8 @@ export function createVoyage(api) {
           note: o.gamble && run.hull <= 1 && !has('coin') ? t('probably coins · but a falling stone would end your voyage')
             : o.sleep && run.hush !== null ? t('{note} · the Hush gains about {miles} while you sleep', { note: o.note, miles: miles(Math.round(sleepHours() * hushSpeed())) })
             : o.note ?? (wasted(o) ? `${gainText(o.gain)}${fullNote(o.gain, {})} · ${t('costs no time')}`
-              : [o.pay ? `−${o.pay} 🪙` : '', o.gain ? gainText(o.gain) : ''].filter(Boolean).join(' → ')),
-          disabled: (o.pay ?? 0) > run.glimmer || Boolean(o.board && run.crew.length >= ROOM),
+              : [o.pay ? `−${o.pay} 🪙` : '', o.gain ? gainText(o.gain) : ''].filter(Boolean).join(' → ') + (overpaid(o) ? fullNote(o.gain, {}) : '')),
+          disabled: Boolean(o.disabled) || (o.pay ?? 0) > run.glimmer || overpaid(o) || Boolean(o.board && run.crew.length >= ROOM),
           act: () => choose(wasted(o) ? { ...o, free: true } : o),
         })),
         { label: t('leave'), note: t('costs no time'), act: () => { closeCard(); state = 'land'; } },
@@ -1436,6 +1520,7 @@ export function createVoyage(api) {
     run.glimmer -= o.pay ?? 0;
     // A visit takes an hour; a night's sleep takes the night instead.
     if (!o.sleep && !o.free) spend(1);
+    if (o.once) run.flags.once = { word: run.here.word, ids: [...doneHere(), o.once] };
     if (o.story) {
       run.flags.storied = run.here.word;
       return tellArc(o.story);
@@ -1477,6 +1562,28 @@ export function createVoyage(api) {
       else toast('🗣️', t('they say {gate} opens only for {riddle}', { gate: gate.name, riddle: riddleOf(gate).ask }));
     }
     if (o.mapHalf) toast('🗺️', treasureMap().replace('🗺️ ', ''));
+    if (o.calm) {
+      run.calm = o.calm;
+      toast('🔭', t('fair weather for the next {n} islands', { n: o.calm }));
+    }
+    if (o.stay) {
+      run.stay += o.stay;
+      toast('🍵', t('another pot: +{hours} on this island', { hours: hoursOf(o.stay) }));
+    }
+    if (o.parcel) {
+      const left = Object.keys(KEEPSAKES).filter((k) => !has(k));
+      if (left.length && Math.random() < 0.25) {
+        toast('📦', t('a parcel from home, with a keepsake in it'));
+        giveKeepsake();
+      } else {
+        const gain = parcelOf(o.parcel);
+        toast('📦', t('a parcel from home, and inside it: {got}', { got: gotText(gain, give(gain)) }));
+      }
+    }
+    if (o.loud) {
+      run.hush -= o.loud;
+      toast('🎺', t('the band plays its loudest march, and the Hush falls back {miles}', { miles: miles(o.loud) }));
+    }
     if (o.gamble) {
       if (has('coin') || friend(book, 'ruins') || Math.random() < 0.6) {
         if (!has('coin') && Math.random() < 0.35 && Object.keys(KEEPSAKES).some((k) => !has(k))) giveKeepsake();

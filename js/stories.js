@@ -5,7 +5,8 @@
 // good: `perk` says what that building does for you from then on (voyage.js
 // applies it). Several stories cross: the town crier has news for the miller,
 // whose son is the lighthouse keeper's apprentice; the word library keeps the
-// jar Wa took; and all of them circle what Wa's pages say the Hush is made of.
+// jar Wa took; the postmistress's letters reach the Edge (tales.js); and all
+// of them circle what Wa's pages say the Hush is made of.
 //
 // A chapter is (g) => { title, text, options }, like a tale in the air
 // (tales.js): each option's `act(g)` does its thing and returns what happened.
@@ -294,9 +295,9 @@ export const ARCS = {
         ask: t('go back to the word library'),
         tell: () => ({
           title: t('the librarian'),
-          text: t('This time someone is waiting for you: an old librarian with ink on her nose. “I keep the words people leave behind,” she says. “Wa left one here twenty years ago. Then she came back and took it with her, but she never could bring herself to say it.” She smiles. “Whatever it is, she still has it.”'),
+          text: t('This time someone is waiting for you: an old librarian with ink on her nose. “I keep the words people leave behind,” she says. “Wa left one here on her way up, twenty years ago. The very next morning she came back for it, and took it with her to the Edge. She never could bring herself to say it, though.”'),
           options: [
-            { label: t('ask what the word was'), act: (g) => t('“That isn’t mine to say,” says the librarian. “That’s the whole point.” She stamps your hand with an inky star. {got}', { got: g.give({ glimmer: 3 }) }) },
+            { label: t('ask what the word was'), act: (g) => t('“You read the label,” says the librarian. “But it isn’t mine to say. That’s the whole point.” She stamps your hand with an inky star. {got}', { got: g.give({ glimmer: 3 }) }) },
             { label: t('leave a word of your own'), act: (g) => t('You write a word on a label and put it in an empty jar. The librarian doesn’t read it. {got}', { got: g.give({ hull: 1 }) }) },
           ],
         }),
@@ -323,7 +324,7 @@ export const ARCS = {
         ask: t('listen to the stones again'),
         tell: () => ({
           title: t('a message in stone'),
-          text: t('This time the stones are humming a whole sentence. It takes you an hour to piece it together: THE EDGE OPENS FOR WHAT YOU MEAN, NOT FOR WHAT YOU SAY.'),
+          text: t('This time the stones are humming a whole sentence. It takes you an hour to piece it together: THE EDGE HEARS WHAT YOU MEAN, AS LONG AS YOU SAY IT.'),
           options: [
             { label: t('write it in Wa’s book'), act: (g) => t('You copy it under her last page in your best handwriting. {got}', { got: g.give({ glimmer: 2 }) }) },
             { label: t('ask the stones what it means'), act: (g) => t('The stones go quiet. Stones are terrible at explaining things. {got}', { got: g.give({ fuel: 2 }) }) },
@@ -355,7 +356,7 @@ export const ARCS = {
         ask: t('ask the monk about the bell'),
         tell: () => ({
           title: t('the silent monk'),
-          text: t('The monk who keeps the bell hasn’t spoken for twenty years. He took a vow of silence, he writes, to keep the peace. He looks tired. Behind the shrine, the quiet is so thick you could almost lean on it.'),
+          text: t('The monk who keeps the bell hasn’t spoken for forty years. He took a vow of silence, he writes, to keep the peace. He looks tired. Behind the shrine, the quiet is so thick you could almost lean on it.'),
           options: [
             { label: t('ask what peace he means'), act: (g) => t('He writes: MY BROTHER AND I QUARRELLED. I PROMISED NEVER TO SAY ANOTHER WORD ABOUT IT. He looks at the thick quiet behind the shrine, and so do you. He presses two coins into your hand for listening. {got}', { got: g.give({ glimmer: 2 }) }) },
             { label: t('ring the bell for him'), act: (g) => t('You ring the bell. For a moment the quiet behind the shrine thins, like mist when the sun comes out. The monk watches it without moving. {got}', { got: g.give({ hull: 1 }) }) },
@@ -377,7 +378,7 @@ export const ARCS = {
         ask: t('visit the monk again'),
         tell: () => ({
           title: t('the vow'),
-          text: t('When you come in, the monk is standing by the bell, his hands shaking. He opens his mouth. Nothing. He tries again. “Brother,” he says, in a voice rusty from twenty years. “I’m sorry.” Somewhere far off, the quiet cracks like ice in spring.'),
+          text: t('When you come in, the monk is standing by the bell, his hands shaking. He opens his mouth. Nothing. He tries again. “Brother,” he says, in a voice rusty from forty years. “It was my fault.” Somewhere far off, the quiet cracks like ice in spring.'),
           options: [
             { label: t('ring the bell for him'), act: (g) => t('You ring it, and this time the monk laughs out loud. {got}', { got: g.give({ hull: 1 }) }) },
             { label: t('sit with him a while'), act: (g) => t('You sit together on the step. After a while he starts to hum. He’s terrible at it. {got}', { got: g.give({ glimmer: 3 }) }) },
@@ -406,7 +407,7 @@ export const ARCS = {
         ask: t('ask the wizard about the Edge'),
         tell: () => ({
           title: t('what waits at the Edge'),
-          text: t('“The Edge is where the sky’s first word was said,” the wizard says. “Up there, words are louder. Something you’ve never managed to say can be said at last.” She taps Wa’s book. “That’s why she went. Not to explore. To say something.”'),
+          text: t('“The Edge is where the sky’s first word was said,” the wizard says. “Up there, words are louder. Something you’ve never managed to say can be said at last.” She taps Wa’s book. “That’s why she didn’t turn back. Not for the view. To say something.”'),
           options: [
             { label: t('ask what Wa needed to say'), act: (g) => t('“Ask her,” says the wizard. “If I told you, it wouldn’t be hers.” {got}', { got: g.give({ glimmer: 2 }) }) },
             { label: t('ask if the Hush can be beaten'), act: (g) => t('“Beaten? No. Answered.” She won’t explain. Wizards never do. {got}', { got: g.give({ fuel: 2 }) }) },
@@ -423,6 +424,244 @@ export const ARCS = {
           options: [
             { label: t('thank her'), act: (g2) => t('“Don’t thank me. Go and fly.” {got}', { got: g2.give({ glimmer: 3 }) }) },
             { label: t('ask what your name means'), act: (g2) => t('“Whatever you make it mean,” says the wizard. “Same as any word.” {got}', { got: g2.give({ fuel: 2 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  observatory: {
+    icon: '🔭', name: t('Professor Mott'),
+    perk: t('From now on, supper for the professor buys fair weather for three islands, not two.'),
+    chapters: [
+      {
+        ask: t('ask what the professor is looking for'),
+        tell: () => ({
+          title: t('the professor’s telescope'),
+          text: t('Professor Mott swings the big telescope round to the Edge of the Sky and puts his eye to it. “Twenty years ago there was a light up there,” he says. “A lantern, I’d swear to it. I watched it every night for three years. Then it went out, and I’ve been watching the dark where it was ever since.”'),
+          options: [
+            { label: t('ask if it was Wa’s lantern'), act: (g) => t('“Whose else would it be?” says the professor. “Nobody had ever got that far.” He shows you a shelf of notebooks, a page for every night since the light went out, and on every page the same two words: nothing yet. “Have a biscuit,” he says, and gives you the whole tin. {got}', { got: g.give({ food: 2 }) }) },
+            { label: t('take a look yourself'), act: (g) => t('You put your eye to the brass. The sky goes on and on, island after island, and right at the end of it is a patch of dark with nothing in it. “See?” says the professor, pleased to have company. “Nothing. Every night, nothing.” He gives you a can of lamp oil. {got}', { got: g.give({ fuel: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help the professor with a thieving magpie'),
+        tell: (g) => ({
+          title: t('the magpie'),
+          text: t('Just as you come in, a magpie swoops through the slit in the dome, plucks the best lens out of the telescope, and lands on the roof with it. “My lens!” shouts the professor, grabbing a broom. “Without it I couldn’t see a cow in a field!”'),
+          options: [
+            {
+              label: t('climb up after it'),
+              note: g.run.hull <= 1 ? t('a gamble: +3 🪙 from the professor, or a slip that would end your voyage') : t('a gamble: +3 🪙 from the professor, or a slip onto your balloon (−1 ❤️)'),
+              act: (g2) => (g2.chance(0.6)
+                ? t('You edge along the dome on your knees. The magpie lets you get within arm’s reach, drops the lens into your hand, and flies off cackling. The professor is so pleased that he pays you. {got}', { got: g2.give({ glimmer: 3 }) })
+                : t('You edge along the dome, slip, and slide down it onto your own balloon, which rips. The magpie, pleased with itself, drops the lens on your head. {hurt}', { hurt: g2.hurt(1) })),
+            },
+            {
+              label: t('offer it something shiny'), note: '−1 🪙 → +2 🍞', disabled: (g2) => g2.run.glimmer < 1,
+              act: (g2) => t('You hold up a coin. The magpie looks at the coin, then at the lens, and swaps, fair and square. The professor is so relieved that he gives you the supper he forgot to eat. {got}', { got: g2.give({ glimmer: -1, food: 2 }) }),
+            },
+            {
+              label: t('wait for it to get bored'), note: t('an hour passes'),
+              act: (g2) => t('You sit on the step and wait. In the end the magpie gets bored, drops the lens in the gutter, and goes off to steal someone else’s spoon. {hours}', { hours: g2.hours(1) }),
+            },
+          ],
+        }),
+      },
+      {
+        ask: t('look through the mended telescope'),
+        tell: (g) => ({
+          title: t('the flat stone'),
+          text: g.found
+            ? t('The lens has come back from the magpie polished to a shine, the way magpies like things. The professor fits it in, turns the telescope to the Edge, and stands aside for you. There’s the flat stone where Wa waited, empty now. “I heard she came home,” says the professor. “I still look every night, though. Habit.”')
+            : t('The lens has come back from the magpie polished to a shine, the way magpies like things, and for the first time in years there’s no thumbprint on it. The professor fits it in, turns the telescope to the Edge, and stands aside for you. Where the lantern used to shine there’s a flat stone, and on it sits someone no bigger than your fingernail, chin in her hands, looking back down the sky towards you. You let the professor look. Then he has to sit down. “Seventeen years,” he says, “looking through my own thumbprint.”'),
+          options: g.found ? [
+            { label: t('ask what he looks for now'), act: (g2) => t('“The next light,” says the professor. “Wa got there, and so did you. Somebody else will.” He tips his tea money into your hand. {got}', { got: g2.give({ glimmer: 3 }) }) },
+            { label: t('invite him to tea with Wa'), act: (g2) => t('The professor drops his pencil. “Oh, I couldn’t. I’d only talk about clouds. Tell her the man with the telescope says hello. She’ll remember. I was nearly always right about the weather.” He fills your burner from his own lamp. {got}', { got: g2.give({ fuel: 3 }) }) },
+          ] : [
+            { label: t('tell him she’s your grandmother'), act: (g2) => t('“She’s my grandmother,” you say. The professor takes off his spectacles and polishes them on his tie. “Then you’d better hurry,” he says. “She looks cold.” He fills your burner from his own lamp. {got}', { got: g2.give({ fuel: 3 }) }) },
+            { label: t('ask him to keep watching'), act: (g2) => t('“Every night,” says the professor, “until you get there.” He opens a new notebook, and on the first page, for the first time since the light went out, he writes two different words: found her. Then he tips his tea money into your hand, to buy fuel with. {got}', { got: g2.give({ glimmer: 3 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  teahouse: {
+    icon: '🫖', name: t('Auntie Plum of the teahouse'),
+    perk: t('From now on, a teahouse’s dumplings are free.'),
+    chapters: [
+      {
+        ask: t('ask what’s in the pot'),
+        tell: () => ({
+          title: t('memory tea'),
+          text: t('Auntie Plum, who keeps the teahouse, pours you a cup without asking. “Memory tea,” she says. “It tastes of whatever you miss most.” You sip it. It tastes of Sunday mornings in Wa’s kitchen: pancakes, burnt at the edges, with far too much syrup.'),
+          options: [
+            { label: t('ask for another cup'), act: (g) => t('“One cup of this a visit,” says Auntie Plum. “Any more and you start missing things that never happened.” She gives you a bag of dumplings instead. {got}', { got: g.give({ food: 3 }) }) },
+            { label: t('tell her what it tasted of'), act: (g) => t('“Pancakes,” says Auntie Plum. “Wa’s tasted of pancakes too. She drank it right where you’re sitting, and cried into the cup.” She puts some buns in your bag. {got}', { got: g.give({ food: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help Auntie Plum pick tea on the high slope'),
+        tell: () => ({
+          title: t('the high slope'),
+          text: t('Auntie Plum’s best tea grows on the high slope, up in the cloud, and her knees won’t take her up there any more. “Just the tips,” she says, and hands you a basket. “Two leaves and a bud. And mind the drop.”'),
+          options: [
+            {
+              label: t('climb to the very top'), note: t('a gamble: a full basket (+4 🪙), or a slip that costs an hour'),
+              act: (g) => (g.chance(0.6)
+                ? t('Up in the cloud the bushes are wet with dew, and the leaves smell of rain. You come down with a full basket, and Auntie Plum pays you for every leaf. {got}', { got: g.give({ glimmer: 4 }) })
+                : t('Up in the cloud the slope is slick. You slip, roll into a tea bush, and take a good while to get out of it. Auntie Plum picks the leaves out of your hair and says they’ll do. {hours}', { hours: g.hours(1) })),
+            },
+            { label: t('pick the lower bushes'), act: (g) => t('The lower bushes are easy, and dull. Auntie Plum pays you in dumplings, and lets you eat the first one while it’s hot. {got}', { got: g.give({ food: 3 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('visit Auntie Plum again'),
+        tell: (g) => ({
+          title: t('a pot for Wa'),
+          text: g.found
+            ? t('Auntie Plum has wrapped a twist of tea in paper and tied it with string. “From the high slope,” she says. “I hear Wa’s home. She always said nobody made tea like mine. Put the kettle on when you get back, and tell her I’ll be round.”')
+            : t('Auntie Plum has wrapped a twist of tea in paper and tied it with string. “From the high slope,” she says. “Wa always said nobody made tea like mine, but the last time she came, she wouldn’t even stay for a second pot. When you bring her home, put the kettle on.”'),
+          options: [
+            { label: t('promise to put the kettle on'), act: (g2) => t('“Not boiling,” says Auntie Plum. “She always boiled it to death.” She tucks a few coins in with the tea. {got}', { got: g2.give({ glimmer: 3 }) }) },
+            { label: t('ask for a twist for yourself'), act: (g2) => t('She laughs and wraps you one of your own, with a box of dumplings to go with it. “Save it for when you’re home,” she says. “Then it’ll taste of all this.” {got}', { got: g2.give({ food: 3 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  post: {
+    icon: '📮', name: t('the postmistress'),
+    perk: t('From now on, a parcel at the post office holds 7 food, fuel or coins, not 5.'),
+    chapters: [
+      {
+        ask: t('ask about the sack marked “no such address”'),
+        tell: () => ({
+          title: t('no such address'),
+          text: t('Behind the counter sits a sack of letters that could never be delivered, some of them older than you. “Letters to people who moved away, or flew off,” says the postmistress. “I can’t throw them out. They’re not mine to throw.” She peers at you over the counter. “And who are you to Wa, then?”'),
+          options: [
+            { label: t('“I’m her grandchild.”'), act: (g) => t('The postmistress puts down her stamp. “Then there’s a bundle in that sack for her, tied up with red string,” she says. “And I can’t give it to you. Post is for the person whose name is on it.” She makes you a cup of tea and finds you a biscuit instead, which isn’t the same thing at all. {got}', { got: g.give({ food: 2 }) }) },
+            { label: t('ask who still writes to the sky'), act: (g) => t('“More people than you’d think,” says the postmistress. “Mostly to people who aren’t coming back. They write anyway.” She sorts through the sack until she comes to a fat bundle tied up with red string, and puts it back without a word. Then she pays you to help sort the rest. {got}', { got: g.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('ask about the bundle tied with red string'),
+        tell: (g) => ({
+          title: t('the bundle'),
+          text: g.found
+            ? t('The postmistress slips off the string, just long enough for you to look. There are twenty letters, all addressed to “Wa, somewhere in the sky”, and the handwriting on every one of them is your mother’s. The first was posted the week Wa left. The last came the spring before Wa came home.')
+            : t('The postmistress slips off the string, just long enough for you to look. There are twenty letters, all addressed to “Wa, somewhere in the sky”, and the handwriting on every one of them is your mother’s. The first was posted the week Wa left. The newest came this spring.'),
+          options: [
+            { label: t('ask to carry them to Wa'), act: (g2) => t('“Against the rules,” says the postmistress. “Post goes by post.” But she doesn’t put the bundle back in the sack. She puts it on the shelf behind her, where she can see it, and hands you a parcel from home instead. {got}', { got: g2.give({ food: 3 }) }) },
+            {
+              label: t('ask if your mother knows they never arrived'),
+              act: (g2) => `${g2.found ? t('“She knew they hadn’t got there yet,” says the postmistress. “Every spring another one came up from Harbour, with a note on the back: have the others arrived? And every spring I wrote back: not yet.”')
+                : t('“She knows they haven’t got there yet,” says the postmistress. “Every spring another one comes up from Harbour, with a note on the back: have the others arrived? And every spring I write back: not yet.”')} ${t('She cuts you a slice of cake, because you look as though you need it. {got}', { got: g2.give({ food: 2 }) })}`,
+            },
+          ],
+        }),
+      },
+      {
+        ask: t('visit the postmistress again'),
+        tell: (g) => ({
+          title: t('special delivery'),
+          text: g.found
+            ? t('The bundle is waiting on the counter. “Wa’s home, I hear,” says the postmistress, “and you’re going that way. Rules are rules, and post goes by post, so for this one delivery, you are the post.” She stamps the bundle SPECIAL DELIVERY. “Take them home with you. Into her hands, mind. Not left on the step.”')
+            : t('The bundle is waiting on the counter, beside a postman’s cap far too big for you. “I’ve thought about it,” says the postmistress. “Rules are rules, and post goes by post. So for this one delivery, you are the post.” She holds out the cap and stamps the bundle SPECIAL DELIVERY. “Wa, somewhere in the sky. Don’t lose them.”'),
+          options: g.found ? [
+            { label: t('tuck them into Wa’s book'), act: (g2) => t('“Twenty letters,” says the postmistress. “I hope she’s got her reading glasses.” {got}', { got: g2.give({ glimmer: 3 }) }) },
+            { label: t('ask what’s in them'), act: (g2) => t('“Not mine to read,” says the postmistress. “Nor yours.” But she smiles, which she doesn’t do often. {got}', { got: g2.give({ fuel: 2 }) }) },
+          ] : [
+            { label: t('put on the cap'), act: (g2) => t('It falls over your eyes. The postmistress folds two envelopes into the band and declares it a perfect fit. You tuck the bundle into Wa’s book, where it will be safe. {got}', { got: g2.give({ glimmer: 3 }) }) },
+            { label: t('promise to deliver them by hand'), act: (g2) => t('“Into her hands,” says the postmistress. “Not left on a step.” You shake on it, and tuck the bundle into Wa’s book, where it will be safe. {got}', { got: g2.give({ fuel: 2 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  workshop: {
+    icon: '🧵', name: t('Granny Gusset the balloon-maker'),
+    perk: t('From now on, a balloon workshop patches two hearts for 2 coins, not 4.'),
+    chapters: [
+      {
+        ask: t('show the balloon-maker your balloon'),
+        tell: () => ({
+          title: t('the balloon-maker'),
+          text: t('The old woman in the shed spits a mouthful of pins into her hand and walks round your balloon twice. “I’m Granny Gusset,” she says. “I made this balloon for Wa, forty years ago. And look at those patches. Who taught her to sew like that? Not me.”'),
+          options: [
+            { label: t('ask her to look it over'), act: (g) => t('She tuts her way round the balloon again, and redoes three of Wa’s patches while you watch. {got}', { got: g.give({ hull: 1 }) }) },
+            { label: t('tell her Wa called her the best in the sky'), act: (g) => t('“Did she, now.” Granny Gusset sniffs, and goes pink to the ears. “Well. She’s not wrong.” She sends you off with a pocketful of spare buttons, three of which turn out to be coins. {got}', { got: g.give({ glimmer: 3 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('ask Granny Gusset about her first balloon'),
+        tell: () => ({
+          title: t('the first balloon'),
+          text: t('Granny Gusset made her first balloon out of her wedding dress, sixty years ago, and flew it off the roof of this shed. “Everyone said it couldn’t be done,” she says, “so I sewed a word into the crown, right at the top, for luck. I’ve sewn one into every balloon since. A balloon flies better when it knows what it’s for.”'),
+          options: [
+            { label: t('ask what word was in the first one'), act: (g) => t('“Up,” she says. “I was nineteen. I didn’t know any better.” She laughs until the pins rattle in their tin. {got}', { got: g.give({ fuel: 2 }) }) },
+            { label: t('ask what word is in yours'), act: (g) => t('“Wa chose it herself, and made me promise not to tell,” says Granny Gusset. “You could look, but you’d have to get the balloon down first.” {got}', { got: g.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help Granny Gusset look inside the crown'),
+        tell: (g) => ({
+          title: t('the word in the crown'),
+          text: g.found
+            ? t('Granny Gusset lets the balloon down onto the grass, crawls inside with a lamp, and calls you in after her. Right at the top, where all the panels meet, is the word Wa chose forty years ago, in small, careful stitches: SUNDAY. “She always said she’d be back by Sunday,” says Granny Gusset. “Took her twenty years, but she managed it.”')
+            : t('Granny Gusset lets the balloon down onto the grass, crawls inside with a lamp, and calls you in after her. Right at the top, where all the panels meet, is the word Wa chose forty years ago, in small, careful stitches: SUNDAY. “She always said she’d be back by Sunday,” says Granny Gusset. “And near enough every time, she was. All but the once.”'),
+          options: [
+            { label: t('stitch a word of your own beside it'), act: (g2) => [t('You stitch a word of your own next to Wa’s, crooked, in red thread. Granny Gusset says it’s the worst stitching she’s seen in sixty years, and doesn’t unpick it. {got}', { got: g2.give({ hull: 1 }) }), g2.learn('sunday')].filter(Boolean).join(' ') },
+            { label: t('leave it as it is'), act: (g2) => [t('“Good,” says Granny Gusset. “It’s her balloon. You’re only borrowing it.” She won’t take a coin for her trouble, and gives you a few instead, to pay for the next patch. {got}', { got: g2.give({ glimmer: 3 }) }), g2.learn('sunday')].filter(Boolean).join(' ') },
+          ],
+        }),
+      },
+    ],
+  },
+
+  bandstand: {
+    icon: '🎺', name: t('the bandmaster'),
+    perk: t('From now on, the band plays louder for you: the Hush falls back 9 miles, not 6.'),
+    chapters: [
+      {
+        ask: t('ask the band for a waltz'),
+        tell: () => ({
+          title: t('the unfinished waltz'),
+          text: t('The band plays you a waltz, a good one, and just before the end they all stop at once, instruments in the air. In the quiet afterwards, somebody in the audience coughs. “Every time,” says the bandmaster, mopping his brow. “The Hush came by one summer and took the last eight bars. We’ve stopped there ever since.”'),
+          options: [
+            { label: t('clap anyway'), act: (g) => t('You clap. The tuba player bows so low that his hat falls into his tuba, and the band shares its picnic with you. {got}', { got: g.give({ food: 2 }) }) },
+            { label: t('ask what the waltz is called'), act: (g) => t('“The Low Sky Waltz,” says the bandmaster. “Everybody used to know it.” He hums the start, and you find you know it too. You just can’t think where from. {got}', { got: g.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help the band find the ending'),
+        tell: () => ({
+          title: t('the missing bars'),
+          text: t('The bandmaster has spread every sheet of music he owns across the stage. The last page of the waltz is there, but the notes have faded to nothing, like a letter left out in the rain. “The Hush doesn’t tear things up,” he says. “It just takes the sound out of them.”'),
+          options: [
+            { label: t('hum what comes next'), act: (g) => t('You hum the start and keep going, past the place where the band always stops, and the rest comes back to you: Wa used to waltz you round her kitchen to it, with your feet on top of hers. The bandmaster writes it down as fast as he can. {got}', { got: g.give({ glimmer: 3 }) }) },
+            { label: t('wake the oldest bandsman'), act: (g) => t('The oldest bandsman is asleep on the bass drum. When you wake him he hums three notes, says “that’s all I’ve got”, and goes back to sleep. Three notes is a start. The bandmaster gives you his sandwiches for your trouble. {got}', { got: g.give({ food: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('hear the waltz played to the end'),
+        tell: () => ({
+          title: t('the last eight bars'),
+          text: t('The band has pieced the ending together and practised it for days. They play the Low Sky Waltz from the start, and this time, when they come to the place where they always stop, they don’t. The last eight bars ring out over the island, and the bandmaster cries into his moustache.'),
+          options: [
+            { label: t('dance'), act: (g) => [t('You dance, badly, and so does the bandmaster. {got}', { got: g.give({ glimmer: 2 }) }), g.hushBack(8)].filter(Boolean).join(' ') },
+            { label: t('ask them to play it again'), act: (g) => t('They play it again, louder, then a third time, louder still. By the fourth, half the island has come to listen and is throwing coins into the tuba. The tuba player gives you half. {got}', { got: g.give({ glimmer: 4 }) }) },
           ],
         }),
       },

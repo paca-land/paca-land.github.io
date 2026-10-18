@@ -7,6 +7,7 @@ import { buildGrass } from './grass.js';
 import { buildLife } from './life.js';
 import { buildDetails } from './details.js';
 import { createBursts } from './interact.js';
+import { planMaze, buildMaze, planRows, buildRows } from './grounds.js';
 import {
   makeMaterials, updateMaterials, buildLandmark, planPath, buildLanterns, planFields,
   buildDock, buildProps, buildLightPools, buildBalloon,
@@ -108,9 +109,9 @@ export const BIOMES = {
   mire: {
     label: 'the mire', weight: 0,
     grass: ['#5b6439', '#737a48'], dirt: '#4a3e2c', rock: ['#5f5a4c', '#46423a'], sand: '#7d7350',
-    hills: 1.3, peak: 0.8,
+    hills: 1.3, peak: 0.8, bog: true,
     water: { color: '#55704a', opacity: 0.92 }, lake: 0.95, river: 0.3,
-    flora: { kind: 'round', count: 60, groves: 0.2, colors: ['#3f5236', '#4d5e3a', '#36472f', '#58663e'] },
+    flora: { kind: 'round', count: 60, groves: 0.2, colors: ['#4f6a3c', '#5d7440', '#48623a', '#6a7a44'] },
     tufts: ['#c8d870', '#e6f0a0'],
     landmark: [['ruins', 2], ['cabin', 2], ['shrine', 1], ['stones', 1]], path: '#6e6040',
     weather: [['mist', 5], ['rain', 2], ['cloudy', 2], ['storm', 1]],
@@ -157,7 +158,7 @@ export const BIOMES = {
     flora: { kind: 'poplar', count: 45, groves: 0, colors: ['#a8e6ff', '#c8f0ff', '#e0d0ff', '#9fd8f0'] },
     tufts: ['#ffffff', '#bfefff'],
     crystals: true,
-    landmark: [['wizard', 3], ['stones', 2], ['shrine', 1], ['lighthouse', 1]], path: '#dce8f0',
+    landmark: [['wizard', 3], ['observatory', 2], ['stones', 2], ['shrine', 1], ['lighthouse', 1]], path: '#dce8f0',
     weather: [['clear', 4], ['mist', 2], ['snow', 1]],
     ambient: ['sparkles'],
   },
@@ -179,7 +180,7 @@ export const BIOMES = {
     water: { color: '#4ec3e0', opacity: 0.84 }, lake: 0.8, river: 0.7,
     flora: { kind: 'round', count: 55, groves: 0.1, colors: ['#f2c94c', '#ffd96a', '#e0a82e', '#fff0a0'] },
     tufts: ['#fff4c0', '#ffd36e'],
-    landmark: [['castle', 3], ['village', 2], ['shrine', 1], ['wizard', 1]], path: '#e8d090',
+    landmark: [['castle', 3], ['village', 2], ['bandstand', 1], ['workshop', 1], ['shrine', 1], ['wizard', 1]], path: '#e8d090',
     weather: [['clear', 6], ['cloudy', 1]],
     ambient: ['sparkles'],
   },
@@ -188,7 +189,7 @@ export const BIOMES = {
     grass: ['#2f7a3a', '#4d9a45'], dirt: '#5a3f28', rock: ['#5f6a55', '#45503f'], sand: '#c9b37a',
     hills: 2.4, peak: 2.6,
     water: { color: '#2f8f7a', opacity: 0.88 }, lake: 0.8, river: 0.95,
-    flora: { kind: 'round', count: 95, groves: 0.3, colors: ['#1f6a32', '#2e7d3a', '#3f8f3a', '#175a2b'] },
+    flora: { kind: 'round', count: 140, groves: -0.4, colors: ['#1f6a32', '#2e7d3a', '#3f8f3a', '#175a2b'] },
     tufts: ['#ff5a7a', '#ffcf3a'],
     landmark: [['ruins', 3], ['campsite', 2], ['shrine', 1], ['wizard', 1]], path: '#8a6a40',
     weather: [['rain', 4], ['mist', 2], ['cloudy', 2], ['clear', 1], ['storm', 1]],
@@ -201,7 +202,7 @@ export const BIOMES = {
     water: { color: '#5aa6b8', opacity: 0.85 }, lake: 0.5, river: 0.3,
     flora: { kind: 'oak', count: 18, groves: -0.8, colors: ['#6a8a3a', '#7a9a45', '#5a7a32'] },
     tufts: ['#e8c870', '#ffffff'],
-    landmark: [['campsite', 3], ['village', 2], ['ruins', 1], ['stones', 1]], path: '#c9a46a',
+    landmark: [['campsite', 3], ['village', 2], ['observatory', 1], ['ruins', 1], ['stones', 1]], path: '#c9a46a',
     weather: [['clear', 6], ['cloudy', 2], ['storm', 1]],
     ambient: [],
   },
@@ -212,7 +213,7 @@ export const BIOMES = {
     water: { color: '#4a6a7a', opacity: 0.9 }, lake: 0.6, river: 0.6,
     flora: { kind: 'bush', count: 50, groves: 0, colors: ['#7a4a7a', '#8a5a8a', '#6a3a6a', '#5a6a3a'] },
     tufts: ['#b070c0', '#d090e0'],
-    landmark: [['stones', 3], ['cabin', 2], ['ruins', 1], ['castle', 1]], path: '#9a8a6a',
+    landmark: [['stones', 3], ['cabin', 2], ['post', 1], ['ruins', 1], ['castle', 1]], path: '#9a8a6a',
     weather: [['mist', 3], ['cloudy', 3], ['rain', 2], ['clear', 1]],
     ambient: [],
   },
@@ -221,9 +222,10 @@ export const BIOMES = {
     grass: ['#7a8a5a', '#9aa070'], dirt: '#7a5a40', rock: ['#a09a90', '#7a766e'], sand: '#e8dcc0',
     hills: 1.6, peak: 1.2,
     water: { color: '#6aa0c8', opacity: 0.84 }, lake: 0.6, river: 0.5,
-    flora: { kind: 'poplar', count: 30, groves: -0.3, colors: ['#4a6a32', '#5a7a3a', '#6a8a42'] },
+    flora: { kind: 'poplar', count: 16, groves: -0.3, colors: ['#4a6a32', '#5a7a3a', '#6a8a42'] },
+    rows: 'lavender',
     tufts: ['#9a7ad8', '#b08ae8', '#8a6ac8'],
-    landmark: [['windmill', 3], ['village', 2], ['shrine', 1], ['cabin', 1]], path: '#d8c8a0',
+    landmark: [['windmill', 3], ['village', 2], ['bandstand', 1], ['teahouse', 1], ['shrine', 1], ['cabin', 1]], path: '#d8c8a0',
     weather: [['clear', 5], ['cloudy', 2]],
     ambient: ['fireflies'],
   },
@@ -234,7 +236,7 @@ export const BIOMES = {
     water: { color: '#a8d8ff', opacity: 0.7 }, lake: 0.7, river: 0.7,
     flora: { kind: 'round', count: 40, groves: 0.2, colors: ['#ffffff', '#f0f4ff', '#e0e8ff', '#fff0f8'] },
     tufts: ['#ffffff', '#ffd6f0'],
-    landmark: [['shrine', 2], ['wizard', 2], ['castle', 1], ['windmill', 1]], path: '#ffffff',
+    landmark: [['shrine', 2], ['wizard', 2], ['observatory', 1], ['bandstand', 1], ['castle', 1], ['windmill', 1]], path: '#ffffff',
     weather: [['clear', 5], ['cloudy', 2]],
     ambient: ['sparkles'],
   },
@@ -256,7 +258,7 @@ export const BIOMES = {
     water: { color: '#ff9ad0', opacity: 0.8 }, lake: 0.85, river: 0.8,
     flora: { kind: 'round', count: 50, groves: 0.1, colors: ['#ff8ab8', '#8ae0c8', '#ffe08a', '#b8a0ff'] },
     tufts: ['#ffffff', '#ff5a8a', '#8ad8ff'],
-    landmark: [['village', 3], ['windmill', 2], ['castle', 1]], path: '#fff0f8',
+    landmark: [['village', 3], ['bandstand', 2], ['windmill', 2], ['post', 1], ['castle', 1]], path: '#fff0f8',
     weather: [['clear', 6], ['cloudy', 1]],
     ambient: ['sparkles'],
   },
@@ -267,7 +269,7 @@ export const BIOMES = {
     water: { color: '#4a9a8a', opacity: 0.86 }, lake: 0.7, river: 0.7,
     flora: { kind: 'bamboo', count: 70, groves: 0.15, colors: ['#5a9a3a', '#6aaa45'] },
     tufts: ['#ffffff', '#f0e0a0'],
-    landmark: [['shrine', 3], ['cabin', 2], ['campsite', 1], ['village', 1]], path: '#b0a070',
+    landmark: [['shrine', 3], ['teahouse', 2], ['cabin', 2], ['campsite', 1], ['village', 1]], path: '#b0a070',
     weather: [['mist', 3], ['clear', 2], ['rain', 2], ['cloudy', 1]],
     ambient: ['fireflies'],
   },
@@ -276,9 +278,11 @@ export const BIOMES = {
     grass: ['#5aa04a', '#7ab85a'], dirt: '#7a5a3a', rock: ['#9a8a7a', '#7a6a5c'], sand: '#d8c89a',
     hills: 2.6, peak: 3.0, terrace: 1.3,
     water: { color: '#4aa0c0', opacity: 0.85 }, lake: 0.6, river: 0.8,
-    flora: { kind: 'bush', count: 90, groves: -0.3, colors: ['#3a8a3a', '#4a9a40', '#2f7a34'] },
+    // The tea grows in rows round the terraces (grounds.js); these are the trees between.
+    flora: { kind: 'bush', count: 30, groves: -0.3, colors: ['#3a8a3a', '#4a9a40', '#2f7a34'] },
+    rows: 'tea',
     tufts: ['#ffffff', '#ffe08a'],
-    landmark: [['shrine', 2], ['village', 2], ['windmill', 1], ['cabin', 1]], path: '#c0a878',
+    landmark: [['teahouse', 3], ['shrine', 2], ['village', 1], ['windmill', 1], ['cabin', 1]], path: '#c0a878',
     weather: [['mist', 3], ['clear', 3], ['rain', 2], ['cloudy', 1]],
     ambient: [],
   },
@@ -289,7 +293,7 @@ export const BIOMES = {
     water: { color: '#5a8a8a', opacity: 0.9 }, lake: 0.6, river: 0.6,
     flora: { kind: 'gear', count: 40, groves: -0.2, colors: ['#c9a04a', '#b8863a'] },
     tufts: ['#d9b45a', '#a8703a'],
-    landmark: [['windmill', 3], ['castle', 2], ['village', 2], ['lighthouse', 1]], path: '#9a8a6a',
+    landmark: [['workshop', 3], ['windmill', 2], ['castle', 2], ['village', 2], ['post', 1], ['lighthouse', 1]], path: '#9a8a6a',
     weather: [['clear', 3], ['cloudy', 3], ['mist', 1], ['rain', 1]],
     ambient: ['embers'],
   },
@@ -300,7 +304,7 @@ export const BIOMES = {
     water: { color: '#3a5a9a', opacity: 0.88 }, lake: 0.8, river: 0.7,
     flora: { kind: 'paper', count: 55, groves: 0.05, colors: ['#ffffff', '#f6efe0', '#ffd0dc', '#cfe2ff', '#fff0a8', '#ffffff'] },
     tufts: ['#3a5a9a', '#c8382a'],
-    landmark: [['wizard', 3], ['village', 2], ['ruins', 1], ['shrine', 1]], path: '#e0d4b8',
+    landmark: [['post', 3], ['wizard', 3], ['village', 2], ['ruins', 1], ['shrine', 1]], path: '#e0d4b8',
     weather: [['clear', 4], ['cloudy', 2], ['mist', 1]],
     ambient: ['scraps'],
   },
@@ -312,7 +316,7 @@ export const BIOMES = {
     flora: { kind: 'birch', count: 30, groves: -0.2, colors: ['#e0e8f4', '#c8d4e8', '#f0f4ff'] },
     tufts: ['#ffffff', '#c8d8ff'],
     crystals: true,
-    landmark: [['stones', 3], ['wizard', 2], ['ruins', 1], ['lighthouse', 1]], path: '#d4d8e2',
+    landmark: [['observatory', 3], ['stones', 2], ['wizard', 2], ['ruins', 1], ['lighthouse', 1]], path: '#d4d8e2',
     weather: [['clear', 6], ['mist', 1]],
     ambient: ['sparkles'],
   },
@@ -320,10 +324,12 @@ export const BIOMES = {
     label: 'hedge maze', weight: 0,
     grass: ['#5a9a4a', '#7ab060'], dirt: '#7a6a4a', rock: ['#9a9a8a', '#7a7a6c'], sand: '#e0d4a8',
     hills: 1.2, peak: 0.8,
-    water: { color: '#4a9ad0', opacity: 0.84 }, lake: 0.7, river: 0.4,
-    flora: { kind: 'hedge', count: 90, groves: -0.1, colors: ['#2f6a32', '#3a7a3a', '#285a2c'] },
+    water: { color: '#4a9ad0', opacity: 0.84 }, lake: 0.45, river: 0.2,
+    // The hedges are the maze itself (grounds.js); these are the trees round it.
+    flora: { kind: 'hedge', count: 32, groves: -0.1, colors: ['#2f6a32', '#3a7a3a', '#285a2c'] },
+    maze: true,
     tufts: ['#ff4a5a', '#ffffff', '#ffd23a'],
-    landmark: [['castle', 4], ['shrine', 1], ['ruins', 1]], path: '#d8c8a0',
+    landmark: [['castle', 4], ['bandstand', 1], ['shrine', 1], ['ruins', 1]], path: '#d8c8a0',
     weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
     ambient: [],
   },
@@ -334,7 +340,7 @@ export const BIOMES = {
     water: { color: '#3aa0d8', opacity: 0.84 }, lake: 0.8, river: 0.6,
     flora: { kind: 'flower', count: 45, groves: 0, colors: ['#ff6a8a', '#ffd23a'] },
     tufts: ['#ffffff', '#ff86b0', '#ffd84a'],
-    landmark: [['cabin', 2], ['windmill', 2], ['castle', 1], ['village', 1]], path: '#b8996a',
+    landmark: [['cabin', 2], ['windmill', 2], ['workshop', 1], ['bandstand', 1], ['castle', 1], ['village', 1]], path: '#b8996a',
     weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
     ambient: ['petals'],
   },
@@ -383,8 +389,12 @@ function makeShape(seed, biome, want = {}) {
 
   const radial = (x, z) => Math.hypot(x, z) / (RADIUS * edgeScale(Math.atan2(z, x)));
 
-  // The land before any water is cut into it.
-  function baseHeight(x, z) {
+  // A hedge maze island has a levelled lawn for its maze (set below, once the
+  // lake is placed, on the far side from it).
+  let lawn = null;
+
+  // The land before any water is cut into it, and before terracing.
+  function rawHeight(x, z) {
     const inland = smoothstep(1.0, 0.5, radial(x, z));
     let h = EDGE_HEIGHT + inland * (fbm(terrain, x * 0.11, z * 0.11, 4) * 0.5 + 0.5) * biome.hills * hillsScale;
     if (biome.peak) {
@@ -396,6 +406,11 @@ function makeShape(seed, biome, want = {}) {
       const dt = Math.hypot(x - twin.x, z - twin.z) / twin.size;
       h += inland * biome.peak * twin.h * Math.exp(-dt * dt);
     }
+    return h;
+  }
+  function baseHeight(x, z) {
+    let h = rawHeight(x, z);
+    if (lawn) h += (lawn.h - h) * smoothstep(lawn.radius + 1.6, lawn.radius, Math.hypot(x - lawn.x, z - lawn.z));
     const step = biome.terrace || ledges;
     if (step) {
       // Mesas and ledges: flat tops with steep risers, and only a little roughness on top.
@@ -466,15 +481,24 @@ function makeShape(seed, biome, want = {}) {
     }
   }
 
-  // Extra ponds sit on flat ground at the level of their own banks.
-  for (let n = r.chance(biome.lake * 0.6) ? r.int(1, 2) : 0; n > 0; n--) {
-    for (let k = 0; k < 14; k++) {
-      const pa = r.range(0, TAU), pd = r.range(0.15, 0.55) * RADIUS * edgeScale(pa);
-      const pond = makePool(Math.cos(pa) * pd, Math.sin(pa) * pd, r.range(0.55, 1.0), r.range(0.3, 0.55), 0);
+  if (biome.maze) {
+    const a = lake ? Math.atan2(lake.z, lake.x) + Math.PI : r.range(0, TAU);
+    const d = lake ? Math.max(0, 2.6 - Math.hypot(lake.x, lake.z) * 0.3) : r.range(0, 1.2);
+    lawn = { x: Math.cos(a) * d, z: Math.sin(a) * d, radius: 4.2 };
+    lawn.h = Math.max(rawHeight(lawn.x, lawn.z), WATER_LEVEL + 0.6);
+  }
+
+  // Extra ponds sit on flat ground at the level of their own banks. A bog is
+  // pocked with small ones.
+  for (let n = biome.bog ? r.int(4, 6) : r.chance(biome.lake * 0.6) ? r.int(1, 2) : 0; n > 0; n--) {
+    for (let k = 0; k < (biome.bog ? 24 : 14); k++) {
+      const pa = r.range(0, TAU), pd = r.range(0.15, biome.bog ? 0.7 : 0.55) * RADIUS * edgeScale(pa);
+      const pond = makePool(Math.cos(pa) * pd, Math.sin(pa) * pd, biome.bog ? r.range(0.4, 0.8) : r.range(0.55, 1.0), r.range(0.3, 0.55), 0);
       const reach = extent(pond);
       if (pd + reach > RADIUS * edgeScale(pa) * 0.8) continue;
-      if (pools.some((p) => Math.hypot(p.x - pond.x, p.z - pond.z) < extent(p) + reach + 0.8)) continue;
+      if (pools.some((p) => Math.hypot(p.x - pond.x, p.z - pond.z) < extent(p) + reach + (biome.bog ? 0.4 : 0.8))) continue;
       if (Math.hypot(pond.x - peak.x, pond.z - peak.z) < peak.size * 0.9) continue;
+      if (lawn && Math.hypot(pond.x - lawn.x, pond.z - lawn.z) < lawn.radius + reach) continue;
       if (river) {
         const { t, off } = river.measure(pond.x, pond.z);
         if (t > -reach && t < river.end + reach && off < river.width + reach + 0.5) continue;
@@ -536,7 +560,9 @@ function makeShape(seed, biome, want = {}) {
     return Math.hypot(heightAt(x + e, z) - heightAt(x - e, z), heightAt(x, z + e) - heightAt(x, z - e)) / (2 * e);
   }
 
-  return { edgeScale, heightAt, isWet, waterAt, shoreDistance, slopeAt, radial, lake, pools, river, peak };
+  // How many terraces up a point is (whole numbers at each riser), for rows of tea.
+  const terraceAt = biome.terrace ? (x, z) => rawHeight(x, z) / biome.terrace : null;
+  return { edgeScale, heightAt, isWet, waterAt, shoreDistance, slopeAt, radial, lake, pools, river, peak, terraceAt, lawn };
 }
 
 // Stitch two closed rings of vertices into a band of triangles, walking both
@@ -1124,7 +1150,7 @@ const TREE_SPECIES = {
   glass: [['crystal', 3], ['poplar', 2], ['fir', 1]],
   ember: [['dead', 3], ['pine', 1], ['shrub', 2]],
   gilded: [['round', 3], ['poplar', 2], ['topiary', 1], ['oak', 1]],
-  jungle: [['palm', 2], ['round', 3], ['poplar', 1], ['bush', 2], ['oak', 1], ['willow', 1]],
+  jungle: [['kapok', 3], ['fern', 3], ['palm', 2], ['round', 2], ['willow', 1]],
   savanna: [['acacia', 4], ['shrub', 2], ['dead', 0.5]],
   heath: [['bush', 4], ['shrub', 2], ['pine', 1], ['dead', 0.5]],
   lavender: [['poplar', 3], ['round', 1], ['bush', 1]],
@@ -1132,18 +1158,18 @@ const TREE_SPECIES = {
   withered: [['dead', 4], ['fir', 1], ['shrub', 1]],
   sugar: [['lollipop', 4], ['round', 1], ['bush', 1]],
   bamboo: [['bamboo', 5], ['bush', 1], ['round', 1]],
-  terraces: [['bush', 5], ['poplar', 1], ['round', 1]],
+  terraces: [['poplar', 2], ['round', 2], ['bush', 1]],
   clockwork: [['gear', 4], ['poplar', 1], ['shrub', 1]],
   paper: [['paper', 4], ['bush', 1]],
   moon: [['birch', 2], ['crystal', 1], ['poplar', 1], ['dead', 1]],
-  maze: [['hedge', 4], ['topiary', 3], ['poplar', 1]],
+  maze: [['topiary', 3], ['poplar', 2], ['round', 1]],
   giant: [['flower', 4], ['mushroom', 1], ['bush', 1]],
 };
 // How high each crown sits, for leaves shaken loose.
 const CROWN_TOP = {
   round: 1, oak: 1.1, birch: 1.4, fir: 1.4, poplar: 1.5, bush: 0.35, shrub: 0.3, pine: 1.2, cactus: 0.9,
   mushroom: 1, palm: 1.45, acacia: 1.2, dead: 1.2, lollipop: 1.45, crystal: 1.4, willow: 1.3, bamboo: 1.6,
-  gear: 1.5, paper: 1.4, topiary: 1.4, hedge: 0.55, flower: 1.45, puff: 1.15,
+  gear: 1.5, paper: 1.4, topiary: 1.4, hedge: 0.55, flower: 1.45, puff: 1.15, kapok: 2, fern: 0.4,
 };
 
 const ico = (r, x, y, z, sy = 1) => new THREE.IcosahedronGeometry(r, 0).scale(1, sy, 1).translate(x, y, z);
@@ -1308,6 +1334,23 @@ function speciesGeometry(kind) {
       });
       return { trunk: shadeByHeight(stem, 0.6), trunkColor: '#5a9a3a', crown: shadeByHeight(flat(...petals, new THREE.IcosahedronGeometry(0.13, 0).scale(1, 0.5, 1).translate(0, 1.38, 0)), 0.8) };
     }
+    case 'kapok': {
+      // A jungle giant: a tall bare trunk on flared roots, a broad layered
+      // crown above the rest, and vines hanging down from it.
+      const trunk = flat(
+        new THREE.CylinderGeometry(0.07, 0.12, 1.5, 6).translate(0, 0.75, 0),
+        ...[0, 1, 2, 3].map((i) => new THREE.ConeGeometry(0.07, 0.35, 3).rotateZ(0.9).translate(0.12, 0.1, 0).rotateY((i / 4) * TAU + 0.4)),
+      );
+      const vines = Array.from({ length: 6 }, (_, i) => {
+        const a = (i / 6) * TAU + 0.3, len = 0.5 + (i % 3) * 0.18;
+        return new THREE.CylinderGeometry(0.012, 0.02, len, 3).translate(Math.cos(a) * 0.48, 1.62 - len / 2, Math.sin(a) * 0.48);
+      });
+      return plain(trunk, flat(ico(0.62, 0, 1.78, 0, 0.42), ico(0.46, 0.3, 1.95, 0.12, 0.4), ico(0.42, -0.28, 1.9, -0.16, 0.4), ...vines), { dark: 0.35 });
+    }
+    case 'fern':
+      // Long fronds fanning out from the ground.
+      return plain(null, flat(...Array.from({ length: 7 }, (_, i) => new THREE.ConeGeometry(0.09, 0.62, 3)
+        .rotateZ(-Math.PI / 2).scale(1, 0.25, 1).rotateZ(-0.55 - (i % 2) * 0.25).translate(0.28, 0.16, 0).rotateY((i / 7) * TAU))), { dark: 0.6 });
     case 'puff':
       // A tree made of cloud.
       return plain(new THREE.CylinderGeometry(0.04, 0.06, 0.55, 5).translate(0, 0.27, 0), flat(
@@ -1330,6 +1373,7 @@ function speciesColors(kind, biome, biomeKey) {
     dead: biomeKey === 'ember' ? ['#2e2622', '#3a302a', '#241e1a'] : ['#5a4a3a', '#4a3e32', '#6a5a48'],
     gear: ['#c9a04a', '#b8863a', '#d9b45a', '#a8703a', '#8a9a9a'],
     palm: ['#3f8f3a', '#4ea045', '#2f7d34'],
+    fern: ['#4fa83f', '#5cb848', '#3f9a3a'],
     bamboo: ['#5a9a3a', '#6aaa45', '#4a8a32'],
     puff: ['#ffffff', '#f4f6ff', '#fff4fa'],
     flower: ['#ff6a8a', '#ffd23a', '#8a7aff', '#ff9a3a', '#ffffff'],
@@ -1343,6 +1387,21 @@ function groundSpots(top, r) {
   const spots = [];
   for (let k = 2; k < RINGS - 1; k++) spots.push(...top.rings[k]);
   return r.shuffle(spots);
+}
+
+// Where the rows of tea or lavender go (grounds.js): tea along the terraces' level
+// lines, lavender in straight, gently waving rows; never in water, on steep ground,
+// by the landmark or path, or under a tree.
+function planBiomeRows(biome, shape, trees, blocked, r) {
+  const keep = (x, z) => !shape.isWet(x, z, 0.25) && !blocked(x, z) && shape.radial(x, z) < 0.9
+    && shape.slopeAt(x, z) < 0.5 && !trees.some((t) => (t.x - x) ** 2 + (t.z - z) ** 2 < 0.2);
+  if (biome.rows === 'tea') {
+    const points = planRows(shape, shape.terraceAt, [0.12, 0.3, 0.48], keep);
+    return buildRows(points, shape, { kind: 'tea', colors: ['#245c28', '#2c6a2e', '#1f5224', '#336f30'], size: 0.2 }, r);
+  }
+  const yaw = r.range(0, TAU), c = Math.cos(yaw), s = Math.sin(yaw), wave = r.range(0.2, 0.45);
+  const field = (x, z) => (x * c + z * s + wave * Math.sin((-x * s + z * c) * 0.35)) / 0.6;
+  return buildRows(planRows(shape, field, [0], keep), shape, { kind: 'lavender', colors: ['#8a6ac8', '#9a78d6', '#7a5ab8', '#a088e0'], size: 0.15 }, r);
 }
 
 function placeFlora(top, shape, biome, r, blocked, count = biome.flora.count) {
@@ -1720,6 +1779,9 @@ export function generateLand(seed, want = {}) {
     r: makeRandom(seed, 'landmark'),
     spots: groundSpots(top, makeRandom(seed, 'spots')),
   };
+  // A hedge maze island lays out its maze first, and the landmark finds room beside it.
+  const maze = biome.maze ? planMaze(shape, makeRandom(seed, 'maze')) : null;
+  if (maze) ctx.keepOut = (x, z, radius) => maze.inside(x, z, radius * 0.8 + 0.3);
   // If the land can't fit the landmark it rolled, try the biome's others.
   // (`want.landmark: 'none'` leaves the land empty.)
   let landmark = null;
@@ -1735,22 +1797,31 @@ export function generateLand(seed, want = {}) {
     if (xr.chance(landmark.fields)) fields = planFields(ctx, xr, landmark);
     if (xr.chance(0.85)) path = planPath(ctx, xr, landmark.door, shape.lake ? shoreToward(shape.lake, landmark.door) : coastToward(shape, xr, landmark.door));
   }
+  // No path or field through the hedges.
+  if (maze && path?.pts.some((p) => maze.inside(p.x, p.z, 0.4))) path = null;
+  if (maze && fields) fields = null;
   const blocked = (x, z) =>
     Boolean((landmark && Math.hypot(x - landmark.spot.x, z - landmark.spot.z) < landmark.radius)
       || (path && path.distTo(x, z) < 0.55)
-      || (fields && fields.blocked(x, z)));
+      || (fields && fields.blocked(x, z))
+      || (maze && maze.inside(x, z, 0.35)));
 
   const fr = makeRandom(seed, 'flora');
   // A town island (the Harbour) is mostly town: fewer trees, only there.
   const trees = placeFlora(top, shape, biome, fr, blocked, landmark?.type === 'town' ? Math.round(biome.flora.count * 0.4) : undefined);
   bakeOcclusion(top, shape, trees, landmark?.spot);
 
-  const overlay = (x, y, z) => fields?.paint(x, z) ?? (path && path.distTo(x, z) < path.width ? biome.path : null);
+  // Rows of tea round the terraces, or lavender across the fields, between the trees.
+  const rows = biome.rows ? planBiomeRows(biome, shape, trees, blocked, makeRandom(seed, 'rows')) : null;
+  const overlay = (x, y, z) => (maze?.inside(x, z, 0.2) ? biome.path : null) ?? fields?.paint(x, z) ?? (path && path.distTo(x, z) < path.width ? biome.path : null);
   const ground = buildIslandMesh(top, under, shape, biome, makeRandom(seed, 'paint'), overlay);
   add(ground);
   const water = buildWater(top, shape, biome);
   add(water);
   add(buildWaterfall(shape, biome, makeRandom(seed, 'waterfall')));
+  const hedgeMaze = maze && buildMaze(maze, shape, biome, makeRandom(seed, 'maze hedges'));
+  add(hedgeMaze);
+  add(rows);
   add(landmark);
   const lanterns = path && buildLanterns(ctx, path);
   add(lanterns);
@@ -1852,7 +1923,19 @@ export function generateLand(seed, want = {}) {
       hooks.sound('whoosh');
     };
   }
-  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables].filter(Boolean);
+  // The maze's hedges and the rows of tea or lavender rustle like trees (and count as trees on a voyage).
+  for (const mesh of [hedgeMaze?.hedges, rows].filter(Boolean)) {
+    mesh.userData.onClick = (hit) => {
+      hooks.sound('rustle');
+      hooks.note('tree');
+      const color = biome.rows === 'lavender' ? new THREE.Color('#9a78d6') : biome.flora.colors[0];
+      bursts.spawn(local(hit), {
+        count: 16, colors: [color, color.clone().offsetHSL(0, 0, 0.08)],
+        speed: 0.9, up: 0.8, gravity: -1.2, life: 1.8, drag: 2.2, spread: 0.3,
+      });
+    };
+  }
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, rows, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {

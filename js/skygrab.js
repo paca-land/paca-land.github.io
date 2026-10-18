@@ -90,17 +90,23 @@ export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label,
     return ((best % 24) + 24) % 24;
   }
 
-  function release(event) {
-    if (!held || event.pointerId !== held.pointerId) return;
-    event.stopImmediatePropagation();
+  function letGo() {
     held = null;
     pointer = null;
     tag.hidden = true;
     onRelease();
   }
+  function release(event) {
+    if (!held || event.pointerId !== held.pointerId) return;
+    event.stopImmediatePropagation();
+    letGo();
+  }
 
   // Capture on the window, so the camera controls and taps never see a grab.
   addEventListener('pointerdown', (event) => {
+    // A first finger means the one on the sun lifted without our hearing it
+    // (otherwise every later touch was swallowed as a second finger on the sun).
+    if (held && event.isPrimary) letGo();
     if (!enabled()) return;
     if (event.target !== canvas && event.target.closest?.('.sky-handle') !== handle) return;
     if (held) {
@@ -129,6 +135,9 @@ export function createSkyGrab(canvas, camera, { sky, state, skyAt, hours, label,
   }, { capture: true });
   addEventListener('pointerup', release, { capture: true });
   addEventListener('pointercancel', release, { capture: true });
+  document.addEventListener('visibilitychange', () => {
+    if (held) letGo();
+  });
   canvas.addEventListener('pointerleave', () => {
     if (!held) pointer = null;
   });

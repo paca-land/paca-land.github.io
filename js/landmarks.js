@@ -560,6 +560,236 @@ const LANDMARKS = {
       return { radius: 1.7, door: [0, 1.5], lights };
     },
   },
+
+  // --- Found only on voyages (voyage-only islands list them, and some words call them) ---
+
+  // A stargazer's observatory: a round white tower whose dome turns slowly by
+  // itself, with a brass telescope poking out of the slit.
+  observatory: {
+    find: { radius: 1.4, rn: [0.2, 0.7], slope: 0.3, wet: 1.8, prefer: 'high' },
+    build(kit, ctx) {
+      kit.add('stone', cyl(0.78, 0.86, 0.9, 12), [0, -0.85, 0]);
+      kit.add('plaster', cyl(0.66, 0.7, 1.05, 14), [0, 0, 0]);
+      kit.add('darkStone', cyl(0.72, 0.72, 0.08, 14), [0, 1.04, 0]);
+      kit.add('darkWood', box(0.24, 0.42, 0.04), [0, 0, 0.69]);
+      for (const sx of [-1, 1]) kit.add('glow', box(0.13, 0.18, 0.04), [sx * 0.42, 0.55, 0.54], { ry: sx * 0.66 });
+      const dome = new Kit(ctx.mats);
+      dome.add('#eef2f6', new THREE.SphereGeometry(0.68, 16, 6, 0, TAU, 0, Math.PI / 2), [0, 0, 0]);
+      // The slit, a dark strip from the top down the front, and the telescope out of it.
+      dome.add('#2b3140', new THREE.SphereGeometry(0.69, 2, 6, Math.PI / 2 - 0.13, 0.26, 0, Math.PI / 2), [0, 0, 0]);
+      dome.add('#c9a04a', new THREE.CylinderGeometry(0.06, 0.085, 1.0, 8), [0, 0.42, 0.34], { rx: 0.75 });
+      dome.add('#7a5a2a', new THREE.CylinderGeometry(0.09, 0.09, 0.08, 8), [0, 0.07, 0.04], { rx: 0.75 });
+      const top = dome.build();
+      top.position.y = 1.08;
+      return {
+        radius: 1.4, door: [0, 1.0], extras: [top],
+        lights: [[-0.45, 0.55, 0.75], [0.45, 0.55, 0.75]],
+        pointLight: { at: [0, 0.6, 0.9], color: '#ffe0a8', power: 1.6 },
+        update(t, dt, env) {
+          top.rotation.y += dt * (0.08 + env.poke * 1.2);
+        },
+      };
+    },
+  },
+
+  // A teahouse on stilts with a two-tier roof, red paper lanterns along the
+  // front, and a kettle steaming on a little stove by the steps.
+  teahouse: {
+    find: { radius: 1.6, rn: [0.1, 0.7], slope: 0.32, wet: 1.4, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const floor = 0.38;
+      for (const [x, z] of [[-0.62, -0.46], [0.62, -0.46], [-0.62, 0.46], [0.62, 0.46], [0, -0.46], [0, 0.46]]) {
+        const g = place.ground(x, z);
+        kit.add('darkWood', cyl(0.05, 0.06, floor - g + 0.45, 5), [x, g - 0.45, z]);
+      }
+      kit.add('wood', box(1.5, 0.07, 1.16), [0, floor, 0]);
+      kit.add('plaster', box(1.12, 0.52, 0.8), [0, floor + 0.07, -0.05]);
+      // Paper screens, lit from inside at night.
+      for (const sx of [-0.33, 0, 0.33]) kit.add('glow', box(0.24, 0.32, 0.03), [sx, floor + 0.15, 0.36]);
+      kit.add('darkWood', box(1.2, 0.04, 0.04), [0, floor + 0.55, 0.37]);
+      kit.add('roofGreen', cone(1.08, 0.34, 4), [0, floor + 0.58, -0.05], { ry: Math.PI / 4 });
+      kit.add('plaster', box(0.5, 0.26, 0.42), [0, floor + 0.82, -0.05]);
+      kit.add('roofGreen', cone(0.56, 0.32, 4), [0, floor + 1.06, -0.05], { ry: Math.PI / 4 });
+      kit.add('#c9a04a', cyl(0.025, 0.04, 0.22, 6), [0, floor + 1.36, -0.05]);
+      // Steps up to the door.
+      for (let i = 0; i < 3; i++) {
+        const z = 0.66 + i * 0.13;
+        kit.add('wood', box(0.42, 0.06, 0.13), [0, place.ground(0, z) + floor * (1 - (i + 1) / 4) - 0.03, z]);
+      }
+      // Red lanterns hanging from the front of the lower roof.
+      const lights = [];
+      for (const sx of [-0.62, 0.62]) {
+        kit.add('darkWood', cyl(0.008, 0.008, 0.16, 3), [sx, floor + 0.42, 0.62]);
+        kit.add('#d8443a', ball(0.085, 1), [sx, floor + 0.36, 0.62], { s: [1, 1.25, 1] });
+        lights.push([sx, floor + 0.36, 0.75]);
+      }
+      // The stove and its kettle, beside the steps.
+      const gs = place.ground(0.85, 0.75);
+      kit.add('darkStone', box(0.24, 0.22, 0.24), [0.85, gs, 0.75]);
+      kit.add('#3a3a40', ball(0.1, 1), [0.85, gs + 0.3, 0.75], { s: [1, 0.8, 1] });
+      kit.add('#3a3a40', cyl(0.015, 0.025, 0.12, 5), [0.93, gs + 0.32, 0.75], { rz: -0.8 });
+      return {
+        radius: 1.6, door: [0, 1.25], lights, smoke: [[1.0, gs + 0.42, 0.75]],
+        pointLight: { at: [0, floor + 0.4, 0.8], color: '#ffb27a', power: 1.8 },
+      };
+    },
+  },
+
+  // The post office: a timber office with a red postbox by the door, a tall
+  // pigeon loft beside it, and pigeons wheeling round the top.
+  post: {
+    find: { radius: 1.5, rn: [0.1, 0.65], slope: 0.3, wet: 1.6 },
+    build(kit, ctx, place) {
+      const office = house(kit, ctx.r, [-0.25, place.ground(-0.25, 0.1), 0.1], 0, { w: 1.0, d: 0.72, h: 0.6, roof: 'roofRed', walls: 'plaster', chimney: true });
+      kit.add('wood', box(0.5, 0.13, 0.03), [-0.25, place.ground(-0.25, 0.1) + 0.5, 0.48]);
+      // The postbox.
+      const gp = place.ground(0.5, 0.68);
+      kit.add('#c8302a', cyl(0.11, 0.12, 0.5, 10), [0.5, gp, 0.68]);
+      kit.add('#c8302a', new THREE.SphereGeometry(0.115, 10, 4, 0, TAU, 0, Math.PI / 2), [0.5, gp + 0.5, 0.68]);
+      kit.add('#2a1a14', box(0.12, 0.022, 0.02), [0.5, gp + 0.38, 0.79]);
+      // The pigeon loft: a tall wooden tower with little doors near the top.
+      const gl = place.ground(0.72, -0.42);
+      kit.add('stone', box(0.58, 0.6, 0.58), [0.72, gl - 0.56, -0.42]);
+      kit.add('wood', box(0.48, 1.55, 0.48), [0.72, gl, -0.42]);
+      for (const [dx, dz, ry] of [[0, 0.245, 0], [0.245, 0, Math.PI / 2], [-0.245, 0, Math.PI / 2], [0, -0.245, 0]]) {
+        kit.add('#2a1a14', box(0.1, 0.12, 0.02), [0.72 + dx, gl + 1.2, -0.42 + dz], { ry });
+        kit.add('darkWood', box(0.16, 0.025, 0.06), [0.72 + dx * 1.15, gl + 1.18, -0.42 + dz * 1.15], { ry });
+      }
+      kit.add('roofSlate', cone(0.46, 0.42, 4), [0.72, gl + 1.55, -0.42], { ry: Math.PI / 4 });
+      // Pigeons, circling the loft.
+      const flock = new THREE.Group();
+      const birdGeo = mergeGeometries([
+        new THREE.ConeGeometry(0.035, 0.13, 4).rotateZ(-Math.PI / 2),
+        new THREE.BoxGeometry(0.05, 0.008, 0.2).translate(0.01, 0.01, 0),
+      ].map((g) => (g.index ? g.toNonIndexed() : g)));
+      const birdMat = new THREE.MeshStandardMaterial({ color: '#eceae4', flatShading: true });
+      const birds = Array.from({ length: 5 }, (_, i) => {
+        const bird = new THREE.Mesh(birdGeo, birdMat);
+        bird.userData = { a: (i / 5) * TAU, r: 0.55 + (i % 2) * 0.22, y: 0.3 + (i % 3) * 0.15 };
+        flock.add(bird);
+        return bird;
+      });
+      flock.position.set(0.72, gl + 1.75, -0.42);
+      return {
+        radius: 1.5, door: [-0.25, 0.9], extras: [flock], lights: [office.window],
+        smoke: [office.chimney],
+        update(t, dt, env) {
+          for (const bird of birds) {
+            const u = bird.userData;
+            u.a += dt * (0.9 + env.poke * 3);
+            bird.position.set(Math.cos(u.a) * u.r, u.y + Math.sin(t * 2 + u.a) * 0.06, Math.sin(u.a) * u.r);
+            bird.rotation.y = -u.a - Math.PI / 2;
+            bird.scale.z = 0.6 + Math.abs(Math.sin(t * 9 + u.a * 3)) * 0.6;
+          }
+        },
+      };
+    },
+  },
+
+  // The balloon maker's workshop: an open-fronted shed with a workbench and
+  // bolts of cloth, and a half-sewn balloon on a scaffold beside it that
+  // breathes in and out while she tests it.
+  workshop: {
+    find: { radius: 1.8, rn: [0.1, 0.65], slope: 0.28, wet: 1.6, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const sx = -0.5, sz = -0.15, g = place.ground(sx, sz);
+      kit.add('stone', box(1.05, 0.7, 0.85), [sx, g - 0.66, sz]);
+      kit.add('wood', box(1.0, 0.62, 0.06), [sx, g, sz - 0.38]);
+      for (const side of [-1, 1]) kit.add('wood', box(0.06, 0.62, 0.8), [sx + side * 0.47, g, sz]);
+      for (const side of [-1, 1]) kit.add('darkWood', box(0.07, 0.62, 0.07), [sx + side * 0.47, g, sz + 0.38]);
+      kit.add('roofSlate', gable(1.18, 0.42, 0.98), [sx, g + 0.62, sz]);
+      kit.add('darkWood', box(0.7, 0.05, 0.28), [sx, g + 0.32, sz - 0.18]);
+      kit.add('glow', box(0.2, 0.15, 0.03), [sx, g + 0.42, sz - 0.34]);
+      // Bolts of striped cloth, lying in a stack.
+      for (const [i, color] of ['#e05a4f', '#f2c14e', '#4f8fe0'].entries()) {
+        kit.add(color, cyl(0.07, 0.07, 0.42, 8), [sx - 0.2 + i * 0.03, g + 0.07 + i * 0.13, sz + 0.12], { rz: Math.PI / 2, ry: 0.2 });
+      }
+      // The scaffold, and the half-made balloon resting in it.
+      const bx = 0.62, bz = 0.15, gb = place.ground(bx, bz);
+      for (const [dx, dz] of [[-0.42, -0.42], [0.42, -0.42], [-0.42, 0.42], [0.42, 0.42]]) {
+        const gg = place.ground(bx + dx, bz + dz);
+        kit.add('darkWood', box(0.05, gb + 1.3 - gg, 0.05), [bx + dx, gg, bz + dz]);
+      }
+      for (const dz of [-0.42, 0.42]) kit.add('darkWood', box(0.9, 0.04, 0.04), [bx, gb + 1.3, bz + dz]);
+      for (const dx of [-0.42, 0.42]) kit.add('darkWood', box(0.04, 0.04, 0.9), [bx + dx, gb + 1.3, bz]);
+      const profile = [[0.18, 0], [0.42, 0.25], [0.58, 0.62], [0.6, 0.95], [0.48, 1.22], [0.25, 1.38], [0, 1.42]].map(([x, y]) => new THREE.Vector2(x, y));
+      const envelope = new THREE.LatheGeometry(profile, 10).toNonIndexed();
+      const pos = envelope.attributes.position, stripe = [new THREE.Color('#e05a4f'), new THREE.Color('#f5efe2')], colors = [];
+      for (let i = 0; i < pos.count; i += 3) {
+        const a = Math.atan2(pos.getZ(i) + pos.getZ(i + 1) + pos.getZ(i + 2), pos.getX(i) + pos.getX(i + 1) + pos.getX(i + 2));
+        const c = stripe[Math.floor(((a + Math.PI) / TAU) * 10) % 2];
+        for (let k = 0; k < 3; k++) colors.push(c.r, c.g, c.b);
+      }
+      envelope.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      envelope.computeVertexNormals();
+      const balloon = new THREE.Mesh(envelope, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.8, side: THREE.DoubleSide }));
+      balloon.position.set(bx, gb + 0.12, bz);
+      balloon.castShadow = true;
+      return {
+        radius: 1.8, door: [sx, 0.75], extras: [balloon],
+        lights: [[sx, g + 0.42, sz]],
+        pointLight: { at: [sx, g + 0.5, sz + 0.2], color: '#ffd59a', power: 1.6 },
+        update(t, dt, env) {
+          // Half full, filling and slackening; a tap makes her give it a good blast.
+          const breath = 0.86 + Math.sin(t * 0.7) * 0.05 + env.poke * 0.12;
+          balloon.scale.set(breath, 0.78 + (breath - 0.86) * 1.6, breath);
+        },
+      };
+    },
+  },
+
+  // A bandstand: an eight-sided stage under a striped roof, music stands and a
+  // big drum, a flag on top streaming in the wind, and lamps round it.
+  bandstand: {
+    find: { radius: 1.5, rn: [0.1, 0.6], slope: 0.25, wet: 1.6, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const floor = 0.26;
+      kit.add('stone', cyl(0.95, 1.0, 0.75, 8), [0, floor - 0.75, 0], { ry: Math.PI / 8 });
+      kit.add('wood', cyl(0.93, 0.93, 0.06, 8), [0, floor, 0], { ry: Math.PI / 8 });
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU;
+        kit.add('plaster', cyl(0.03, 0.035, 0.98, 5), [Math.cos(a) * 0.84, floor + 0.05, Math.sin(a) * 0.84]);
+        // A railing between the posts, open at the front for the steps.
+        if (i !== 1) {
+          const b = a + TAU / 16, len = 2 * 0.84 * Math.sin(Math.PI / 8);
+          kit.add('plaster', box(len, 0.03, 0.03), [Math.cos(b) * 0.81, floor + 0.38, Math.sin(b) * 0.81], { ry: -b + Math.PI / 2 });
+        }
+      }
+      // A striped roof: alternate wedges of red and cream.
+      for (let i = 0; i < 8; i++) {
+        kit.add(i % 2 ? '#f5efe2' : '#d9534f', new THREE.ConeGeometry(1.12, 0.55, 1, 1, false, (i / 8) * TAU, TAU / 8).translate(0, 0.27, 0), [0, floor + 1.02, 0]);
+      }
+      // Music stands, and a big drum.
+      for (const [x, z] of [[-0.3, -0.25], [0.3, -0.25], [0, -0.45]]) {
+        kit.add('darkStone', cyl(0.012, 0.012, 0.42, 4), [x, floor + 0.05, z]);
+        kit.add('darkStone', box(0.18, 0.13, 0.01), [x, floor + 0.47, z + 0.02], { rx: -0.4 });
+      }
+      kit.add('#c8302a', cyl(0.2, 0.2, 0.16, 12), [0.42, floor + 0.25, 0.15], { rx: Math.PI / 2 });
+      kit.add('#f5efe2', cyl(0.205, 0.205, 0.02, 12), [0.42, floor + 0.25, 0.24], { rx: Math.PI / 2 });
+      // Lamps round it.
+      const lights = [];
+      for (const a of [0.4, 2.5, 4.4]) {
+        const x = Math.cos(a) * 1.3, z = Math.sin(a) * 1.3, gl = place.ground(x, z);
+        kit.add('darkWood', cyl(0.025, 0.03, 0.62, 5), [x, gl, z]);
+        kit.add('lamp', box(0.1, 0.13, 0.1), [x, gl + 0.62, z]);
+        lights.push([x, gl + 0.68, z]);
+      }
+      // The flag on top.
+      kit.add('darkWood', cyl(0.015, 0.015, 0.45, 4), [0, floor + 1.55, 0]);
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.01).translate(0.16, 0, 0), new THREE.MeshStandardMaterial({ color: '#f2c14e', flatShading: true }));
+      flag.position.set(0, floor + 1.9, 0);
+      let wave = 0;
+      return {
+        radius: 1.5, door: [0, 1.3], extras: [flag], lights,
+        pointLight: { at: [0, floor + 0.9, 0], color: '#ffd9a0', power: 1.8 },
+        update(t, dt, env) {
+          wave += dt * (2 + env.wind * 3 + env.poke * 6);
+          flag.rotation.y = Math.sin(wave) * (0.25 + env.wind * 0.2);
+          flag.scale.x = 0.9 + Math.sin(wave * 1.7) * 0.1;
+        },
+      };
+    },
+  },
 };
 
 // Look for ground that suits the landmark; on rugged lands, gradually accept
@@ -579,6 +809,8 @@ function findSpotWith(ctx, find, relax) {
   for (const v of spots) {
     const rn = shape.radial(v.x, v.z);
     if (rn < rnMin || rn > rnMax || shape.isWet(v.x, v.z, find.wet / relax)) continue;
+    // Room kept for something laid out first (a hedge maze).
+    if (ctx.keepOut?.(v.x, v.z, find.radius)) continue;
     let steep = shape.slopeAt(v.x, v.z);
     for (let k = 0; k < 4; k++) {
       const a = (k / 4) * TAU + 0.4;
