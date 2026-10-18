@@ -300,7 +300,9 @@ function arrive(next) {
   const rarity = landRarity(land);
   // A voyage's words can put landmarks where the generator never would, so
   // rarity (counted from free lands) doesn't apply there.
-  if (voyage.active) $('#land-meta').textContent = t(land.biome.label);
+  // The Edge of the Sky is always one of the legendary ones.
+  if (voyage.finale) $('#land-meta').replaceChildren(`${t('the Edge of the Sky')} · ${t(land.biome.label)} · `, tierTag({ tier: 'legendary' }));
+  else if (voyage.active) $('#land-meta').textContent = t(land.biome.label);
   else if (admin) $('#land-meta').textContent = admin.asked ? `${t(land.biome.label)} · #${admin.word} · admin` : ADMIN_HELP;
   else {
     $('#land-meta').replaceChildren(`${t(land.biome.label)} · #${seed} · `, tierTag(rarity));
@@ -418,11 +420,14 @@ const voyage = createVoyage({
   fly: (next) => visit(next),
   // Back to the land in the address bar.
   leave: () => visit(readSeed()),
-  // Hours spent on a voyage swing the sun over rather than jumping it.
+  // Hours spent on a voyage swing the sun over rather than jumping it (but a
+  // voyage picked up before the first frame has no sky yet to swing from).
   setClock: (hours) => {
-    glide.from.sunDir.copy(skyState.sunDir);
-    glide.from.moonDir.copy(skyState.moonDir);
-    glide.k = 0;
+    if (skyState.sunDir.lengthSq() > 0) {
+      glide.from.sunDir.copy(skyState.sunDir);
+      glide.from.moonDir.copy(skyState.moonDir);
+      glide.k = 0;
+    }
     timeOverride = hours;
   },
   clearStorm: () => {
@@ -927,6 +932,7 @@ function renderFrame() {
   const t = clock.elapsedTime;
   updateTimelapse();
   const env = sky.update(updateSkyState(dt), dt, t, camera);
+  env.relit = voyage.relit; // Wa's lantern at the Edge
   // Eyes adjust to the dark a little; lightning flashes overexpose for an instant.
   renderer.toneMappingExposure = (1 + env.night * 0.9 + env.flash * 0.4) * (photo.on ? 2 ** photo.exposure : 1);
   fxUniforms.uTime.value = t;
@@ -959,6 +965,7 @@ function renderFrame() {
 
   // Aurora needs a cold place: a snowy or high land, fresh snow, or a freezing night at home.
   sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
+  sky.setShower(voyage.finale);
   updateIntro(dt);
   updateFocus(t);
   frameBetweenHud(dt);

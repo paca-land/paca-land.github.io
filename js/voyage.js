@@ -63,10 +63,14 @@ const LANDMARK_LABEL = {
   cabin: t('a cabin'), castle: t('a castle'), windmill: t('a windmill'), lighthouse: t('a lighthouse'), wizard: t('a wizard’s tower'), village: t('a village'),
   campsite: t('a campsite'), ruins: t('ruins'), stones: t('standing stones'), shrine: t('a shrine'),
   observatory: t('an observatory'), teahouse: t('a teahouse'), post: t('a post office'), workshop: t('a balloon workshop'), bandstand: t('a bandstand'),
+  edge: t('Wa’s stone'),
   town: t('the town'),
 };
 // The Harbour, where every voyage starts: your home town, the same every time.
 const HOME = { biome: 'meadow', landmark: 'town', lake: true, balloon: false };
+// The Edge of the Sky, the last island: one of a few legendary ones, picked by the
+// word that gets you there, always with a lake, a waterfall over the rim and Wa's stone.
+const EDGES = [{ biome: 'dream' }, { biome: 'cloudisle' }, { biome: 'moon' }, { biome: 'glass' }];
 const WEATHER_LABEL = { clear: t('clear skies'), cloudy: t('clouds'), rain: t('rain'), snow: t('snow'), mist: t('mist'), storm: t('a storm') };
 const SHRUG = t('That word means nothing special to the sky, so it made up an island of its own.');
 // Some places sound far off and some close by: miles added to a hop, by meaning.
@@ -232,6 +236,12 @@ const EVENTS = {
       options: [{ label: t('remember it'), secret: word, note: t('it goes in the book, to say whenever you like') }, ...lost],
     };
   },
+  // Wa's stone, on the last island (the last card follows on its own).
+  edge: (r, book) => ({
+    title: t('Wa’s stone'),
+    text: book.found ? t('The flat stone where Wa waited all those years. Her lantern is lit again.') : t('A flat stone worn smooth, a folded blanket, a teacup, and a lantern that went out long ago.'),
+    options: [],
+  }),
   // The buildings of the stranger islands. An offer marked `once` can be taken
   // once per island.
   observatory: (r, book, g, { first }) => {
@@ -369,6 +379,8 @@ export function createVoyage(api) {
   let env = null;
   let pending = null; // what the last tap gave, to show where you tapped
   let finale = false;
+  // After the last card, looking round the Edge: 'wa' (flying her home) or 'home'.
+  let lingering = null;
   let winTimer = 0; // the last card, a moment after reaching the Edge
 
   // --- Elements -------------------------------------------------------------
@@ -587,6 +599,7 @@ export function createVoyage(api) {
     store.set(SAVE, null);
     run = null;
     finale = false;
+    lingering = null;
     exit();
     api.leave();
   }
@@ -631,6 +644,8 @@ export function createVoyage(api) {
     const letters = friend(book, 'post') && !book.lettersGiven;
     if (letters) book.lettersGiven = true;
     record(true);
+    // The voyage is over: a reload mustn't land you back here and count it twice.
+    store.set(SAVE, null);
     const crew = run.crew.map((id) => CREW[id].name);
     // A few of your words, for Wa to read back.
     const yours = run.words.slice(1);
@@ -648,9 +663,18 @@ export function createVoyage(api) {
       poem: run.words.slice(1),
       options: [
         { label: t('sail again'), primary: true, act: () => { end(); intro(); } },
+        { label: t('stay a while'), note: t('look round the Edge, then fly home'), act: () => linger(found ? 'home' : 'wa') },
         { label: t('back to the islands'), act: end },
       ],
     });
+  }
+
+  // After the last card: the Edge is yours to look round for as long as you like.
+  function linger(who) {
+    closeCard();
+    lingering = who;
+    gauges.hidden = aboardRow.hidden = read.hidden = true;
+    hud();
   }
 
   function lose(why) {
@@ -1084,6 +1108,7 @@ export function createVoyage(api) {
       Object.assign(run.here.want, HOME);
       run.here.weather = 'clear';
     }
+    if (finale) Object.assign(run.here.want, makeRandom(heard.word, 'edge').pick(EDGES), { landmark: 'edge', lake: true, river: true, balloon: undefined });
     run.stay = stayHours() + (heard.echoOf ? 1 : 0);
     run.waited = false;
     run.met = [];
@@ -1982,7 +2007,8 @@ export function createVoyage(api) {
     progress.dataset.label = t('{done} / {goal} miles', { done: run.leagues, goal: GOAL });
 
     const parts = [];
-    if (state === 'flying') parts.push(el('span', '', t('flying…')));
+    if (lingering) parts.push(el('span', '', t('the Edge of the Sky')), chip(lingering === 'wa' ? t('⛵ fly Wa home') : t('⛵ fly home'), end));
+    else if (state === 'flying') parts.push(el('span', '', t('flying…')));
     else if (state === 'land' || state === 'event') {
       const taps = [t('trees'), run.here?.lake && t('water'), LANDMARK_LABEL[run.here?.landmark]].filter(Boolean);
       parts.push(el('span', '', run.stay > 0
@@ -2063,6 +2089,10 @@ export function createVoyage(api) {
     // On the last land: an aurora night at the Edge of the Sky.
     get finale() {
       return active && finale;
+    },
+    // Wa's lantern on the last island: dark until she's said her word, lit once she's home.
+    get relit() {
+      return active && finale && (state === 'over' || book.found) ? 1 : 0;
     },
     // What the land for `seed` should be like (see generateLand), on a voyage.
     landOptions(seed) {

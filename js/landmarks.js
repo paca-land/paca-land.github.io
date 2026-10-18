@@ -790,6 +790,51 @@ const LANDMARKS = {
       };
     },
   },
+
+  // The Edge of the Sky (voyage.js): the flat stone where Wa waited, near the rim,
+  // and the lantern that went out long ago. It lights again once she's said her
+  // word (env.relit).
+  edge: {
+    find: { radius: 1.4, rn: [0.4, 0.82], slope: 0.3, wet: 1.2, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const g = place.ground(0, 0);
+      kit.add('darkStone', box(1.5, 0.5, 1.0), [0, g - 0.3, 0], { ry: 0.1, rz: 0.03 });
+      kit.add('stone', box(1.32, 0.1, 0.86), [0.02, g + 0.18, 0], { ry: 0.12 });
+      // What she kept by her: a folded blanket, a teacup, pages under a pebble.
+      kit.add('#8a3b46', box(0.42, 0.07, 0.3), [-0.32, g + 0.28, 0.12], { ry: 0.3 });
+      kit.add('#a85563', box(0.4, 0.04, 0.28), [-0.3, g + 0.35, 0.1], { ry: 0.22 });
+      kit.add('plaster', cyl(0.05, 0.038, 0.08, 8), [0.3, g + 0.28, 0.24]);
+      kit.add('#f4ecd8', box(0.22, 0.015, 0.3), [0.24, g + 0.28, -0.2], { ry: -0.4 });
+      kit.add('#ece2c8', box(0.22, 0.015, 0.3), [0.27, g + 0.3, -0.18], { ry: -0.15 });
+      kit.add('darkStone', ball(0.05), [0.27, g + 0.34, -0.17]);
+      // The lantern, hung from a crooked post.
+      const px = 0.95, pz = -0.3, gp = place.ground(px, pz);
+      kit.add('darkWood', cyl(0.03, 0.04, 1.15, 5), [px, gp - 0.05, pz]);
+      kit.add('darkWood', box(0.3, 0.03, 0.03), [px - 0.13, gp + 1.06, pz]);
+      const hx = px - 0.24, hy = gp + 1.06;
+      kit.add('#2e2a26', cyl(0.004, 0.004, 0.06, 3), [hx, hy - 0.06, pz]);
+      kit.add('#2e2a26', cone(0.11, 0.08, 4), [hx, hy - 0.165, pz], { ry: Math.PI / 4 });
+      kit.add('#2e2a26', box(0.15, 0.025, 0.15), [hx, hy - 0.36, pz]);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.17, 0.12), new THREE.MeshStandardMaterial({ color: '#3b3226', emissive: '#ffb347', emissiveIntensity: 0, flatShading: true }));
+      glass.position.set(hx, hy - 0.25, pz);
+      const flame = new THREE.Mesh(new THREE.IcosahedronGeometry(0.03, 0), new THREE.MeshStandardMaterial({ color: '#ffcf7a', emissive: '#ff9a3c', emissiveIntensity: 3 }));
+      flame.position.copy(glass.position);
+      const light = new THREE.PointLight('#ffc47a', 0, 7, 1.4);
+      light.position.copy(glass.position);
+      let lit = 0;
+      return {
+        radius: 1.4, door: [0, 1.0], extras: [glass, flame, light],
+        update(t, dt, env) {
+          lit += ((env.relit ?? 0) - lit) * Math.min(1, dt * 0.7);
+          const f = 0.88 + 0.12 * Math.sin(t * 11.3) * Math.sin(t * 6.1 + 1);
+          glass.material.emissiveIntensity = lit * (2.4 + env.poke) * f;
+          flame.visible = lit > 0.05;
+          flame.scale.setScalar(Math.max(0.01, lit) * f);
+          light.intensity = lit * (1.2 + env.gloom * 2.4) * f;
+        },
+      };
+    },
+  },
 };
 
 // Look for ground that suits the landmark; on rugged lands, gradually accept
