@@ -11,7 +11,7 @@
 import { t, lang } from './i18n.js';
 
 // --- Wa ---------------------------------------------------------------------------
-// You are Wa's grandchild. She called you Sparrow when you were three, and her
+// You are Wa's grandchild. She called you Ca when you were three, and her
 // pages still do; at the harbor you sign the logbook with the name you go by now.
 // Twenty years ago Wa flew for the Edge of the Sky, the morning after a falling-out
 // with your mother, and neither of them said a word to the other again. The Hush
@@ -21,19 +21,19 @@ import { t, lang } from './i18n.js';
 // and at the Edge you learn it was hers, following her book, and she says her word
 // to it. She couldn't, alone: that's why the balloon came home for words. Your words are the road home. Once you've found her
 // (`found`), she stays home and sends you up again.
-const PAGE_GATE = t('“I know what the Hush is now. It’s made of words nobody said: every sorry swallowed, every ‘I miss you’ saved for later. It eats islands because islands are made of words. And Sparrow, I think I know whose this one is. I’m going to the Edge. Up there, they say, anything can be said.”');
+const PAGE_GATE = t('“I know what the Hush is now. It’s made of words nobody said: every sorry swallowed, every ‘I miss you’ saved for later. It eats islands because islands are made of words. And Ca, I think I know whose this one is. I’m going to the Edge. Up there, they say, anything can be said.”');
 export const STORY = {
   // What Wa called you, and what you're called if you don't sign another name.
-  sparrow: t('Sparrow'),
+  nickname: t('Ca'),
   intro: (goal, found) => [
     ...(found ? [
       t('You found Wa at the Edge of the Sky and flew her home. Her knees aren’t up to the basket any more, so she sits by the window and sends you up instead.'),
       t('“Bring me words I don’t know,” she says, and puts the book in your hands.'),
     ] : [
       t('Above the clouds, the sky has a language. Say a word, and an island of that name rises out of the clouds for you to fly to. The people who fly that way are called sky-sailors, and your grandmother Wa was the best of them.'),
-      t('Twenty years ago she flew off toward the Edge of the Sky, the farthest island anyone has ever reached, and never came back. Your mother won’t say why. This morning Wa’s balloon came drifting home, empty, with her book in the basket. On the last page, in her big loopy writing: “Come and find me, Sparrow. Bring words.” Sparrow is what she used to call you.'),
+      t('Twenty years ago she flew off toward the Edge of the Sky, the farthest island anyone has ever reached, and never came back. Your mother won’t say why. This morning Wa’s balloon came drifting home, empty, with her book in the basket. On the last page, in her big loopy writing: “Come and find me, Ca. Bring words.” Ca is what she used to call you.'),
     ]),
-    t('The Edge is {goal} miles away, and three gates on the way open only for the right word (the last gate is the Edge itself). Each letter you say burns one fuel and carries you about a mile, give or take the wind. On each island you have a few hours, and every tree, pond or building you tap takes one of them. Keep an eye on fuel, food and the balloon’s hearts: lose the last heart, and the voyage is over.', { goal }),
+    t('Inside the cover, in case you’d forgotten, she wrote down how it works: “The Edge is {goal} miles off. Three gates stand in the way, and each one opens only for the right word. The last one stands guard at the Edge. Every letter you say burns one fuel and carries you about a mile, give or take the wind. Each island gives you a few hours, and every tree, pond or house you stop at takes one. Mind the fuel, the food and the balloon’s hearts. Lose the last heart and you drift home.”', { goal }),
   ],
   // The first time at the harbor: who's flying Wa's balloon?
   logbook: {
@@ -41,7 +41,7 @@ export const STORY = {
     text: t('The harbor master runs a thumb down his logbook. “Wa’s balloon. Wa’s book.” He looks you up and down. “And who’s flying it?”'),
     placeholder: t('your name'),
     sign: t('sign the logbook'),
-    plain: t('just put “Sparrow”'),
+    plain: t('just put “Ca”'),
   },
   harbor: (found, name) => (found
     ? t('“Off again, {name}?” says the harbor master. “Wa dropped off a few more things for you.” He heaves open her old sea chest. “Take one.”', { name })
@@ -49,7 +49,7 @@ export const STORY = {
   setOff: t('Wa’s balloon tugs at its ropes in the harbor, ready to go.'),
   // Her pages, kept in the book once found.
   pages: {
-    last: () => t('“Come and find me, Sparrow. Bring words.”'),
+    last: () => t('“Come and find me, Ca. Bring words.”'),
     wall: () => t('“The wall wanted a word, and it was fussy about it. Something came through after me. Where it passes, everything goes quiet: birds, wind, words. I call it the Hush. It doesn’t like the sun, and it doesn’t like singing. I think it has been following me since the harbor. Don’t stop anywhere for long.”'),
     gate: () => PAGE_GATE,
     camp: (word) => t('“Almost there. The Edge won’t open for just any word. Say one of mine. Try ‘{word}’.”', { word }),
@@ -61,7 +61,7 @@ export const STORY = {
     options: [{ label: t('keep going'), act: () => t('You tuck the page into her book.') }],
   },
   // The last card. `said`: the word of hers that opened the Edge; `words`: some of
-  // yours; `name`: what you signed (empty if you kept "Sparrow").
+  // yours; `name`: what you signed (empty if you kept "Ca").
   edge: ({ said, words, found, name, tobias }) => (found ? [
     t('Past the last gate the clouds stop. On the last island is the flat stone where Wa waited all those years.'),
     t('You write your words into her book: {words}. At home, she reads them aloud by the window, one by one, and asks what each island was like.', { words }),
@@ -70,8 +70,8 @@ export const STORY = {
     t('Past the last gate the clouds stop. On the last island, beside a lantern that went out long ago, sits Wa.'),
     t('“{word}!” she says. “{memory}”', { word: `${said[0].toUpperCase()}${said.slice(1)}`, memory: WA_MEMORIES[said] ?? t('That’s one of mine.') }),
     name
-      ? t('Then she looks at you properly. “Sparrow? No. Look at you.” You tell her your name. “{name},” she says, trying it out. “It suits you.”', { name })
-      : t('Then she looks at you properly, and her voice cracks. “Sparrow. Look at you. You got tall.”'),
+      ? t('Then she looks at you properly. “Ca? Look at you, all grown up.” You tell her the name you go by now. “{name},” she says, trying it out. “It suits you.”', { name })
+      : t('Then she looks at you properly, and her voice cracks. “Ca. Look at you. You got tall.”'),
     t('“I got all the way here,” she says, “and found I couldn’t say it. Twenty years of trying. So I sent the balloon home for words.” She taps her book. “And for you.”'),
     t('Behind you, the Hush has followed all the way. Up close it isn’t a monster at all. It’s the kind of quiet that comes before someone says something hard, and it was never after you: it followed her book. Wa stands, faces it, and says the word she didn’t say twenty years ago. It isn’t meant for you, so you don’t hear it. The Hush comes apart like a flock of startled birds.'),
     t('Then she reads your words aloud, one by one: {words}. Behind you the islands light up again, a road of them, all the way home.', { words }),
@@ -174,7 +174,7 @@ export const REACHES = [
 export const reachOf = (miles) => REACHES.reduce((at, reach, i) => (miles >= reach.at ? i : at), 0);
 
 // Each gate lets through only a word that answers its riddle (one per voyage,
-// from its tier). The last one is the Edge itself.
+// from its tier). The last one stands at the Edge.
 export const GATES = [
   { at: 30, name: t('the Cloud Wall'), tier: 1 },
   { at: 65, name: t('the Wind Gate'), tier: 2 },
@@ -338,7 +338,7 @@ export const SKY_EVENTS = [
     // High Winds: Wa's old rival, and why Wa left.
     id: 'odile', weight: 8, when: (g) => g.reach >= 1 && g.run.gates >= 1 && !g.found,
     title: t('a purple balloon'),
-    text: t('A patched purple balloon swings alongside. The old woman in its basket squints at yours. “That’s Wa’s! And you’ll be Sparrow, all grown up. You have her chin.” She sticks out a hand. “Captain Odile. Your grandmother beat me to every island in the Low Sky, the old goose.”'),
+    text: t('A patched purple balloon swings alongside. The old woman in its basket squints at yours. “That’s Wa’s! And you’ll be Ca, all grown up. You have her chin.” She sticks out a hand. “Captain Odile. Your grandmother beat me to every island in the Low Sky, the old goose.”'),
     options: [
       {
         label: t('ask why Wa left'),

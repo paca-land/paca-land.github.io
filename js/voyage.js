@@ -425,8 +425,8 @@ export function createVoyage(api) {
   }
 
   // What people call you: the name you signed in the harbor master's logbook, or
-  // Sparrow, which is what Wa called you.
-  const you = () => book.name || STORY.sparrow;
+  // Ca, which is what Wa called you.
+  const you = () => book.name || STORY.nickname;
 
   // Who's flying Wa's balloon? Asked once, before the first voyage.
   function signLogbook() {

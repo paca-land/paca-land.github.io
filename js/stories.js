@@ -24,7 +24,7 @@ export const ARCS = {
           title: t('the hermit’s tune'),
           text: t('The hermit hums while he stirs the soup, and you know the tune. Wa used to sing it to you at bedtime. When you hum along, he stops dead. “Where did you learn that?”'),
           options: [
-            { label: t('“From Wa. I’m her grandchild.”'), act: (g) => t('He puts the spoon down very carefully. “Then you’re Sparrow.” He doesn’t say anything else, but you get the biggest bowl. {got}', { got: g.give({ food: 2 }) }) },
+            { label: t('“From Wa. I’m her grandchild.”'), act: (g) => t('He puts the spoon down very carefully. “Then you’re Ca.” He doesn’t say anything else, but you get the biggest bowl. {got}', { got: g.give({ food: 2 }) }) },
             { label: t('“From my grandmother.”'), act: (g) => t('“Your grandmother had good taste in songs,” he says, and won’t look at you. You get the biggest bowl. {got}', { got: g.give({ food: 2 }) }) },
           ],
         }),
@@ -161,7 +161,7 @@ export const ARCS = {
         ask: t('ask the queen about Wa'),
         tell: () => ({
           title: t('the queen remembers'),
-          text: t('“Wa,” says the queen, and something in her face comes untied. “We were girls together, before I was a queen. She taught me to say no. Nobody had ever told me I could.” She looks at you sideways. “She talked about you, you know. Her Sparrow.”'),
+          text: t('“Wa,” says the queen, and something in her face comes untied. “We were girls together, before I was a queen. She taught me to say no. Nobody had ever told me I could.” She looks at you sideways. “She talked about you, you know. Her Ca.”'),
           options: [
             { label: t('ask what Wa was like then'), act: (g) => t('“Loud,” says the queen. “Rude. Always right.” She very nearly smiles, and gives you three coins for old times’ sake. {got}', { got: g.give({ glimmer: 3 }) }) },
             { label: t('ask what you were like'), act: (g) => t('“Sticky,” says the queen. “You were three.” And then, out of nowhere, she laughs: one short bark, like a seal. The whole court turns to stare. {got}', { got: g.give({ hull: 1 }) }) },
@@ -190,9 +190,9 @@ export const ARCS = {
         ask: t('ask to see the keeper’s logbook'),
         tell: () => ({
           title: t('the keeper’s log'),
-          text: t('The keeper writes down every balloon that passes. He turns back twenty years of pages for you, licking his thumb. There, in faded ink: Wa’s balloon, heading up. Underneath, in her handwriting: Back by Sunday. Tell Sparrow.'),
+          text: t('The keeper writes down every balloon that passes. He turns back twenty years of pages for you, licking his thumb. There, in faded ink: Wa’s balloon, heading up. Underneath, in her handwriting: Back by Sunday. Tell Ca.'),
           options: [
-            { label: t('ask what Wa told him'), act: (g) => t('“Not much,” says the keeper. “She bought two lanterns, asked which way the wind was going, and asked me to tell Sparrow she’d be back by Sunday.” He rubs his nose. “I never knew who Sparrow was.” {got}', { got: g.give({ lanterns: 1 }) }) },
+            { label: t('ask what Wa told him'), act: (g) => t('“Not much,” says the keeper. “She bought two lanterns, asked which way the wind was going, and asked me to tell Ca she’d be back by Sunday.” He rubs his nose. “I never knew who Ca was.” {got}', { got: g.give({ lanterns: 1 }) }) },
             { label: t('write your name under hers'), act: (g) => t('He watches you write {name} under Wa’s line, then nods, as if something has been settled, and fills your burner from his own oil can. {got}', { name: g.name, got: g.give({ fuel: 2 }) }) },
           ],
         }),
@@ -334,7 +334,7 @@ export const ARCS = {
         ask: t('visit the stones a last time'),
         tell: (g) => ({
           title: t('the stones’ gift'),
-          text: t('When you arrive, the stones are already humming a name. Not Sparrow. The one you go by: {name}. They hum it round and round the ring until the grass shivers.', { name: g.name }),
+          text: t('When you arrive, the stones are already humming a name. Not Ca. The one you go by: {name}. They hum it round and round the ring until the grass shivers.', { name: g.name }),
           options: [
             { label: t('hum along'), act: (g2) => t('You hum along, and for a moment the whole island hums with you. {got}', { got: g2.give({ hull: 1 }) }) },
             { label: t('just listen'), act: (g2) => t('You sit in the grass and listen until the light goes gold. {got}', { got: g2.give({ glimmer: 3 }) }) },
@@ -416,7 +416,7 @@ export const ARCS = {
           title: t('your sky name'),
           text: g.signed
             ? t('“Every sky-sailor has a sky name,” the wizard says. “Wa’s was Wa: the sound you make when the clouds open for the first time.” She looks at you for a long moment. “Yours is {name}. You picked it yourself. That’s the best kind.”', { name: g.name })
-            : t('“Every sky-sailor has a sky name,” the wizard says. “Wa’s was Wa: the sound you make when the clouds open for the first time.” She looks at you for a long moment. “Yours is Sparrow. She gave it to you, and you kept it. That counts.”'),
+            : t('“Every sky-sailor has a sky name,” the wizard says. “Wa’s was Wa: the sound you make when the clouds open for the first time.” She looks at you for a long moment. “Yours is Ca. She gave it to you, and you kept it. That counts.”'),
           options: [
             { label: t('thank her'), act: (g2) => t('“Don’t thank me. Go and fly.” {got}', { got: g2.give({ glimmer: 3 }) }) },
             { label: t('ask what your name means'), act: (g2) => t('“Whatever you make it mean,” says the wizard. “Same as any word.” {got}', { got: g2.give({ fuel: 2 }) }) },
