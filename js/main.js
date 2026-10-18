@@ -500,9 +500,14 @@ async function setSound(on) {
   soundButton.setAttribute('aria-pressed', String(sound.on));
 }
 soundButton.addEventListener('click', () => setSound(!sound.on));
-addEventListener('pointerdown', () => {
-  if (soundWanted && !sound.on) setSound(true);
-}, { once: true });
+// A remembered "on" waits for the first tap or key, and comes back the same way
+// after a phone pauses it (a call, another app). A touch only counts once the
+// finger lifts, so pointerdown never could start it on a phone.
+for (const type of ['pointerup', 'touchend', 'keydown']) {
+  addEventListener(type, (event) => {
+    if (soundWanted && !sound.on && !event.target.closest?.('#sound')) setSound(true);
+  });
+}
 
 // Photo mode: no interface, a freer camera, exposure and focus to taste.
 const photo = { on: false, exposure: 0, blur: 5 };

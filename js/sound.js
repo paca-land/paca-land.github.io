@@ -93,6 +93,9 @@ export function createSoundscape() {
     },
 
     async enable() {
+      // iPhones mute web audio with the ringer switch unless the page says it's
+      // playing media, as a video would (iOS 17+).
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
       if (!ctx) {
         ctx = new AudioContext();
         master = ctx.createGain();
@@ -109,6 +112,7 @@ export function createSoundscape() {
 
     disable() {
       ctx?.suspend();
+      if (navigator.audioSession) navigator.audioSession.type = 'auto';
     },
 
     // `land` says what's there: { waterfall, lake, fire, grassy }.
