@@ -64,8 +64,8 @@ export const STORY = {
   // yours; `name`: what you signed (empty if you kept "Ca").
   edge: ({ said, words, found, name, tobias }) => (found ? [
     t('Past the last gate the clouds stop. On the last island is the flat stone where Wa waited all those years.'),
-    t('You write your words into her book: {words}. At home, she reads them aloud by the window, one by one, and asks what each island was like.', { words }),
-    t('In the kitchen, she and your mother are arguing about pancakes. Out loud, for once.'),
+    t('You write your words into her book: {words}. Back home, Wa reads them aloud by the window, one by one, and wants to know what every island was like.', { words }),
+    t('Then your mother calls from the kitchen that the pancakes are ready. Wa says they’re burnt, and the two of them argue about it all through breakfast, out loud, the way they used to.'),
   ] : [
     t('Past the last gate the clouds stop. On the last island, beside a lantern that went out long ago, sits Wa.'),
     t('“{word}!” she says. “{memory}”', { word: `${said[0].toUpperCase()}${said.slice(1)}`, memory: WA_MEMORIES[said] ?? t('That’s one of mine.') }),

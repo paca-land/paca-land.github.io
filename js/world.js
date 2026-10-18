@@ -1521,6 +1521,27 @@ function buildCrystals(top, shape, r) {
   return group;
 }
 
+// Where Wa's balloon ties up on a voyage (main.js): just off the rim, on the
+// side with the most room from the islets, the landmark and the waterfall.
+// It rolls no dice, so lands come out the same with or without it.
+function pickMooring(shape, islets, landmark) {
+  const avoid = islets.clickables.map((it) => it.position);
+  if (landmark) avoid.push({ x: landmark.spot.x, z: landmark.spot.z });
+  if (shape.river) avoid.push(shape.river.exit);
+  let best = null;
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * TAU;
+    const edge = RADIUS * shape.edgeScale(a);
+    const x = Math.cos(a) * (edge + 1), z = Math.sin(a) * (edge + 1);
+    const room = Math.min(Infinity, ...avoid.map((p) => Math.hypot(p.x - x, p.z - z)));
+    if (!best || room > best.room) best = { a, edge, room };
+  }
+  const { a, edge } = best;
+  const stake = { x: Math.cos(a) * edge * 0.9, z: Math.sin(a) * edge * 0.9 };
+  stake.y = shape.heightAt(stake.x, stake.z);
+  return { x: Math.cos(a) * (edge + 1), y: stake.y + 1.6, z: Math.sin(a) * (edge + 1), stake };
+}
+
 function buildIslets(biome, r) {
   const group = new THREE.Group();
   const rockMat = new THREE.MeshStandardMaterial({ color: biome.rock[1], flatShading: true, roughness: 1 });
@@ -1840,6 +1861,7 @@ export function generateLand(seed, want = {}) {
     hasLake: Boolean(shape.lake),
     hasWaterfall: Boolean(shape.river),
     hasBalloon: Boolean(balloon),
+    mooring: pickMooring(shape, islets, landmark),
     clickables,
     hooks,
     // What the soundscape should play here.

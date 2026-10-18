@@ -13,6 +13,7 @@ import { createSoundscape } from './sound.js';
 import { createSkyGrab } from './skygrab.js';
 import { createJournal, tierTag, showToast } from './journal.js';
 import { createVoyage } from './voyage.js';
+import { createWaBalloon } from './balloon.js';
 import { landRarity } from './rarity.js';
 import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
@@ -86,6 +87,9 @@ Object.assign(controls, {
 });
 
 const sky = createSky(scene, renderer, { lowPower });
+// Wa's balloon, on a voyage (see balloon.js). A tap gives the burner a blast.
+const waBalloon = createWaBalloon({ onTap: () => sound.play('whoosh') });
+scene.add(waBalloon.object);
 const clock = new THREE.Clock();
 
 // Render in HDR, add sun shafts, let only the brightest things (sun, glints,
@@ -204,17 +208,33 @@ function dispose(root) {
 // Moving on: the land on screen sinks into the clouds, and only once it's out
 // of sight is the next one grown, so the hitch of generating it only ever
 // holds up a view of sky. `land` and `seed` stay the land you can see.
-const SINK = 1.1, RISE = 1.6;
-let leaving = null; // { next, age, y, scale, turn } while the land on screen sinks away
+// On a voyage it's a flight: Wa's balloon casts off and rides above while the
+// islands change, the land sinks a little slower so you see it go, and the
+// view swings round as if following the balloon (see flightSwing).
+const SINK = 1.1, VOYAGE_SINK = 1.4, RISE = 1.6;
+let leaving = null; // { next, age, sink, y, scale, turn } while the land on screen sinks away
 let rise = 0; // seconds the land on screen has been rising; below 0 it waits
+let flight = false; // the change of land under way is a voyage's flight
 
 function visit(next) {
   if (next === (leaving?.next ?? seed)) return;
   if (zoomedIn()) focusOn(null);
+  flight = voyage.active;
+  if (!flight) waBalloon.leave();
+  else if (waBalloon.castOff()) sound.play('whoosh');
   if (!land || reducedMotion) return arrive(next);
   // Picked again mid-flight: only the last pick gets grown.
   if (leaving) leaving.next = next;
-  else leaving = { next, age: 0, y: land.group.position.y, scale: land.group.scale.x, turn: land.group.rotation.y };
+  else leaving = { next, age: 0, sink: flight ? VOYAGE_SINK : SINK, y: land.group.position.y, scale: land.group.scale.x, turn: land.group.rotation.y };
+}
+
+// How hard a voyage's flight is swinging the view round: in as the land
+// sinks, out as the next one settles.
+function flightSwing() {
+  if (!flight) return 0;
+  if (leaving) return smoothstep(0, 0.5, leaving.age);
+  if (rise >= RISE) flight = false;
+  return 1 - smoothstep(0.4, RISE, rise);
 }
 
 function arrive(next) {
@@ -235,6 +255,7 @@ function arrive(next) {
     voyage.note(kind);
   };
   scene.add(land.group);
+  if (voyage.active) waBalloon.moorTo(land, { snap: !flying });
   vibe = voyage.vibe(seed, land) ?? (isHome() ? null : landVibe(grown, land.biome));
   // Every land arrives in its own time and weather; picks from the panel don't
   // follow you. (An admin link can set them.)
@@ -790,7 +811,7 @@ setTimeout(() => {
 }, 7000);
 setTimeout(dismissHint, 14000);
 
-const interaction = createInteraction(renderer.domElement, camera, () => (leaving ? [] : land?.clickables ?? []), {
+const interaction = createInteraction(renderer.domElement, camera, () => (leaving ? [] : [...(land?.clickables ?? []), ...waBalloon.clickables]), {
   onClick: (picked, event) => {
     voyage.tapped(event);
     idleSince = performance.now();
@@ -885,7 +906,7 @@ function renderFrame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   // Once the old land has sunk out of sight, grow the next one in its place.
   if (!leaving) rise += dt;
-  else if ((leaving.age += dt) >= SINK) arrive(leaving.next);
+  else if ((leaving.age += dt) >= leaving.sink) arrive(leaving.next);
   const t = clock.elapsedTime;
   updateTimelapse();
   const env = sky.update(updateSkyState(dt), dt, t, camera);
@@ -905,7 +926,7 @@ function renderFrame() {
   // from wherever they were, even halfway up.
   const grow = easeOutBack(THREE.MathUtils.clamp(rise / RISE, 0, 1));
   if (leaving) {
-    const k = Math.min(leaving.age / SINK, 1);
+    const k = Math.min(leaving.age / leaving.sink, 1);
     const fall = k * k;
     land.group.scale.setScalar(Math.max(leaving.scale * (1 - 0.92 * fall), 0.001));
     land.group.position.y = leaving.y - 22 * fall;
@@ -915,6 +936,7 @@ function renderFrame() {
     land.group.position.y = (1 - grow) * -5;
     land.group.rotation.y = (1 - grow) * 0.9;
   }
+  waBalloon.update(t, dt, voyage.gear(), leaving ? 0 : THREE.MathUtils.clamp(rise / RISE, 0, 1), camera.aspect < 0.8);
   // The title follows the land: gone while it's away, back as it rises.
   document.body.classList.toggle('in-flight', Boolean(leaving) || rise < 0);
 
@@ -923,7 +945,11 @@ function renderFrame() {
   updateIntro(dt);
   updateFocus(t);
   frameBetweenHud(dt);
-  controls.autoRotate = !intro && !reducedMotion && !photo.on && nowMs - idleSince > 8000;
+  // The usual slow drift once you've let go, and a voyage's flight swings it
+  // round faster (unless you're holding the view).
+  const swing = flightSwing();
+  controls.autoRotate = !intro && !reducedMotion && !photo.on && (nowMs - idleSince > 8000 || (swing > 0 && idleSince !== Infinity));
+  controls.autoRotateSpeed = 0.35 + swing * 2.6;
   controls.update(dt);
   // Photo mode pans freely; a glide sets its own course.
   if (!photo.on && focus.start < 0) keepNearHome(dt);

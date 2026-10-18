@@ -1935,6 +1935,11 @@ export function createVoyage(api) {
     landOptions(seed) {
       return isHere(seed) ? run.here.want : undefined;
     },
+    // How Wa's balloon looks right now (main.js draws it): a tear for each
+    // heart lost, the burner by the fuel, a lamp for each lantern.
+    gear() {
+      return active && run ? { hull: run.hull, maxHull: MAX.hull, fuel: run.fuel, lanterns: run.lanterns } : null;
+    },
     // The moment and weather of the land for `seed`, on a voyage.
     vibe(seed, land) {
       if (!isHere(seed)) return null;
