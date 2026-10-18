@@ -1464,4 +1464,5 @@ export const ZH = {
   "Two old friends on this island are making up.": "这座岛上，两个老朋友正在和好。",
   "Say it while you still can. I didn’t.": "趁还来得及，把话说出口。我就没有。",
   "You say it out loud at last, and the Hush falls back.": "你终于把它说出了口，寂静退了回去。",
+  "say a word…": "说个英文单词……",
 };

@@ -326,6 +326,15 @@ export function createVoyage(api) {
   hudBottom.insertBefore(read, hint);
   hudBottom.insertBefore(status, hint);
 
+  // On a phone an island's news folds to its first lines once you reach for the
+  // island, and a tap opens it again (only small screens fold it: main.css).
+  read.addEventListener('click', () => {
+    if (read.dataset.kind === 'story') read.classList.toggle('folded');
+  });
+  addEventListener('pointerdown', (event) => {
+    if (event.target instanceof HTMLCanvasElement && read.dataset.kind === 'story') read.classList.add('folded');
+  }, { passive: true });
+
   pill.addEventListener('click', () => (run ? resume() : intro()));
   showPill();
 
@@ -342,7 +351,8 @@ export function createVoyage(api) {
   function enter() {
     active = true;
     document.body.classList.add('voyaging');
-    input.placeholder = t('type a word to fly there');
+    // On a phone the word shares its row with the buttons, so the hint is short.
+    input.placeholder = matchMedia('(max-width: 520px)').matches ? t('say a word…') : t('type a word to fly there');
     flyButton.textContent = t('fly');
     for (const node of [gauges, aboardRow, progress, status]) node.hidden = false;
     showPill();
@@ -1166,6 +1176,8 @@ export function createVoyage(api) {
     const got = gainText(gain);
     if (got) lines.push(got);
     read.replaceChildren(...lines.map((text, i) => el('p', i ? 'read-line' : 'read-story', text)));
+    read.classList.remove('folded');
+    read.dataset.kind = 'story';
     read.hidden = false;
   }
 
@@ -1502,6 +1514,8 @@ export function createVoyage(api) {
     }
     const reading = readWord(text, context());
     read.replaceChildren(...readingLines(reading));
+    read.classList.remove('folded');
+    read.dataset.kind = 'preview';
     read.hidden = false;
   }
 

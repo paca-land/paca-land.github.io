@@ -1226,28 +1226,114 @@ body.photo .voyage-progress {
 }
 
 @media (max-width: 520px) {
-  /* The word and "fly" on top; sound, photo and the book underneath. */
+  /* On a phone the island has to stay big enough to tap, so everything around
+     it gets small. The word, "fly" and the three buttons share one row. */
   body.voyaging .bar {
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
   }
 
-  body.voyaging .bar input {
-    grid-column: 1 / 3;
+  body.voyaging .bar .primary {
+    padding: 0 14px;
   }
 
-  /* The gauges wrap to two rows here: keep them in sight. */
+  body.voyaging .bar .icon {
+    width: 36px;
+  }
+
+  /* Keep the gauges in sight. */
   .voyage-card,
   .voyage-book {
     max-height: 50vh;
   }
 
-  /* Room for the land: the welcome goes and the island's name shrinks. */
+  /* Room for the land: the welcome goes, the island's name shrinks, and the
+     kind of island and its weather share a line. */
   body.voyaging .welcome {
     display: none;
   }
 
   body.voyaging #land-name {
     font-size: 1.7rem;
+  }
+
+  body.voyaging #land-meta:not([hidden]),
+  body.voyaging #conditions:not([hidden]) {
+    display: inline-block;
+    margin: 3px 4px 0;
+  }
+
+  /* Smaller gauges, so they fit on one row. */
+  .voyage-gauges {
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .voyage-gauges .gauge {
+    padding: 2px 7px;
+    font-size: 0.75rem;
+  }
+
+  .voyage-aboard {
+    margin-top: 4px;
+  }
+}
+
+/* Phones either way up. */
+@media (max-width: 520px), (max-height: 500px) and (orientation: landscape) {
+  /* Tighter choices, so a card leaves some island in view. */
+  .voyage-options {
+    gap: 4px;
+  }
+
+  .voyage-option {
+    padding: 6px 10px;
+    gap: 1px;
+  }
+
+  /* Only the newest toast. */
+  body.voyaging .toast:nth-last-child(n + 2) {
+    display: none;
+  }
+
+  /* While a card asks something, what the last island said can wait. */
+  .voyage-card:not([hidden]) ~ .voyage-read,
+  .voyage-book:not([hidden]) ~ .voyage-read {
+    display: none;
+  }
+
+  /* An island's news folds to its first two lines once you reach for the
+     island (voyage.js); tap it to read the rest. */
+  .voyage-read.folded {
+    position: relative;
+    padding-right: 32px;
+    cursor: pointer;
+  }
+
+  .voyage-read.folded p:not(:first-child) {
+    display: none;
+  }
+
+  .voyage-read.folded p:first-child {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .voyage-read.folded::after {
+    content: '▾';
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+  }
+}
+
+/* The narrowest phones: the photo button gives the word its room. */
+@media (max-width: 340px) {
+  body.voyaging #photo {
+    display: none;
   }
 }
 
@@ -1260,6 +1346,24 @@ body.photo .voyage-progress {
 
   .toast:nth-last-child(n + 3) {
     display: none;
+  }
+
+  /* Gauges and passengers on one line, under a one-line title. */
+  body.voyaging #land-meta:not([hidden]),
+  body.voyaging #conditions:not([hidden]) {
+    display: inline-block;
+    margin: 2px 4px 0;
+  }
+
+  body.voyaging .voyage-gauges:not([hidden]) {
+    display: inline-flex;
+    margin: 4px 3px 0;
+    gap: 4px;
+  }
+
+  body.voyaging .voyage-gauges .gauge {
+    padding: 2px 7px;
+    font-size: 0.72rem;
   }
 
   .voyage-card,
