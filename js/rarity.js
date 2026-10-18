@@ -40,7 +40,7 @@ const TIERS = [['legendary', 3.153], ['epic', 2.865], ['rare', 2.4], ['uncommon'
 
 // For saying why: "castle · 9% of desert mesas".
 const PLURAL = { meadow: 'meadows', highlands: 'highlands', autumn: 'autumn woods', desert: 'desert mesas', snowfield: 'snowfields', blossom: 'blossom vales', dream: 'dreamlands' };
-const LANDMARK_NAMES = { stones: 'standing stones', wizard: "wizard's tower", none: 'no landmark' };
+const LANDMARK_NAMES = { stones: 'standing stones', wizard: 'wizard’s tower', none: 'no landmark' };
 const WATER_NAMES = { falls: 'a waterfall', lake: 'a lake, no waterfall', dry: 'no lake' };
 const percent = (p) => (p < 0.01 ? t('under 1%') : p < 0.1 ? `${+(p * 100).toFixed(1)}%` : `${Math.round(p * 100)}%`);
 

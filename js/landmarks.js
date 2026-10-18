@@ -355,6 +355,91 @@ const LANDMARKS = {
     },
   },
 
+  // The Harbour, where every voyage starts and the town you grew up in (voyage.js
+  // asks for it; no biome lists it, so ordinary lands never roll it): painted
+  // houses in a horseshoe round a square, open toward the quay, a clock tower at
+  // the back, bunting between the roofs, a market stall and lamps.
+  town: {
+    find: { radius: 3.6, rn: [0, 0.4], slope: 0.3, wet: 2.4, prefer: 'flat' },
+    build(kit, { r }, place) {
+      const lights = [], smoke = [], eaves = [];
+      const PAINT = ['#f3d9c6', '#d9e7d0', '#cfe0ee', '#f1e3a8', '#e9cfe0', '#efe6d2'];
+      // Round the horseshoe from one side of the gap (toward the door, +z) to the other.
+      const around = (i, n) => Math.PI / 2 + 0.75 + (i / (n - 1)) * (TAU - 1.5);
+      const spot = (a, d) => {
+        const x = Math.cos(a) * d, z = Math.sin(a) * d, g = place.ground(x, z), ry = Math.atan2(-x, -z);
+        return { x, z, g, ry, at: (lx, ly, lz) => [x + lx * Math.cos(ry) + lz * Math.sin(ry), g + ly, z - lx * Math.sin(ry) + lz * Math.cos(ry)] };
+      };
+      // The square's own houses, tall and painted, with the clock tower at the back.
+      for (let i = 0; i < 7; i++) {
+        const { x, z, g, ry, at } = spot(around(i, 7), i === 3 ? 2.05 : r.range(1.95, 2.2));
+        if (i === 3) {
+          kit.add('stone', box(0.78, 0.7, 0.78), at(0, -0.66, 0), { ry });
+          kit.add('stone', box(0.7, 1.85, 0.7), at(0, 0, 0), { ry });
+          kit.add('wood', box(0.62, 0.52, 0.62), at(0, 1.85, 0), { ry });
+          kit.add('roofSlate', cone(0.6, 0.7, 4), at(0, 2.37, 0), { ry: ry + Math.PI / 4 });
+          kit.add('lamp', cyl(0.21, 0.21, 0.04, 12), at(0, 2.11, 0.33), { rx: Math.PI / 2, ry });
+          kit.add('darkWood', box(0.025, 0.15, 0.02), at(0, 2.11, 0.36), { ry });
+          kit.add('darkWood', box(0.11, 0.025, 0.02), at(0.05, 2.11, 0.36), { ry });
+          kit.add('darkWood', box(0.24, 0.42, 0.04), at(0, 0, 0.36), { ry });
+          eaves.push(at(0, 1.85, 0.38));
+          continue;
+        }
+        const tall = i % 2 === 0;
+        const w = 0.95, depth = 0.75, h = tall ? 1.15 : 0.72;
+        const home = house(kit, r, [x, g, z], ry, { w, d: depth, h, walls: r.pick(PAINT), roof: r.pick(ROOFS), chimney: r.chance(0.6) });
+        lights.push(home.window);
+        if (home.chimney) smoke.push(home.chimney);
+        if (tall) {
+          kit.add('glow', box(0.16, 0.15, 0.04), at(-w * 0.2, h * 0.68, depth / 2 + 0.01), { ry });
+          lights.push(at(-w * 0.2, h * 0.68, depth / 2 + 0.2));
+        }
+        eaves.push(at(0, h, depth / 2 + 0.12));
+      }
+      // Cottages behind them, out toward the edge of town.
+      for (let i = 0; i < 6; i++) {
+        const { x, z, g, ry } = spot(around(i, 6) + r.range(-0.12, 0.12), r.range(3.0, 3.3));
+        const home = house(kit, r, [x, g, z], ry, { w: 0.78, d: 0.62, h: 0.58, walls: r.pick(PAINT), roof: r.pick(ROOFS) });
+        lights.push(home.window);
+        if (home.chimney) smoke.push(home.chimney);
+      }
+      // Bunting from roof to roof round the square, sagging a little.
+      const FLAGS = ['#e05a4f', '#f2c14e', '#4f8fe0', '#5cb85c', '#f5f0e6'];
+      let f = 0;
+      for (let i = 0; i + 1 < eaves.length; i++) {
+        const [ax, ay, az] = eaves[i], [bx, by, bz] = eaves[i + 1];
+        const len = Math.hypot(bx - ax, bz - az), count = Math.max(3, Math.floor(len / 0.17)), yaw = Math.atan2(bx - ax, bz - az);
+        for (let k = 1; k < count; k++) {
+          const u = k / count;
+          const y = ay + (by - ay) * u - Math.sin(u * Math.PI) * 0.18;
+          kit.add(FLAGS[f++ % FLAGS.length], cone(0.06, 0.12, 3), [ax + (bx - ax) * u, y, az + (bz - az) * u], { rx: Math.PI, ry: yaw, s: [1, 1, 0.3] });
+        }
+      }
+      // The square: a well, a market stall, and three lamps.
+      const g0 = place.ground(0, 0);
+      kit.add('stone', cyl(0.24, 0.27, 0.32, 10), [0, g0 - 0.05, -0.2]);
+      kit.add('darkWood', box(0.04, 0.55, 0.04), [-0.2, g0, -0.2]);
+      kit.add('darkWood', box(0.04, 0.55, 0.04), [0.2, g0, -0.2]);
+      kit.add('roofRed', gable(0.55, 0.22, 0.45), [0, g0 + 0.55, -0.2]);
+      const gs = place.ground(0.75, 0.35);
+      kit.add('wood', box(0.62, 0.3, 0.34), [0.75, gs, 0.35], { ry: -0.4 });
+      for (const [sx, sz] of [[-0.28, -0.14], [0.28, -0.14], [-0.28, 0.14], [0.28, 0.14]]) {
+        kit.add('darkWood', box(0.03, 0.62, 0.03), [0.75 + sx * Math.cos(0.4) - sz * Math.sin(0.4), gs, 0.35 + sx * Math.sin(0.4) + sz * Math.cos(0.4)]);
+      }
+      kit.add('#d9534f', gable(0.74, 0.16, 0.48), [0.75, gs + 0.62, 0.35], { ry: -0.4 });
+      for (const [k, color] of ['#e8a33a', '#c94a3a', '#7fb04a'].entries()) {
+        kit.add(color, ball(0.07), [0.6 + k * 0.14 * Math.cos(0.4), gs + 0.36, 0.42 + k * 0.14 * Math.sin(0.4)]);
+      }
+      for (const [lx, lz] of [[-0.8, 0.7], [0.8, -0.6], [-0.9, -0.5]]) {
+        const gl = place.ground(lx, lz);
+        kit.add('darkWood', cyl(0.025, 0.03, 0.62, 5), [lx, gl, lz]);
+        kit.add('lamp', box(0.1, 0.13, 0.1), [lx, gl + 0.62, lz]);
+        lights.push([lx, gl + 0.68, lz]);
+      }
+      return { radius: 3.6, door: [0, 3.0], lights, smoke, pointLight: { at: [0, g0 + 0.9, 0], color: '#ffd9a0', power: 2.2 } };
+    },
+  },
+
   campsite: {
     find: { radius: 2.0, rn: [0.15, 0.7], slope: 0.25, wet: 1.6, prefer: 'flat' },
     build(kit, { r, mats }, place) {

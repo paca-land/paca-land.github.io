@@ -62,7 +62,10 @@ const THANKS = {
 const LANDMARK_LABEL = {
   cabin: t('a cabin'), castle: t('a castle'), windmill: t('a windmill'), lighthouse: t('a lighthouse'), wizard: t('a wizard’s tower'), village: t('a village'),
   campsite: t('a campsite'), ruins: t('ruins'), stones: t('standing stones'), shrine: t('a shrine'),
+  town: t('the town'),
 };
+// The Harbour, where every voyage starts: your home town, the same every time.
+const HOME = { biome: 'meadow', landmark: 'town', lake: true, balloon: false };
 const WEATHER_LABEL = { clear: t('clear skies'), cloudy: t('clouds'), rain: t('rain'), snow: t('snow'), mist: t('mist'), storm: t('a storm') };
 const SHRUG = t('That word means nothing special to the sky, so it made up an island of its own.');
 // Some places sound far off and some close by: miles added to a hop, by meaning.
@@ -94,6 +97,17 @@ const friend = (book, id) => Boolean(book.arcs?.[id]?.done);
 // `g` is the voyage as tales see it (talesView below). `first`: the first island
 // of this kind on this voyage, where someone remembers Wa; `again`: a later one.
 const EVENTS = {
+  // Home, before you set off: your mother, and the quay.
+  town: (r, book) => ({
+    title: t('home'),
+    text: book.found
+      ? t('The quay is busy this morning. Wa waves from her window, and your mother is waiting by the balloon with a basket, the way she does every time now.')
+      : t('Fishing boats knock against the quay and gulls argue on the roofs. Your mother is waiting by the balloon with a basket. She doesn’t say a word about Wa. She just checks your scarf, twice.'),
+    options: [
+      { label: t('take your mother’s basket'), gain: { food: 3 } },
+      { label: t('fill the burner at the quay'), gain: { fuel: 3 } },
+    ],
+  }),
   cabin: (r, book, g, { first }) => ({
     title: t('a hermit’s cabin'),
     text: first ? t('The hermit looks at your balloon for a long time. “That’s Wa’s,” he says. “I used to fly in it. Come in.”')
@@ -295,6 +309,9 @@ export function createVoyage(api) {
   const input = document.querySelector('#seed-input');
   const flyButton = document.querySelector('#visit .primary');
   const freePlaceholder = input.placeholder;
+  // The time & weather button: on a voyage its panel only sets the quality.
+  const tweak = document.querySelector('#tweak');
+  const freeTweak = [tweak.title, tweak.getAttribute('aria-label')];
 
   const pill = el('button', 'sail-pill');
   pill.type = 'button';
@@ -354,6 +371,8 @@ export function createVoyage(api) {
     // On a phone the word shares its row with the buttons, so the hint is short.
     input.placeholder = matchMedia('(max-width: 520px)').matches ? t('say a word…') : t('type a word to fly there');
     flyButton.textContent = t('fly');
+    tweak.title = t('quality');
+    tweak.setAttribute('aria-label', t('quality'));
     for (const node of [gauges, aboardRow, progress, status]) node.hidden = false;
     showPill();
     hud();
@@ -370,6 +389,8 @@ export function createVoyage(api) {
     document.body.classList.remove('voyaging');
     input.placeholder = freePlaceholder;
     flyButton.textContent = t('visit');
+    [tweak.title] = freeTweak;
+    tweak.setAttribute('aria-label', freeTweak[1]);
     for (const node of [gauges, aboardRow, progress, status, read, card, bookPanel]) node.hidden = true;
     hideTip();
     showPill();
@@ -424,7 +445,7 @@ export function createVoyage(api) {
     field.focus();
   }
 
-  // What people call you: the name you signed in the harbor master's logbook, or
+  // What people call you: the name you signed in the harbour master's logbook, or
   // Ca, which is what Wa called you.
   const you = () => book.name || STORY.nickname;
 
@@ -461,17 +482,17 @@ export function createVoyage(api) {
     book.pages.last ??= Date.now();
     saveBook();
     enter();
-    // One thing for the road, from the harbor master's chest.
+    // One thing for the road, from the harbour master's chest.
     const chest = Object.keys(KEEPSAKES).sort(() => Math.random() - 0.5).slice(0, 3);
     openCard({
-      title: t('the harbor master'),
+      title: t('the harbour master'),
       text: [STORY.harbor(book.found, you()), omenLine()],
       options: chest.map((id) => ({
         label: t('the {name} {icon}', { name: KEEPSAKES[id].name, icon: KEEPSAKES[id].icon }),
         note: KEEPSAKES[id].line,
         act: () => {
           giveKeepsake(id);
-          depart(readWord('harbor'), { first: true });
+          depart(readWord('harbour'), { first: true });
         },
       })),
     });
@@ -981,6 +1002,10 @@ export function createVoyage(api) {
       rules: heard.rules, secret: heard.secret, wonder: heard.wonder, echoOf: heard.echoOf,
       effect: e, answer: answer?.id ?? null, arrived: false,
     };
+    if (first) {
+      Object.assign(run.here.want, HOME);
+      run.here.weather = 'clear';
+    }
     run.stay = stayHours() + (heard.echoOf ? 1 : 0);
     run.waited = false;
     run.met = [];
@@ -1169,7 +1194,7 @@ export function createVoyage(api) {
     const said = run.words.length === 1 ? STORY.setOff
       : here.said === here.word ? t('The sky heard “{word}”.', { word: here.word }) : t('You said “{said}”, but the sky heard “{word}”.', { said: here.said, word: here.word });
     // What the island is like: the finale and echoes have their own words.
-    const first = finale ? t('This is the last island. Beyond it there’s only sky.')
+    const first = run.words.length === 1 ? '' : finale ? t('This is the last island. Beyond it there’s only sky.')
       : here.echoOf ? t('An echo of “{word}”: you’re back on an island you’ve seen before, with an extra hour to spend.', { word: here.echoOf })
         : here.meanings.length ? meaning(here.meanings[0]).line : here.secret ? '' : SHRUG;
     const lines = [`${said} ${first}`.trim()];
@@ -1752,7 +1777,7 @@ export function createVoyage(api) {
       parts.push(el('h3', '', t('your voyages')));
       for (const v of book.voyages.slice(0, 5)) {
         const p = el('p', 'book-entry', `${v.won ? '🌅' : '☁️'} ${miles(v.leagues)} · 🪙 ${v.glimmer}${v.omen ? ` · ${OMENS[v.omen]?.name}` : ''}${v.title ? ` · ${t(v.title)}` : ''} · `);
-        p.append(el('span', 'book-words', v.words.slice(1).join(' → ') || t('still at the harbor')));
+        p.append(el('span', 'book-words', v.words.slice(1).join(' → ') || t('still at the harbour')));
         parts.push(p);
       }
     }

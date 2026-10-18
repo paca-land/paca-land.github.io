@@ -26,7 +26,7 @@ export const SECTIONS = [
     ['landmark:ruins', '🏛️', 'ruins', 'old columns, often in the desert'],
     ['landmark:lighthouse', '🗼', 'lighthouse', 'it needs a coast to stand on'],
     ['landmark:stones', '🗿', 'standing stones', 'a ring of old stones'],
-    ['landmark:wizard', '🧙', "wizard's tower", 'look in dreamlands'],
+    ['landmark:wizard', '🧙', 'wizard’s tower', 'look in dreamlands'],
     ['landmark:shrine', '⛩️', 'shrine', 'look in blossom vales'],
   ]],
   ['sky', [

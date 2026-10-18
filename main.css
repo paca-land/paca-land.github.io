@@ -1214,11 +1214,12 @@ body.is-day .hud-top .tier-epic {
 }
 
 /* On a voyage, time and weather aren't yours to pick, links don't apply, and
-   the words are yours to choose (no dice). */
+   the words are yours to choose (no dice). The panel keeps only its quality row,
+   so graphics can still be tuned mid-voyage. */
 body.voyaging #dice,
 body.voyaging #share,
-body.voyaging #tweak,
-body.voyaging #panel,
+body.voyaging #panel .time-row,
+body.voyaging #weather-chips,
 body.voyaging #journal,
 body.voyaging #hint,
 body.photo .voyage-progress {
@@ -1330,8 +1331,9 @@ body.photo .voyage-progress {
   }
 }
 
-/* The narrowest phones: the photo button gives the word its room. */
-@media (max-width: 340px) {
+/* Phones on a voyage: the photo button gives the word its room, and the
+   quality button takes its place. */
+@media (max-width: 520px) {
   body.voyaging #photo {
     display: none;
   }

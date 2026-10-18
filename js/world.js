@@ -1345,9 +1345,9 @@ function groundSpots(top, r) {
   return r.shuffle(spots);
 }
 
-function placeFlora(top, shape, biome, r, blocked) {
+function placeFlora(top, shape, biome, r, blocked, count = biome.flora.count) {
   const noise = createNoise2D(r);
-  const { count, groves } = biome.flora;
+  const { groves } = biome.flora;
   const placed = [];
   for (const v of groundSpots(top, r)) {
     if (placed.length >= count) break;
@@ -1735,7 +1735,8 @@ export function generateLand(seed, want = {}) {
       || (fields && fields.blocked(x, z)));
 
   const fr = makeRandom(seed, 'flora');
-  const trees = placeFlora(top, shape, biome, fr, blocked);
+  // A town island (the Harbour) is mostly town: fewer trees, only there.
+  const trees = placeFlora(top, shape, biome, fr, blocked, landmark?.type === 'town' ? Math.round(biome.flora.count * 0.4) : undefined);
   bakeOcclusion(top, shape, trees, landmark?.spot);
 
   const overlay = (x, y, z) => fields?.paint(x, z) ?? (path && path.distTo(x, z) < path.width ? biome.path : null);
@@ -1747,7 +1748,7 @@ export function generateLand(seed, want = {}) {
   add(landmark);
   const lanterns = path && buildLanterns(ctx, path);
   add(lanterns);
-  if (shape.lake && !biome.water.frozen && !biome.water.lava && xr.chance(0.6)) add(buildDock(ctx, xr, landmark?.door ?? { x: 0, z: 0 }));
+  if (shape.lake && !biome.water.frozen && !biome.water.lava && (xr.chance(0.6) || landmark?.type === 'town')) add(buildDock(ctx, xr, landmark?.door ?? { x: 0, z: 0 }));
   if (landmark) add(buildProps(ctx, xr, landmark, trees));
   add(buildLightPools([...(landmark?.lights ?? []), ...(lanterns?.lights ?? [])], shape));
 

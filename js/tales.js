@@ -12,7 +12,7 @@ import { t, lang } from './i18n.js';
 
 // --- Wa ---------------------------------------------------------------------------
 // You are Wa's grandchild. She called you Ca when you were three, and her
-// pages still do; at the harbor you sign the logbook with the name you go by now.
+// pages still do; at the harbour you sign the logbook with the name you go by now.
 // Twenty years ago Wa flew for the Edge of the Sky, the morning after a falling-out
 // with your mother, and neither of them said a word to the other again. The Hush
 // that follows her is made of words nobody said, and hers is the one at her heels:
@@ -35,22 +35,22 @@ export const STORY = {
     ]),
     t('Inside the cover, in case you’d forgotten, she wrote down how it works: “The Edge is {goal} miles off. Three gates stand in the way, and each one opens only for the right word. The last one stands guard at the Edge. Every letter you say burns one fuel and carries you about a mile, give or take the wind. Each island gives you a few hours, and every tree, pond or house you stop at takes one. Mind the fuel, the food and the balloon’s hearts. Lose the last heart and you drift home.”', { goal }),
   ],
-  // The first time at the harbor: who's flying Wa's balloon?
+  // The first time at the harbour: who's flying Wa's balloon?
   logbook: {
-    title: t('the harbor master'),
-    text: t('The harbor master runs a thumb down his logbook. “Wa’s balloon. Wa’s book.” He looks you up and down. “And who’s flying it?”'),
+    title: t('the harbour master'),
+    text: t('The harbour master runs a thumb down his logbook. “Wa’s balloon. Wa’s book.” He looks you up and down. “And who’s flying it?”'),
     placeholder: t('your name'),
     sign: t('sign the logbook'),
     plain: t('just put “Ca”'),
   },
   harbor: (found, name) => (found
-    ? t('“Off again, {name}?” says the harbor master. “Wa dropped off a few more things for you.” He heaves open her old sea chest. “Take one.”', { name })
+    ? t('“Off again, {name}?” says the harbour master. “Wa dropped off a few more things for you.” He heaves open her old sea chest. “Take one.”', { name })
     : t('“Right then, {name}.” He writes it in, slowly. “Wa left a chest with me, for whoever came after her. Go on, take one thing.”', { name })),
-  setOff: t('Wa’s balloon tugs at its ropes in the harbor, ready to go.'),
+  setOff: t('Harbour, where you grew up: crooked houses round a cobbled square, bunting from every roof, and Wa’s balloon tugging at its ropes by the quay.'),
   // Her pages, kept in the book once found.
   pages: {
     last: () => t('“Come and find me, Ca. Bring words.”'),
-    wall: () => t('“The wall wanted a word, and it was fussy about it. Something came through after me. Where it passes, everything goes quiet: birds, wind, words. I call it the Hush. It doesn’t like the sun, and it doesn’t like singing. I think it has been following me since the harbor. Don’t stop anywhere for long.”'),
+    wall: () => t('“The wall wanted a word, and it was fussy about it. Something came through after me. Where it passes, everything goes quiet: birds, wind, words. I call it the Hush. It doesn’t like the sun, and it doesn’t like singing. I think it has been following me since the harbour. Don’t stop anywhere for long.”'),
     gate: () => PAGE_GATE,
     camp: (word) => t('“Almost there. The Edge won’t open for just any word. Say one of mine. Try ‘{word}’.”', { word }),
   },
@@ -119,7 +119,7 @@ export const WA_NOTES = {
   jungle: t('It rains all the time. The fishing is good.'),
   moor: t('Heather burns well. Bring a scarf.'),
   sweet: t('Sweets count as food. Don’t tell your mother.'),
-  crown: t('The queen gets bored. Bring her odd letters, she pays well.'),
+  crown: t('The queen gets bored. Bring her odd letters: she pays well.'),
   sea: t('Keepers always have a spare lantern. Never say no to one.'),
   home: t('Cabins are good for a night’s sleep. Hermits snore.'),
   town: t('Markets sell everything, keepsakes too. Haggle.'),
@@ -141,7 +141,7 @@ export const WA_NOTES = {
   music: t('The Hush hates singing. So I sang.'),
   unsaid: t('Say it while you still can. I didn’t.'),
   friend: t('Say hello and someone comes along. That’s how I met your grandfather.'),
-  question: t('Ask the sky something. It always answers, never how you’d expect.'),
+  question: t('Ask the sky something. It always answers, but never the way you’d expect.'),
   fast: t('Fast words go further. Hold on to your hat.'),
   small: t('Tiny things weigh nothing. I once crossed a whole sea of cloud on ‘crumb’.'),
   gift: t('Someone leaves presents up here. I never found out who.'),
@@ -222,7 +222,7 @@ export const KEEPSAKES = {
   hourglass: { icon: '⏳', name: t('hourglass'), line: t('An extra hour on every island.') },
   tinderbox: { icon: '🪵', name: t('tinderbox'), line: t('Every tree gives an extra fuel.') },
   net: { icon: '🥅', name: t('fishing net'), line: t('Every fish you catch gives two more food.') },
-  shell: { icon: '🐚', name: t('singing shell'), line: t('Every sea word you fly to (harbor, wave, anchor…) mends a heart when you land.') },
+  shell: { icon: '🐚', name: t('singing shell'), line: t('Every sea word you fly to (harbour, wave, anchor…) mends a heart when you land.') },
   inkwell: { icon: '🖋️', name: t('inkwell'), line: t('Each kind of word you use for the first time this voyage pays 2 coins.') },
   coin: { icon: '🍀', name: t('lucky clover'), line: t('Every gamble goes your way (ruins, a falling star, a ship of fog…).') },
 };

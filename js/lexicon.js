@@ -152,7 +152,7 @@ const MEANINGS_SPEC = [
   ['noon', 'noon words arrive at midday', 'The sun stands right overhead.', { hour: 12.5 },
     'noon midday lunch zenith siesta',
     'midday'],
-  ['golden', 'evening words arrive at golden hour', 'Everything glows gold and long-shadowed.', { hour: 17.5 },
+  ['golden', 'evening words arrive at golden hour', 'Everything glows gold, and the shadows stretch long.', { hour: 17.5 },
     'golden sunset sundown evening twilight dusk afterglow teatime glow',
     'sunset evening twilight'],
   ['night', 'night words arrive after dark', 'You arrive in the dark.', { hour: 23 },
