@@ -1373,3 +1373,20 @@ body.photo .voyage-progress {
     max-height: 58vh;
   }
 }
+
+/* The hedge maze's ball game: a line of instructions and a close button. */
+.maze-ui {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; z-index: 30;
+  padding: 8px 10px 8px 16px; border-radius: 999px;
+  background: rgba(20, 24, 40, 0.72); color: #fff; font-size: 14px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.maze-ui[hidden] { display: none; }
+.maze-ui p { margin: 0; }
+.maze-close {
+  width: 30px; height: 30px; border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16); color: #fff; font-size: 14px; cursor: pointer;
+}
+/* The island's title steps aside while the maze game plays. */
+body.maze-playing .hud-top { opacity: 0; pointer-events: none; transition: opacity 0.4s; }

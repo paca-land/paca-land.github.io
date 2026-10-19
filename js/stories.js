@@ -667,4 +667,215 @@ export const ARCS = {
       },
     ],
   },
+
+  inn: {
+    icon: '🍺', name: t('Mrs Hobb of the inn'),
+    perk: t('From now on, a room at the inn costs nothing.'),
+    chapters: [
+      {
+        ask: t('ask the innkeeper about Wa’s room'),
+        tell: () => ({
+          title: t('the room at the top of the stairs'),
+          text: t('The innkeeper, Mrs Hobb, takes you up four flights of creaking stairs. Wa’s room is just as she left it: a coat on the hook, a cup on the sill, and the guest book open on the bed at her last entry: Back by Sunday. W.'),
+          options: [
+            { label: t('read the older entries'), act: (g) => t('Every visit, the same three words: Back by Sunday. Mrs Hobb brings you a bowl of soup and says nothing at all, which is kind of her. {got}', { got: g.give({ food: 2 }) }) },
+            { label: t('try on the coat'), act: (g) => t('It’s far too big, and it smells of burner smoke and peppermints. You hang it back up. Mrs Hobb pretends not to see you wipe your eyes, and presses two coins into your hand for the road. {got}', { got: g.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help Mrs Hobb at the inn'),
+        tell: () => ({
+          title: t('a full house'),
+          text: t('Every table at the inn is full, and Mrs Hobb is three pairs of hands short. “Wa used to help when it got like this,” she says, handing you an apron. “She was terrible at it.”'),
+          options: [
+            { label: t('carry the soup'), act: (g) => t('You carry soup to every table and drop only one bowl. The regulars cheer anyway, and tip you. {got}', { got: g.give({ glimmer: 3 }) }) },
+            { label: t('sing for the room'), act: (g) => t('You sing the only song you know all the words to. Halfway through, the whole inn joins in. Mrs Hobb feeds you for free. {got}', { got: g.give({ glimmer: 1, food: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('sign the inn’s guest book'),
+        tell: (g) => ({
+          title: t('the guest book'),
+          text: g.found
+            ? t('Mrs Hobb opens Wa’s guest book at a clean page. Under Back by Sunday, in fresh ink, Wa has written: Back. Sorry it took so long. W. “She came in last week,” says Mrs Hobb, “and cried all over my clean floor.”')
+            : t('Mrs Hobb brings down Wa’s guest book and opens it at the clean page under her last entry. “Your turn,” she says. “Write something she’ll read when she comes back.”'),
+          options: g.found ? [
+            { label: t('write your name under hers'), act: (g2) => t('You sign under Wa’s name. Mrs Hobb says the room at the top of the stairs is yours now too, whenever you want it, for nothing. {got}', { got: g2.give({ glimmer: 2 }) }) },
+            { label: t('ask what else Wa said'), act: (g2) => t('“That she’d said sorry to your mother on the quay, and it was easier than she’d spent twenty years thinking.” Mrs Hobb pours you a cup of tea. “The room’s yours whenever you like. Free.” {got}', { got: g2.give({ food: 2 }) }) },
+          ] : [
+            { label: t('write ‘Coming to get you’'), act: (g2) => t('You write it in your best handwriting, and Mrs Hobb blots it for you. “The room’s yours whenever you want it,” she says. “Free. Wa would have my head otherwise.” {got}', { got: g2.give({ glimmer: 2 }) }) },
+            { label: t('write ‘Back by Sunday’'), act: (g2) => t('You write the same three words Wa always did. Mrs Hobb laughs until she has to sit down. “The room’s yours whenever you want it. Free.” {got}', { got: g2.give({ food: 2 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  fortune: {
+    icon: '🔮', name: t('Madame Vell'),
+    perk: t('From now on, changing your luck costs 3 coins, not 5.'),
+    chapters: [
+      {
+        ask: t('let Madame Vell read your palm'),
+        tell: () => ({
+          title: t('your palm'),
+          text: t('Madame Vell takes your hand and studies it for a long time. “A long road,” she says, “and a short word at the end of it. Nearly the shortest word there is.”'),
+          options: [
+            { label: t('ask what word'), act: (g) => t('“If I told you, you wouldn’t need to go,” she says. She charges you nothing, which she says is very unusual, and gives you change anyway. {got}', { got: g.give({ glimmer: 2 }) }) },
+            { label: t('ask about Wa'), act: (g) => t('“Wa sat right there,” she says, “and asked me the same thing every time: would she and your mother ever speak again. I always told her the truth: only if somebody starts.” She gives you her spare lamp oil. {got}', { got: g.give({ fuel: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('ask Madame Vell about her cards'),
+        tell: () => ({
+          title: t('the cards'),
+          text: t('Madame Vell lays out three cards: a balloon, a door, and a card that’s blank on both sides. “I’ve drawn that blank one for every traveller for forty years,” she says. “Here’s a secret: I can’t see the future at all. I just listen very carefully.”'),
+          options: [
+            { label: t('ask what the blank card means'), act: (g) => t('“It means you haven’t decided yet,” she says. “It’s the only honest card in the pack.” {got}', { got: g.give({ glimmer: 2 }) }) },
+            { label: t('promise to keep her secret'), act: (g) => t('She winks. “Then here’s something true: you’ll find her. Not because I see it. Because you’re the sort who keeps going.” She fills your burner from her lamp. {got}', { got: g.give({ fuel: 3 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('let Madame Vell tell your fortune properly'),
+        tell: (g) => ({
+          title: t('a proper fortune'),
+          text: g.found
+            ? t('This time the blank card has a drawing on it, in a shaky hand: a little balloon on the quay at Harbour, and two people waving. “Wa came by,” says Madame Vell. “She said to tell you she owes you a cup of tea.”')
+            : t('This time Madame Vell turns over the blank card, and someone has drawn on it in a shaky hand: a little balloon, going home. “Wa drew that, the last time she came,” she says. “She said if her grandchild ever turned up, I should give it to them.”'),
+          options: [
+            { label: t('keep the card'), act: (g2) => t('You tuck it into Wa’s book. Madame Vell says changing your luck will cost you less from now on: family rates. {got}', { got: g2.give({ glimmer: 3 }) }) },
+            { label: t('leave it for the next traveller'), act: (g2) => t('“Good,” she says. “Someone else will need a blank card.” Changing your luck will cost you less from now on, she says: family rates. {got}', { got: g2.give({ food: 2 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  shipwright: {
+    icon: '🪚', name: t('Bosun Tarrant'),
+    perk: t('From now on, a bigger burner costs 5 coins, not 8.'),
+    chapters: [
+      {
+        ask: t('ask Bosun Tarrant about the basket'),
+        tell: () => ({
+          title: t('the bottom of the basket'),
+          text: t('Bosun Tarrant tips the basket over and shows you its bottom. Carved into the wicker, small and neat: W. Under it, newer and messier, a lopsided heart and the letter M. “Your mother carved that,” he says. “She was six. Wa never let me sand it off.”'),
+          options: [
+            { label: t('trace the letters'), act: (g) => t('The heart is very lopsided. Your mother never could draw. The Bosun gives you a tin of tar for the seams, which also burns. {got}', { got: g.give({ fuel: 2 }) }) },
+            { label: t('ask him to leave it'), act: (g) => t('“Wasn’t going to touch it,” he says gruffly, and patches a seam for nothing. {got}', { got: g.give({ hull: 1 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help Bosun Tarrant in the yard'),
+        tell: () => ({
+          title: t('the new rail'),
+          text: t('The Bosun is fitting a new rail to a basket and needs someone to hold the other end. “Wa held that end once,” he says. “Talked the whole time. About your mother, mostly. How she’d never say sorry first.”'),
+          options: [
+            { label: t('ask what else Wa said'), act: (g) => t('“That she was just as bad,” he says. “Worse. Hold it steady, now.” He pays you in offcuts for the burner. {got}', { got: g.give({ fuel: 3 }) }) },
+            { label: t('hold it steady and say nothing'), act: (g) => t('You hold it steady. When it’s done, he shakes your hand as if you were one of his crew, and pays you like one. {got}', { got: g.give({ glimmer: 3 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('see what Bosun Tarrant has made'),
+        tell: () => ({
+          title: t('your mark'),
+          text: t('The Bosun hands you a carving knife and points to the bottom of Wa’s basket, beside the W and the lopsided heart. “Room for one more,” he says.'),
+          options: [
+            { label: t('carve your initial'), act: (g) => t('You carve it slowly, next to theirs: three of you in the bottom of one basket. The Bosun says bigger burners are cheaper for family from now on. {got}', { got: g.give({ glimmer: 2 }) }) },
+            { label: t('carve a balloon'), act: (g) => t('You carve a little balloon with three people in it. The Bosun clears his throat a great deal, and says bigger burners are cheaper for family from now on. {got}', { got: g.give({ fuel: 3 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  bathhouse: {
+    icon: '♨️', name: t('the bath-keeper'),
+    perk: t('From now on, a long soak at the bathhouse mends three hearts, not two.'),
+    chapters: [
+      {
+        ask: t('ask the bath-keeper about Wa'),
+        tell: () => ({
+          title: t('the red scarf'),
+          text: t('The bath-keeper fetches a scarf from a hook behind the door: red wool, darned in a dozen places. “Wa left it here to dry,” she says, “and never came back for it. I’ve kept it warm.”'),
+          options: [
+            { label: t('wrap it round your neck'), act: (g) => t('It still smells of the hot pool, and you feel warmer at once. {got}', { got: g.give({ hull: 1 }) }) },
+            { label: t('ask her to keep it for Wa'), act: (g) => t('“I will,” she says, and hangs it back on its hook, very carefully. She gives you a bun from the boiler room, for the road. {got}', { got: g.give({ food: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help the bath-keeper with the boilers'),
+        tell: () => ({
+          title: t('the sulking boiler'),
+          text: t('The boilers that heat the pool are old and temperamental, and one of them is sulking. “Wa could always get it going,” says the bath-keeper. “She’d sing at it.”'),
+          options: [
+            { label: t('sing at the boiler'), act: (g) => t('You sing at it. It coughs, rattles, and roars into life. The bath-keeper laughs so hard she has to sit down, and pays you for the concert. {got}', { got: g.give({ glimmer: 3 }) }) },
+            { label: t('kick the boiler'), act: (g) => t('You kick it, and it roars into life. “That works too,” says the bath-keeper, and fills your burner from the coal heap. {got}', { got: g.give({ fuel: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('sit in the hot pool with the bath-keeper'),
+        tell: (g) => ({
+          title: t('the hot pool'),
+          text: g.found
+            ? t('You sit in the hot pool while the steam rises. “Wa came by,” says the bath-keeper. “Took her scarf. Said she’d finally said it, and it was easier than the hot pool.” She laughs. “Nothing’s easier than the hot pool.”')
+            : t('You sit in the hot pool with the bath-keeper while the steam rises. “Wa sat just there, the last time,” she says. “She asked me how you say sorry to someone after twenty years. I said: the same as after a day. You just say it.”'),
+          options: [
+            { label: t('stay until your fingers wrinkle'), act: (g2) => t('You stay until you’re as wrinkled as a walnut. The bath-keeper says her soaks will do you more good from now on. {got}', { got: g2.give({ hull: 1 }) }) },
+            { label: t('ask how she knew'), act: (g2) => t('“Everybody says it in here in the end,” she says. “It’s the steam.” Her soaks will do you more good from now on, she says. {got}', { got: g2.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
+
+  clocktower: {
+    icon: '🕰️', name: t('Master Pendle the clockmaker'),
+    perk: t('From now on, setting the great clock also gives you an extra hour on the island it takes you to.'),
+    chapters: [
+      {
+        ask: t('ask Master Pendle why the clock runs slow'),
+        tell: () => ({
+          title: t('the slow clock'),
+          text: t('Master Pendle takes you up inside the clock, among the turning gears. “It’s lost a minute a day for twenty years,” he says, “ever since the morning Wa flew off. Some things run slow when someone’s missing.”'),
+          options: [
+            { label: t('ask if it can be mended'), act: (g) => t('“Everything can be mended,” he says, “if you’re stubborn enough.” He gives you a tin of clock oil, which also burns nicely. {got}', { got: g.give({ fuel: 2 }) }) },
+            { label: t('listen to it tick'), act: (g) => t('You listen to it tick for a long while. It sounds like someone waiting. He pays you a little for keeping him company. {got}', { got: g.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('help Master Pendle inside the clock'),
+        tell: () => ({
+          title: t('the missing tooth'),
+          text: t('One gear in the great clock has a tooth missing, and it catches on every turn. “I need the same brass,” says Master Pendle, “and the only brass like it is in Wa’s old watch. And Wa has the watch.”'),
+          options: [
+            { label: t('offer him a coin instead'), act: (g) => t('He files your coin into a tooth and fits it, and the clock catches a little less. “Good enough until she’s back,” he says, and fills your burner from his oil can. {got}', { got: g.give({ glimmer: -1, fuel: 3 }) }) },
+            { label: t('promise to bring the watch'), act: (g) => t('“If you find her,” he says, “tell her the clock is waiting too.” {got}', { got: g.give({ glimmer: 2 }) }) },
+          ],
+        }),
+      },
+      {
+        ask: t('visit Master Pendle again'),
+        tell: (g) => ({
+          title: t('right on time'),
+          text: g.found
+            ? t('The great clock runs true. A brass tooth from Wa’s old watch is fitted in the gear, and Master Pendle is beaming. “She came by with it,” he says. “Stood right here and said sorry to my clock. Then she said sorry to me, for good measure.”')
+            : t('Master Pendle has made a new tooth himself, and the great clock runs true for the first time in twenty years. “I got tired of waiting,” he says. “Sometimes you just have to mend a thing yourself.”'),
+          options: [
+            { label: t('set your watch by it'), act: (g2) => t('You haven’t got a watch, so he gives you one. It runs fast. “Better fast than slow,” he says. From now on, setting the great clock buys you an extra hour where you land. {got}', { got: g2.give({ glimmer: 2 }) }) },
+            { label: t('ring the bell'), act: (g2) => t('You pull the rope, and the bell rings out over the whole island. Master Pendle says the clock will give you an extra hour from now on, whenever you set it. {got}', { got: g2.give({ fuel: 2 }) }) },
+          ],
+        }),
+      },
+    ],
+  },
 };

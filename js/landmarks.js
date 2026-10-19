@@ -791,6 +791,154 @@ const LANDMARKS = {
     },
   },
 
+  // An inn: two storeys of plaster and timber, a sign on an iron arm, lit
+  // windows upstairs and down, and a bench by the door.
+  inn: {
+    find: { radius: 1.6, rn: [0.1, 0.65], slope: 0.28, wet: 1.6, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const g = place.ground(0, 0);
+      kit.add('stone', box(1.22, 0.7, 0.92), [0, g - 0.66, 0]);
+      kit.add('plaster', box(1.1, 0.5, 0.8), [0, g, 0]);
+      kit.add('wood', box(1.18, 0.46, 0.86), [0, g + 0.5, 0]);
+      kit.add('roofRed', gable(1.38, 0.5, 1.06), [0, g + 0.96, 0]);
+      kit.add('stone', box(0.14, 0.5, 0.14), [0.38, g + 1.1, -0.2]);
+      kit.add('darkWood', box(0.22, 0.36, 0.04), [-0.2, g, 0.41]);
+      for (const x of [0.25, -0.44]) kit.add('glow', box(0.16, 0.15, 0.04), [x, g + 0.2, 0.41]);
+      for (const x of [-0.3, 0.05, 0.38]) kit.add('glow', box(0.14, 0.14, 0.04), [x, g + 0.66, 0.44]);
+      kit.add('darkWood', box(0.03, 0.03, 0.3), [0.5, g + 0.55, 0.56]);
+      kit.add('#c9a04a', box(0.02, 0.2, 0.26), [0.5, g + 0.32, 0.62]);
+      kit.add('wood', box(0.5, 0.05, 0.14), [0.18, g + 0.18, 0.56]);
+      for (const x of [-0.04, 0.4]) kit.add('darkWood', box(0.04, 0.18, 0.1), [x, g, 0.56]);
+      return {
+        radius: 1.6, door: [-0.2, 0.9], smoke: [[0.38, g + 1.65, -0.2]],
+        lights: [[0.25, g + 0.28, 0.6], [-0.3, g + 0.73, 0.62], [0.38, g + 0.73, 0.62]],
+        pointLight: { at: [0, g + 0.5, 0.9], color: '#ffb35c', power: 3 },
+      };
+    },
+  },
+
+  // A fortune teller's tent: purple and cream stripes, a gold star on top, and
+  // a crystal ball glowing on a little table outside.
+  fortune: {
+    find: { radius: 1.4, rn: [0.1, 0.7], slope: 0.3, wet: 1.4, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const g = place.ground(0, 0);
+      kit.add('wood', cyl(0.64, 0.64, 0.06, 10), [0, g - 0.03, 0]);
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * TAU;
+        kit.add(i % 2 ? '#f2e6c8' : '#7a3a8a', new THREE.CylinderGeometry(0.58, 0.6, 0.62, 1, 1, true, a, TAU / 10).translate(0, 0.31, 0), [0, g, 0]);
+        kit.add(i % 2 ? '#7a3a8a' : '#f2e6c8', new THREE.ConeGeometry(0.72, 0.6, 1, 1, false, a, TAU / 10).translate(0, 0.3, 0), [0, g + 0.62, 0]);
+      }
+      kit.add('darkWood', box(0.3, 0.42, 0.04), [0, g, 0.6]);
+      kit.add('#c9a04a', cyl(0.012, 0.012, 0.3, 4), [0, g + 1.2, 0]);
+      kit.add('#ffd84a', ball(0.07), [0, g + 1.52, 0]);
+      kit.add('darkWood', cyl(0.14, 0.14, 0.02, 8), [0.55, g + 0.3, 0.55]);
+      kit.add('darkWood', cyl(0.025, 0.03, 0.3, 5), [0.55, g, 0.55]);
+      const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.075, 2), new THREE.MeshStandardMaterial({ color: '#c8b8ff', emissive: '#9a7aff', emissiveIntensity: 1.2, roughness: 0.1 }));
+      orb.position.set(0.55, g + 0.4, 0.55);
+      let swirl = 0;
+      return {
+        radius: 1.4, door: [0, 1.0], extras: [orb], lights: [[0.55, g + 0.42, 0.55]],
+        pointLight: { at: [0.55, g + 0.5, 0.75], color: '#b89aff', power: 2 },
+        update(t, dt, env) {
+          swirl += dt * (1 + env.poke * 4);
+          orb.material.emissiveIntensity = 0.9 + Math.sin(swirl * 2) * 0.3 + env.poke;
+        },
+      };
+    },
+  },
+
+  // A shipwright's yard: a new basket in its wooden cradle, a crane with a
+  // block and rope, a stack of planks, and a shed.
+  shipwright: {
+    find: { radius: 1.7, rn: [0.2, 0.75], slope: 0.28, wet: 1.4, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const shed = house(kit, ctx.r, [-0.55, place.ground(-0.55, -0.3), -0.3], 0, { w: 0.7, d: 0.6, h: 0.5, roof: 'roofSlate', walls: 'wood', chimney: false });
+      const bx = 0.4, bz = 0.25, gb = place.ground(bx, bz);
+      for (const dx of [-0.32, 0.32]) kit.add('darkWood', box(0.06, 0.3, 0.6), [bx + dx, gb, bz]);
+      kit.add('wood', box(0.5, 0.36, 0.5), [bx, gb + 0.2, bz]);
+      kit.add('darkWood', box(0.54, 0.04, 0.54), [bx, gb + 0.56, bz]);
+      const cx = 0.95, cz = -0.2, gc = place.ground(cx, cz);
+      kit.add('darkWood', cyl(0.04, 0.05, 1.4, 6), [cx, gc, cz]);
+      kit.add('darkWood', box(0.7, 0.05, 0.05), [cx - 0.29, gc + 1.36, cz]);
+      kit.add('#3a3a40', cyl(0.008, 0.008, 0.5, 3), [cx - 0.59, gc + 0.86, cz]);
+      kit.add('#3a3a40', box(0.08, 0.1, 0.08), [cx - 0.59, gc + 0.78, cz]);
+      const pg = place.ground(-0.2, 0.55);
+      for (let i = 0; i < 4; i++) kit.add('wood', box(0.7, 0.04, 0.12), [-0.2 + (i % 2) * 0.03, pg + i * 0.045, 0.55], { ry: 0.1 * i });
+      return {
+        radius: 1.7, door: [-0.6, 0.6], lights: [shed.window],
+        pointLight: { at: [0, place.ground(0, 0) + 0.5, 0.6], color: '#ffc77a', power: 2 },
+      };
+    },
+  },
+
+  // A bathhouse: a low plastered house, and a round hot pool steaming beside it
+  // behind a bamboo fence.
+  bathhouse: {
+    find: { radius: 1.6, rn: [0.1, 0.65], slope: 0.25, wet: 1.6, prefer: 'flat' },
+    build(kit, ctx, place) {
+      const g = place.ground(-0.35, -0.2);
+      kit.add('stone', box(0.92, 0.7, 0.72), [-0.35, g - 0.66, -0.2]);
+      kit.add('plaster', box(0.82, 0.42, 0.62), [-0.35, g, -0.2]);
+      kit.add('roofSlate', gable(1.02, 0.34, 0.82), [-0.35, g + 0.42, -0.2]);
+      kit.add('darkWood', box(0.2, 0.3, 0.04), [-0.35, g, 0.12]);
+      kit.add('glow', box(0.14, 0.12, 0.04), [-0.1, g + 0.22, 0.12]);
+      const px = 0.5, pz = 0.3, gp = place.ground(px, pz);
+      kit.add('stone', cyl(0.42, 0.45, 0.16, 12), [px, gp - 0.04, pz]);
+      kit.add('#6ab8d0', cyl(0.36, 0.36, 0.02, 12), [px, gp + 0.1, pz]);
+      for (let i = 0; i < 6; i++) {
+        const x = 0.15 + i * 0.12;
+        kit.add('#8aa04a', cyl(0.02, 0.02, 0.5, 4), [x, place.ground(x, -0.25), -0.25]);
+      }
+      return {
+        radius: 1.6, door: [-0.35, 0.8], smoke: [[px, gp + 0.15, pz], [px + 0.15, gp + 0.15, pz - 0.1]],
+        lights: [[-0.1, g + 0.28, 0.2]],
+        pointLight: { at: [px, gp + 0.4, pz], color: '#ffd0a0', power: 2 },
+      };
+    },
+  },
+
+  // A clock tower: tall and stone, a bell under its little roof, and a clock
+  // face front and back whose hands go round.
+  clocktower: {
+    find: { radius: 1.2, rn: [0.1, 0.6], slope: 0.3, wet: 1.4, prefer: 'high' },
+    build(kit, ctx, place) {
+      const g = place.ground(0, 0);
+      kit.add('stone', box(0.72, 0.8, 0.72), [0, g - 0.76, 0]);
+      kit.add('stone', box(0.6, 1.9, 0.6), [0, g, 0]);
+      kit.add('darkStone', box(0.68, 0.08, 0.68), [0, g + 1.9, 0]);
+      kit.add('plaster', box(0.5, 0.36, 0.5), [0, g + 1.98, 0]);
+      kit.add('roofSlate', cone(0.5, 0.6, 4), [0, g + 2.34, 0], { ry: Math.PI / 4 });
+      kit.add('#c9a04a', ball(0.07), [0, g + 2.18, 0]);
+      kit.add('darkWood', box(0.22, 0.36, 0.04), [0, g, 0.31]);
+      kit.add('glow', box(0.1, 0.16, 0.04), [0, g + 0.9, 0.31]);
+      const hands = [], pivots = [];
+      const ink = new THREE.MeshStandardMaterial({ color: '#2a2420', flatShading: true });
+      for (const side of [1, -1]) {
+        kit.add('#f4ecd8', new THREE.CylinderGeometry(0.2, 0.2, 0.02, 16), [0, g + 1.5, side * 0.31], { rx: Math.PI / 2 });
+        const pivot = new THREE.Group();
+        pivot.position.set(0, g + 1.5, side * 0.33);
+        const hour = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.11, 0.01).translate(0, 0.055, 0), ink);
+        const minute = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.16, 0.01).translate(0, 0.08, 0), ink);
+        pivot.add(hour, minute);
+        hands.push({ hour, minute, side });
+        pivots.push(pivot);
+      }
+      let turn = 0;
+      return {
+        radius: 1.2, door: [0, 0.8], extras: pivots, lights: [[0, g + 0.98, 0.35]],
+        pointLight: { at: [0, g + 1.5, 0.6], color: '#ffe0a8', power: 2 },
+        update(t, dt, env) {
+          turn += dt * (0.05 + env.poke * 2);
+          for (const h of hands) {
+            h.minute.rotation.z = -turn * h.side;
+            h.hour.rotation.z = (-turn / 12) * h.side;
+          }
+        },
+      };
+    },
+  },
+
   // The Edge of the Sky (voyage.js): the flat stone where Wa waited, near the rim,
   // and the lantern that went out long ago. It lights again once she's said her
   // word (env.relit).

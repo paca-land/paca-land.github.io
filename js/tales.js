@@ -163,6 +163,17 @@ export const WA_NOTES = {
   post: t('Postmistresses know everybody’s business, even what the next gate wants. Ask nicely.'),
   tinker: t('The woman who made my balloon patches better than anyone in the sky. Don’t tell her I said so.'),
   band: t('The Hush can’t stand a brass band. Nobody can, really.'),
+  inn: t('Mrs Hobb keeps a room for anyone who flies. Tell her I said so.'),
+  fortune: t('Madame Vell can’t see the future. Don’t tell her I told you. She’s still worth every coin.'),
+  shipyard: t('Bosun Tarrant built our basket. He’ll fit you a bigger burner, if you can pay for it.'),
+  bath: t('After the Thin Air, nothing mends you like a hot pool.'),
+  chime: t('Set the great clock, and you choose the hour you land. Night or day, your call.'),
+  wreck: t('Old balloons come down here. There’s always something worth salvaging.'),
+  nesting: t('The birds there leave feathers everywhere: wind words cost almost nothing from that island.'),
+  whale: t('Don’t panic when the island moves. Leaving, you ride the whale’s wake a good way.'),
+  icefall: t('It never gets light there. Take a lantern, and don’t expect firewood.'),
+  eye: t('In the eye of the storm you can rest. Getting out is the hard part.'),
+  orchard: t('Fill your basket at the orchard. You’ll be glad of it higher up.'),
 };
 
 // --- Reaches and gates --------------------------------------------------------
@@ -171,15 +182,15 @@ export const WA_NOTES = {
 export const REACHES = [
   {
     at: 0, name: t('the Low Sky'), line: '',
-    islands: [['coral', 1], ['toadstool', 1], ['mire', 1], ['lavender', 1], ['heath', 1], ['sugar', 1], ['savanna', 1], ['terraces', 1], ['maze', 1], ['giant', 1]], chance: 0.3,
+    islands: [['coral', 1], ['toadstool', 1], ['mire', 1], ['lavender', 1], ['heath', 1], ['sugar', 1], ['savanna', 1], ['terraces', 1], ['maze', 1], ['giant', 1], ['orchard', 1], ['whale', 1], ['birds', 1]], chance: 0.3,
   },
   {
     at: 30, name: t('the High Winds'), line: t('You’ve climbed into the High Winds, and the basket sways. Storms come more often up here, and the islands get stranger.'),
-    islands: [['stormcrag', 3], ['jungle', 2], ['withered', 2], ['bamboo', 2], ['clockwork', 2], ['paper', 2], ['mire', 1], ['toadstool', 1], ['savanna', 1], ['heath', 1]], chance: 0.5,
+    islands: [['stormcrag', 3], ['jungle', 2], ['withered', 2], ['bamboo', 2], ['clockwork', 2], ['paper', 2], ['mire', 1], ['toadstool', 1], ['savanna', 1], ['heath', 1], ['wreck', 2], ['stormeye', 1], ['birds', 1]], chance: 0.5,
   },
   {
     at: 65, name: t('the Thin Air'), line: t('You’ve reached the Thin Air. It’s cold enough to see your breath, so every flight up here eats one more food. The islands turn strange: glass, fire, cloud and gold.'),
-    islands: [['glass', 3], ['ember', 3], ['moon', 3], ['cloudisle', 2], ['gilded', 2], ['stormcrag', 1]], chance: 0.65,
+    islands: [['glass', 3], ['ember', 3], ['moon', 3], ['cloudisle', 2], ['gilded', 2], ['stormcrag', 1], ['icefall', 2], ['stormeye', 1]], chance: 0.65,
   },
 ];
 export const reachOf = (miles) => REACHES.reduce((at, reach, i) => (miles >= reach.at ? i : at), 0);
@@ -218,6 +229,42 @@ export const OMENS = {
   gilded: { name: t('a gilded sky'), line: t('Every coin you find is doubled, but the balloon sets out with only four hearts.') },
   long: { name: t('long days'), line: t('Four hours on every island instead of three, but the Hush, a silence that follows you once you pass the first gate, moves faster.') },
   short: { name: t('short breath'), line: t('The sky can’t hear words longer than eight letters, but words of four letters or fewer carry you a mile further.') },
+  mirror: { name: t('a mirror sky'), line: t('A word that starts and ends with the same letter costs half the fuel, but every other word costs one more.') },
+  crowded: { name: t('a crowded sky'), line: t('Far more happens between islands, for better and for worse.') },
+  // The lucky letter is the voyage's own (`run.lucky`), so its line names it.
+  lucky: { name: t('a lucky letter'), line: (run) => t('Every word with {letter} in it pays 2 coins when you land, but every word without it costs one more fuel.', { letter: run.lucky.toUpperCase() }) },
+  wander: { name: t('wanderlust'), line: t('Every kind of island new to this voyage tops up your burner (+2 🔥), but landing on a kind you’ve already been to this voyage costs an hour.') },
+  lean: { name: t('a lean year'), line: t('The trees give less, but everything you buy costs a coin less.') },
+  fullmoon: { name: t('a full-moon voyage'), line: t('A full moon lights every night, so the sky never mishears you in the dark; but the Hush hunts by moonlight, and gains twice as fast after dark.') },
+};
+
+// --- Island traits --------------------------------------------------------------
+// Half the voyage islands have one, seeded by the island's word (so an island is
+// always the same), told on arrival and shown in the status line. voyage.js
+// applies them by id; `when` keeps a trait off islands where it would mean nothing.
+export const TRAITS = {
+  windswept: { icon: '🌬️', name: t('windswept'), line: t('Windswept: the wind off this island will carry you 2 miles further.') },
+  fruitful: { icon: '🍎', name: t('fruitful'), line: t('Fruitful: every tree here gives one more food.') },
+  festival: { icon: '🎪', name: t('festival day'), line: t('It’s a festival day here: everything costs a coin less.') },
+  haunted: { icon: '👻', name: t('haunted'), line: t('Haunted: the Hush likes it here, and gained 2 miles on you as you landed.'), when: (g) => g.run.hush !== null },
+  foggy: { icon: '🌫️', name: t('foggy'), line: t('Foggy: from here, you can’t tell what the sky will hear in your next word.') },
+  generous: { icon: '🤝', name: t('generous'), line: t('Generous: the first thing you take from the building here costs no time.') },
+  quiet: { icon: '🕊️', name: t('quiet'), line: t('Quiet: nothing came across your path on the way here.') },
+  longday: { icon: '☀️', name: t('a long day'), line: t('A long day: one more hour on this island.') },
+  shortday: { icon: '🌘', name: t('a short day'), line: t('A short day: one hour less on this island.') },
+  driftwood: { icon: '🪵', name: t('driftwood'), line: t('Driftwood on the shore: the water here gives a fuel too.') },
+};
+
+// --- The pack ---------------------------------------------------------------------
+// One-use tools, up to four at once, used from the 🎒 chip in the status line.
+// Markets, peddlers, wrecks and grateful families hand them out.
+export const ITEMS = {
+  patch: { icon: '🩹', name: t('patch kit'), line: t('Mends a heart.') },
+  flare: { icon: '🎆', name: t('flare'), line: t('Scares off whatever is following you: pirates, a storm front, or the Hush (it falls back 6 miles).') },
+  sandbag: { icon: '🪨', name: t('sandbag'), line: t('Drop it, and your next flight carries you 3 miles further.') },
+  umbrella: { icon: '☂️', name: t('umbrella'), line: t('Your next take-off in a storm won’t tear the balloon.') },
+  vane: { icon: '🐓', name: t('weathervane'), line: t('Fair skies on the next island.') },
+  needle: { icon: '🪡', name: t('compass needle'), line: t('It points at the strange islands: the next island you reach is one of them.') },
 };
 
 // --- Keepsakes ------------------------------------------------------------------
@@ -236,6 +283,9 @@ export const KEEPSAKES = {
   shell: { icon: '🐚', name: t('singing shell'), line: t('Every sea word you fly to (harbour, wave, anchor…) mends a heart when you land.') },
   inkwell: { icon: '🖋️', name: t('inkwell'), line: t('Each kind of word you use for the first time this voyage pays 2 coins.') },
   coin: { icon: '🍀', name: t('lucky clover'), line: t('Every gamble goes your way (ruins, a falling star, a ship of fog…).') },
+  // Two that cut both ways.
+  anchor: { icon: '⚓', name: t('golden anchor'), line: t('Every landing pays 2 coins, but every flight burns one more fuel.') },
+  musicbox: { icon: '🎶', name: t('music box'), line: t('Every third flight its tune drives the Hush back 5 miles, but gulls follow the music and take a food.') },
 };
 
 // --- Passengers -----------------------------------------------------------------
@@ -514,6 +564,94 @@ export const SKY_EVENTS = [
         },
       },
       { label: t('leave him sleeping'), act: () => t('You let him snore. The words will have to wait for another voyage.') },
+    ],
+  },
+  {
+    id: 'peddler', weight: 2, when: (g) => g.packRoom,
+    title: t('a peddler’s balloon'),
+    text: (g) => {
+      const ids = Object.keys(ITEMS);
+      const a = ids.splice(Math.floor(Math.random() * ids.length), 1)[0];
+      g.mark('wares', [a, ids[Math.floor(Math.random() * ids.length)]]);
+      return t('A little balloon hung with pots, pans and lanterns bumps against your basket. “Everything a sailor needs,” says the peddler, “and some things they don’t.”');
+    },
+    options: (g) => [
+      ...g.flag('wares').map((id, i) => ({
+        label: t('buy the {name} {icon}', { name: ITEMS[id].name, icon: ITEMS[id].icon }), note: `−${3 + i} 🪙 · ${ITEMS[id].line}`, disabled: g.run.glimmer < 3 + i,
+        act: () => `${g.give({ glimmer: -(3 + i) })} ${g.item(id)}`,
+      })),
+      { label: t('just looking'), act: () => t('“Suit yourself,” says the peddler, and drifts off rattling.') },
+    ],
+  },
+  // --- Stories that play out over the next few islands ---
+  {
+    id: 'race', weight: 2, when: (g) => g.run.words.length >= 3 && !g.flag('race'),
+    title: t('a race'),
+    text: (g) => {
+      const goal = g.goal(true);
+      g.mark('raceGoal', goal);
+      return t('A patched purple balloon draws level: Captain Odile, grinning. “Race you to {island}!” she shouts. “First to land on one wins. Your grandmother always beat me. Let’s see about you.”', { island: goal.island });
+    },
+    options: (g) => [
+      {
+        label: t('race her'), note: t('land on {island} within 4 flights ({words}…): a keepsake, or she crows about it (−3 🪙)', { island: g.flag('raceGoal').island, words: g.flag('raceGoal').words }),
+        act: () => { g.mark('race', { biome: g.flag('raceGoal').biome, by: g.run.words.length + 4 }); return t('“Ready? Go!” She’s off before she finishes saying it.'); },
+      },
+      { label: t('wave her on'), act: () => t('“Next time, then!” she calls, and she’s gone.') },
+    ],
+  },
+  {
+    id: 'front', weight: 2, when: (g) => g.reach >= 1 && !g.flag('front'),
+    title: t('a storm front'), text: t('Behind you, a long black wall of cloud is building, and it’s coming your way.'),
+    options: [
+      {
+        label: t('run for it'), note: t('for 4 flights it chases you, gaining 6 miles each time; if it catches you, −1 ❤️. Long words outrun it.'),
+        act: (g) => { g.mark('front', { at: g.run.leagues - 8, left: 4 }); return t('You open the burner and run. The thunder follows.'); },
+      },
+      { label: t('wait for it to pass'), note: t('three hours pass'), act: (g) => t('You tie the balloon down and wait while the storm thunders past. {hours}', { hours: g.hours(3) }) },
+    ],
+  },
+  {
+    id: 'scatter', weight: 2, when: (g) => g.reach < 2 && !g.flag('scatter'),
+    title: t('torn pages'),
+    text: (g) => {
+      const kinds = [g.goal(false), g.goal(false), g.goal(false)].filter((x, i, all) => all.findIndex((y) => y.biome === x.biome) === i);
+      g.mark('scatterGoals', kinds);
+      return t('A torn page flutters into the basket, in Wa’s loopy writing: a page from her old logbook. A note in the corner says where the rest blew: {islands}.', { islands: kinds.map((k) => k.island).join(t(', ')) });
+    },
+    options: (g) => [
+      {
+        label: t('look for the rest'), note: t('find a page on each of those islands: one of Wa’s words for the set'),
+        act: () => { g.mark('scatter', g.flag('scatterGoals').map((k) => k.biome)); return t('You tuck the page into her book. The others can’t have blown far.'); },
+      },
+      { label: t('let it go'), act: () => t('You let it go. It flutters off toward the clouds.') },
+    ],
+  },
+  {
+    id: 'kitechild', weight: 2, when: (g) => g.run.words.length >= 2 && !g.flag('child'),
+    title: t('a kite and a girl'),
+    text: (g) => {
+      const goal = g.goal(false);
+      g.mark('childGoal', goal);
+      return t('A girl clinging to a kite string drifts past your basket. The wind blew her off {island} this morning. “Can you take me home? Mum will be worried sick.”', { island: goal.island });
+    },
+    options: (g) => [
+      {
+        label: t('take her home'), note: t('reach {island} within 4 flights ({words}…): +6 🪙 and a present from her family', { island: g.flag('childGoal').island, words: g.flag('childGoal').words }),
+        act: () => { g.mark('child', { biome: g.flag('childGoal').biome, by: g.run.words.length + 4 }); return t('She climbs in, kite and all, and points at every cloud.'); },
+      },
+      { label: t('wave down a passing balloon'), act: () => t('A fisherman’s balloon takes her aboard. She waves her kite at you until she’s out of sight.') },
+    ],
+  },
+  {
+    id: 'festival', weight: 2, when: (g) => !g.flag('festival') && !g.flag('festivalDone'),
+    title: t('the sky fair'), text: t('Bunting is strung between two islands, and music drifts up from below: it’s the sky fair.'),
+    options: [
+      {
+        label: t('join in'), note: t('for the next 3 islands, food and music words (feast, bread, song…) pay 3 🪙 and a food'),
+        act: (g) => { g.mark('festival', 3); g.mark('festivalDone', true); return t('Someone hands you a paper hat and a sticky bun.'); },
+      },
+      { label: t('fly on'), act: () => t('You hear the band for miles.') },
     ],
   },
   {

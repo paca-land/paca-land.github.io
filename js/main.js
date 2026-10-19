@@ -14,6 +14,7 @@ import { createSkyGrab } from './skygrab.js';
 import { createJournal, tierTag, showToast } from './journal.js';
 import { createVoyage } from './voyage.js';
 import { createWaBalloon } from './balloon.js';
+import { createMazeBall } from './mazeball.js';
 import { landRarity } from './rarity.js';
 import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
@@ -235,6 +236,7 @@ let flight = false; // the change of land under way is a voyage's flight
 
 function visit(next) {
   if (next === (leaving?.next ?? seed)) return;
+  mazeBall.stop();
   if (zoomedIn()) focusOn(null);
   flight = voyage.active;
   if (!flight) waBalloon.leave();
@@ -270,6 +272,15 @@ function arrive(next) {
   land.hooks.note = (kind) => {
     journal.note(kind);
     voyage.note(kind);
+  };
+  // The hedge maze's fountain starts its ball game.
+  land.hooks.play = (game) => {
+    if (game === 'maze' && !leaving && !photo.on) {
+      if (zoomedIn()) focusOn(null);
+      mazeBall.start(land);
+      controls.enabled = false;
+      document.body.classList.add('maze-playing');
+    }
   };
   scene.add(land.group);
   if (voyage.active) waBalloon.moorTo(land, { snap: !flying });
@@ -416,6 +427,19 @@ $('#journal-button').addEventListener('click', () => {
 });
 
 // A voyage to the Edge of the Sky, where every destination is a word (see voyage.js).
+// The hedge maze's ball game (mazeball.js): it borrows the camera while it plays.
+const mazeBall = createMazeBall({
+  onWin: () => {
+    sound.play('chime');
+    voyage.mazeWon();
+  },
+  onEnd: () => {
+    controls.enabled = true;
+    document.body.classList.remove('maze-playing');
+    idleSince = performance.now();
+  },
+});
+
 const voyage = createVoyage({
   fly: (next) => visit(next),
   // Back to the land in the address bar.
@@ -969,7 +993,7 @@ function renderFrame() {
   document.body.classList.toggle('in-flight', Boolean(leaving) || rise < 0);
 
   // Aurora needs a cold place: a snowy or high land, fresh snow, or a freezing night at home.
-  sky.setCold(['snowfield', 'highlands'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
+  sky.setCold(['snowfield', 'highlands', 'icefall'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
   sky.setShower(voyage.finale);
   updateIntro(dt);
   updateFocus(t);
@@ -977,11 +1001,18 @@ function renderFrame() {
   // The usual slow drift once you've let go, and a voyage's flight swings it
   // round faster (unless you're holding the view).
   const swing = flightSwing();
-  controls.autoRotate = !intro && !reducedMotion && !photo.on && (nowMs - idleSince > 8000 || (swing > 0 && idleSince !== Infinity));
+  controls.autoRotate = !intro && !reducedMotion && !photo.on && !mazeBall.active && (nowMs - idleSince > 8000 || (swing > 0 && idleSince !== Infinity));
   controls.autoRotateSpeed = 0.35 + swing * 2.6;
+  // The maze game eases the camera round to look down on the maze.
+  const mazeView = mazeBall.update(dt, camera);
+  if (mazeView) {
+    const k = 1 - Math.exp(-dt * 3);
+    controls.target.lerp(mazeView.target, k);
+    camera.position.lerp(mazeView.position, k);
+  }
   controls.update(dt);
-  // Photo mode pans freely; a glide sets its own course.
-  if (!photo.on && focus.start < 0) keepNearHome(dt);
+  // Photo mode pans freely; a glide sets its own course (and so does the maze game).
+  if (!photo.on && focus.start < 0 && !mazeBall.active) keepNearHome(dt);
   if (tilt) camera.rotateX(tilt);
   interaction.update();
   skyGrab.update(dt);

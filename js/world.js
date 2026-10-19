@@ -158,7 +158,7 @@ export const BIOMES = {
     flora: { kind: 'poplar', count: 45, groves: 0, colors: ['#a8e6ff', '#c8f0ff', '#e0d0ff', '#9fd8f0'] },
     tufts: ['#ffffff', '#bfefff'],
     crystals: true,
-    landmark: [['wizard', 3], ['observatory', 2], ['stones', 2], ['shrine', 1], ['lighthouse', 1]], path: '#dce8f0',
+    landmark: [['wizard', 3], ['observatory', 2], ['fortune', 2], ['stones', 2], ['shrine', 1], ['lighthouse', 1]], path: '#dce8f0',
     weather: [['clear', 4], ['mist', 2], ['snow', 1]],
     ambient: ['sparkles'],
   },
@@ -269,7 +269,7 @@ export const BIOMES = {
     water: { color: '#4a9a8a', opacity: 0.86 }, lake: 0.7, river: 0.7,
     flora: { kind: 'bamboo', count: 70, groves: 0.15, colors: ['#5a9a3a', '#6aaa45'] },
     tufts: ['#ffffff', '#f0e0a0'],
-    landmark: [['shrine', 3], ['teahouse', 2], ['cabin', 2], ['campsite', 1], ['village', 1]], path: '#b0a070',
+    landmark: [['shrine', 3], ['teahouse', 2], ['bathhouse', 2], ['cabin', 2], ['campsite', 1], ['village', 1]], path: '#b0a070',
     weather: [['mist', 3], ['clear', 2], ['rain', 2], ['cloudy', 1]],
     ambient: ['fireflies'],
   },
@@ -293,7 +293,7 @@ export const BIOMES = {
     water: { color: '#5a8a8a', opacity: 0.9 }, lake: 0.6, river: 0.6,
     flora: { kind: 'gear', count: 40, groves: -0.2, colors: ['#c9a04a', '#b8863a'] },
     tufts: ['#d9b45a', '#a8703a'],
-    landmark: [['workshop', 3], ['windmill', 2], ['castle', 2], ['village', 2], ['post', 1], ['lighthouse', 1]], path: '#9a8a6a',
+    landmark: [['workshop', 3], ['clocktower', 3], ['windmill', 2], ['castle', 2], ['village', 2], ['post', 1], ['lighthouse', 1]], path: '#9a8a6a',
     weather: [['clear', 3], ['cloudy', 3], ['mist', 1], ['rain', 1]],
     ambient: ['embers'],
   },
@@ -304,7 +304,7 @@ export const BIOMES = {
     water: { color: '#3a5a9a', opacity: 0.88 }, lake: 0.8, river: 0.7,
     flora: { kind: 'paper', count: 55, groves: 0.05, colors: ['#ffffff', '#f6efe0', '#ffd0dc', '#cfe2ff', '#fff0a8', '#ffffff'] },
     tufts: ['#3a5a9a', '#c8382a'],
-    landmark: [['post', 3], ['wizard', 3], ['village', 2], ['ruins', 1], ['shrine', 1]], path: '#e0d4b8',
+    landmark: [['post', 3], ['wizard', 3], ['clocktower', 2], ['village', 2], ['ruins', 1], ['shrine', 1]], path: '#e0d4b8',
     weather: [['clear', 4], ['cloudy', 2], ['mist', 1]],
     ambient: ['scraps'],
   },
@@ -316,7 +316,7 @@ export const BIOMES = {
     flora: { kind: 'birch', count: 30, groves: -0.2, colors: ['#e0e8f4', '#c8d4e8', '#f0f4ff'] },
     tufts: ['#ffffff', '#c8d8ff'],
     crystals: true,
-    landmark: [['observatory', 3], ['stones', 2], ['wizard', 2], ['ruins', 1], ['lighthouse', 1]], path: '#d4d8e2',
+    landmark: [['observatory', 3], ['fortune', 2], ['stones', 2], ['wizard', 2], ['ruins', 1], ['lighthouse', 1]], path: '#d4d8e2',
     weather: [['clear', 6], ['mist', 1]],
     ambient: ['sparkles'],
   },
@@ -341,6 +341,79 @@ export const BIOMES = {
     flora: { kind: 'flower', count: 45, groves: 0, colors: ['#ff6a8a', '#ffd23a'] },
     tufts: ['#ffffff', '#ff86b0', '#ffd84a'],
     landmark: [['cabin', 2], ['windmill', 2], ['workshop', 1], ['bandstand', 1], ['castle', 1], ['village', 1]], path: '#b8996a',
+    weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
+    ambient: ['petals'],
+  },
+  // Where old balloons come down: dead trees with torn envelopes caught in them.
+  wreck: {
+    label: 'balloon graveyard', weight: 0,
+    grass: ['#6a6e52', '#80825e'], dirt: '#4e4436', rock: ['#6a645a', '#4e4a44'], sand: '#9a9070',
+    hills: 1.8, peak: 1.4,
+    water: { color: '#4a5a58', opacity: 0.9 }, lake: 0.5, river: 0.4,
+    flora: { kind: 'dead', count: 40, groves: 0, colors: ['#5a4a3a', '#4a3e32', '#6a5a48'] },
+    tufts: ['#c8b890', '#a89878'],
+    landmark: [['ruins', 3], ['workshop', 2], ['shipwright', 3], ['campsite', 1]], path: '#8a7a60',
+    weather: [['mist', 3], ['cloudy', 3], ['rain', 2], ['storm', 1]],
+    ambient: ['scraps'],
+  },
+  // White cliffs and nesting bushes.
+  birds: {
+    label: 'bird island', weight: 0,
+    grass: ['#7aa060', '#9ab878'], dirt: '#8a7a5a', rock: ['#d8d4c8', '#b8b2a4'], sand: '#ece4cc',
+    hills: 1.6, peak: 2.4,
+    water: { color: '#4a9ac8', opacity: 0.84 }, lake: 0.6, river: 0.6,
+    flora: { kind: 'shrub', count: 45, groves: 0.1, colors: ['#6a8a4a', '#7a9a52', '#5a7a42'] },
+    tufts: ['#ffffff', '#f4e8c8'],
+    landmark: [['lighthouse', 3], ['observatory', 2], ['inn', 1], ['cabin', 1]], path: '#d8ccb0',
+    weather: [['clear', 3], ['cloudy', 3], ['rain', 1]],
+    ambient: [],
+  },
+  // Low and smooth, and it swims: leaving, you ride its wake.
+  whale: {
+    label: 'whale-back isle', weight: 0,
+    grass: ['#5a8a7a', '#6a9a8a'], dirt: '#4a5a62', rock: ['#5a6878', '#46525e'], sand: '#c8d0c8',
+    hills: 1.0, peak: 0.6,
+    water: { color: '#3a8ab8', opacity: 0.86 }, lake: 0.7, river: 0.2,
+    flora: { kind: 'palm', count: 18, groves: -0.4, colors: ['#3f8f3a', '#4ea045'] },
+    tufts: ['#e8f0f0', '#a8d0d8'],
+    landmark: [['lighthouse', 2], ['shipwright', 2], ['campsite', 2], ['stones', 1]], path: '#a8b8b0',
+    weather: [['clear', 3], ['cloudy', 2], ['rain', 2]],
+    ambient: [],
+  },
+  // Glaciers and a frozen lake, in a night that never ends.
+  icefall: {
+    label: 'icefall isle', weight: 0,
+    grass: ['#dce8f0', '#eef4f8'], dirt: '#9aa8b4', rock: ['#a8b8c8', '#8898aa'], sand: '#e8f0f4',
+    hills: 2.2, peak: 3.2, snowLine: 1.5,
+    water: { color: '#bfe3f2', opacity: 0.96, frozen: true }, lake: 0.8, river: 0,
+    flora: { kind: 'fir', count: 40, groves: 0, colors: ['#3a5a5a', '#4a6a6a', '#2a4a4a'] },
+    tufts: ['#ffffff', '#cfe8ff'],
+    crystals: true,
+    landmark: [['bathhouse', 3], ['cabin', 2], ['observatory', 2], ['stones', 1]], path: '#c8d4e0',
+    weather: [['snow', 4], ['clear', 2], ['mist', 1]],
+    ambient: ['sparkles'],
+  },
+  // The calm in the middle of a storm.
+  stormeye: {
+    label: 'storm’s eye', weight: 0,
+    grass: ['#5a7a5a', '#6a8a62'], dirt: '#4a4440', rock: ['#5a5e66', '#44484e'], sand: '#8a8a80',
+    hills: 1.6, peak: 1.8,
+    water: { color: '#3a5a6a', opacity: 0.9 }, lake: 0.6, river: 0.5,
+    flora: { kind: 'round', count: 45, groves: 0, colors: ['#3a6a42', '#2f5a3a', '#467a4a'] },
+    tufts: ['#e0e8f0', '#b8c8d8'],
+    landmark: [['shrine', 3], ['lighthouse', 2], ['fortune', 2], ['stones', 1]], path: '#7a7a72',
+    weather: [['storm', 1]],
+    ambient: [],
+  },
+  // An orchard in blossom.
+  orchard: {
+    label: 'orchard isle', weight: 0,
+    grass: ['#6aa84a', '#8cc060'], dirt: '#7a5a3a', rock: ['#8a8070', '#6a6258'], sand: '#e0d0a0',
+    hills: 1.6, peak: 1.0,
+    water: { color: '#4aa0d0', opacity: 0.84 }, lake: 0.8, river: 0.5,
+    flora: { kind: 'round', count: 70, groves: -0.2, colors: ['#4a9a3a', '#5aaa45', '#f0b8c8', '#ffffff', '#3f8a34'] },
+    tufts: ['#ffffff', '#ffd84a', '#ff86b0'],
+    landmark: [['windmill', 3], ['inn', 2], ['village', 2], ['cabin', 1]], path: '#b8996a',
     weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
     ambient: ['petals'],
   },
@@ -1164,12 +1237,18 @@ const TREE_SPECIES = {
   moon: [['birch', 2], ['crystal', 1], ['poplar', 1], ['dead', 1]],
   maze: [['topiary', 3], ['poplar', 2], ['round', 1]],
   giant: [['flower', 4], ['mushroom', 1], ['bush', 1]],
+  wreck: [['wreck', 3], ['dead', 3], ['shrub', 1]],
+  birds: [['nest', 3], ['shrub', 2], ['pine', 1]],
+  whale: [['palm', 2], ['shrub', 2], ['bush', 1]],
+  icefall: [['fir', 3], ['pine', 2], ['crystal', 1], ['dead', 1]],
+  stormeye: [['round', 3], ['oak', 2], ['bush', 1]],
+  orchard: [['round', 4], ['oak', 1], ['bush', 1]],
 };
 // How high each crown sits, for leaves shaken loose.
 const CROWN_TOP = {
   round: 1, oak: 1.1, birch: 1.4, fir: 1.4, poplar: 1.5, bush: 0.35, shrub: 0.3, pine: 1.2, cactus: 0.9,
   mushroom: 1, palm: 1.45, acacia: 1.2, dead: 1.2, lollipop: 1.45, crystal: 1.4, willow: 1.3, bamboo: 1.6,
-  gear: 1.5, paper: 1.4, topiary: 1.4, hedge: 0.55, flower: 1.45, puff: 1.15, kapok: 2, fern: 0.4,
+  gear: 1.5, paper: 1.4, topiary: 1.4, hedge: 0.55, flower: 1.45, puff: 1.15, kapok: 2, fern: 0.4, wreck: 1.3, nest: 0.5,
 };
 
 const ico = (r, x, y, z, sy = 1) => new THREE.IcosahedronGeometry(r, 0).scale(1, sy, 1).translate(x, y, z);
@@ -1347,6 +1426,26 @@ function speciesGeometry(kind) {
       });
       return plain(trunk, flat(ico(0.62, 0, 1.78, 0, 0.42), ico(0.46, 0.3, 1.95, 0.12, 0.4), ico(0.42, -0.28, 1.9, -0.16, 0.4), ...vines), { dark: 0.35 });
     }
+    case 'wreck': {
+      // A dead tree with a torn balloon caught in it, and its basket hanging below.
+      const trunk = flat(
+        new THREE.CylinderGeometry(0.05, 0.1, 0.9, 5).translate(0, 0.45, 0),
+        new THREE.CylinderGeometry(0.02, 0.035, 0.5, 4).rotateZ(0.8).translate(-0.18, 0.95, 0),
+        new THREE.CylinderGeometry(0.02, 0.035, 0.45, 4).rotateZ(-0.7).translate(0.16, 1.0, 0.05),
+      );
+      const crown = flat(
+        new THREE.IcosahedronGeometry(0.42, 1).scale(1.2, 0.5, 1).rotateZ(0.35).translate(0.08, 1.12, 0),
+        new THREE.IcosahedronGeometry(0.22, 0).scale(1, 0.6, 1).translate(-0.28, 0.96, 0.1),
+        new THREE.BoxGeometry(0.16, 0.12, 0.16).translate(0.24, 0.6, 0.05),
+      );
+      return plain(trunk, crown, { dark: 0.3, trunkColor: '#4a3e32' });
+    }
+    case 'nest':
+      // A low bush with a twiggy nest on top.
+      return plain(null, flat(
+        new THREE.IcosahedronGeometry(0.34, 1).scale(1.2, 0.7, 1.2).translate(0, 0.22, 0),
+        new THREE.TorusGeometry(0.14, 0.05, 4, 8).rotateX(Math.PI / 2).translate(0, 0.46, 0),
+      ), { dark: 0.4 });
     case 'fern':
       // Long fronds fanning out from the ground.
       return plain(null, flat(...Array.from({ length: 7 }, (_, i) => new THREE.ConeGeometry(0.09, 0.62, 3)
@@ -1374,6 +1473,8 @@ function speciesColors(kind, biome, biomeKey) {
     gear: ['#c9a04a', '#b8863a', '#d9b45a', '#a8703a', '#8a9a9a'],
     palm: ['#3f8f3a', '#4ea045', '#2f7d34'],
     fern: ['#4fa83f', '#5cb848', '#3f9a3a'],
+    wreck: ['#b8705e', '#d8c8a8', '#7a94ac', '#c8a45a'],
+    nest: ['#7a8a4a', '#8a9a52', '#6a7a42'],
     bamboo: ['#5a9a3a', '#6aaa45', '#4a8a32'],
     puff: ['#ffffff', '#f4f6ff', '#fff4fa'],
     flower: ['#ff6a8a', '#ffd23a', '#8a7aff', '#ff9a3a', '#ffffff'],
@@ -1952,7 +2053,9 @@ export function generateLand(seed, want = {}) {
       });
     };
   }
-  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, rows, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables].filter(Boolean);
+  // The maze's fountain starts the ball game (mazeball.js, via main.js).
+  if (hedgeMaze) hedgeMaze.fountain.userData.onClick = () => hooks.play?.('maze');
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {
@@ -1969,6 +2072,8 @@ export function generateLand(seed, want = {}) {
     hasWaterfall: Boolean(shape.river),
     hasBalloon: Boolean(balloon),
     mooring: pickMooring(shape, islets, landmark),
+    // The hedge maze, for its ball game: its walls in the maze's own frame, the ground under it, and the fountain at its heart.
+    maze: maze && { ...maze, ground: (x, z) => shape.heightAt(x, z), centre: [hedgeMaze.fountain, hedgeMaze.pool] },
     clickables,
     hooks,
     // What the soundscape should play here.

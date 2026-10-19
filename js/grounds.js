@@ -155,7 +155,7 @@ export function buildMaze(maze, shape, biome, r) {
     ball.castShadow = true;
     group.add(ball);
   }
-  return { object: group, hedges };
+  return { object: group, hedges, fountain, pool };
 }
 
 // --- Rows of tea and lavender -----------------------------------------------------

@@ -619,6 +619,9 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
   const sunDir = skyUniforms.uSunDir.value;
   const moonDir = new THREE.Vector3();
   const moonColor = new THREE.Color('#9db0ff');
+  // Where the light comes from on a night with the moon down: high, a little off-centre.
+  const STARLIGHT = new THREE.Vector3(0.3, 1, 0.4).normalize();
+  const starColor = new THREE.Color('#8fa4e8');
   const env = { e: 1, night: 0, overcast: 0, sunDir };
   let frame = 0;
 
@@ -712,24 +715,29 @@ export function createSky(scene, renderer, { lowPower = false } = {}) {
       skyUniforms.uSunColor.value.copy(pal.sun);
       skyUniforms.uSunVisible.value = (1 - o * 0.95) * (1 - mist) * smoothstep(-0.08, 0.02, e);
 
+      // Moonlight follows the phase, but a new moon still leaves the land readable;
+      // and once the moon is down, soft starlight falls from overhead instead (lit
+      // from below the horizon, moonless nights went black).
+      const illumination = (1 - Math.cos(sky.moonPhase * TAU)) / 2;
+      const moonUp = smoothstep(-0.05, 0.2, moonDir.y);
+      // How dark the night is: 1 with no moon to see by, 0 under a high full moon.
+      const moonless = nightLift * (1 - moonUp * (0.4 + 0.6 * illumination));
       if (e > -0.04) {
         key.position.copy(sunDir).multiplyScalar(50);
         key.color.copy(pal.sun);
         key.intensity = pal.sunI * (1 - o * 0.7);
       } else {
-        key.position.copy(moonDir).multiplyScalar(50);
-        key.color.copy(moonColor);
-        // Moonlight follows the phase: a full moon lights the land, a new moon barely.
-        const illumination = (1 - Math.cos(sky.moonPhase * TAU)) / 2;
-        key.intensity = (0.9 + 0.7 * illumination) * smoothstep(-0.04, -0.2, e) * (1 - o * 0.6);
+        key.position.copy(STARLIGHT).lerp(moonDir, moonUp).normalize().multiplyScalar(50);
+        key.color.copy(starColor).lerp(moonColor, moonUp);
+        key.intensity = THREE.MathUtils.lerp(1.15, 1.25 + 0.4 * illumination, moonUp) * smoothstep(-0.04, -0.2, e) * (1 - o * 0.45);
       }
       skyUniforms.uKeyDir.value.copy(key.position).normalize();
       skyUniforms.uKeyColor.value.copy(key.color).multiplyScalar(key.intensity);
-      skyUniforms.uAmbient.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * (0.45 + nightLift * 0.5));
+      skyUniforms.uAmbient.value.copy(pal.hemiSky).multiplyScalar(pal.hemiI * (0.45 + nightLift * 0.5 + moonless * 0.15));
 
       hemi.color.copy(pal.hemiSky);
       hemi.groundColor.copy(pal.hemiGround);
-      hemi.intensity = pal.hemiI * (0.3 + nightLift * 0.9);
+      hemi.intensity = pal.hemiI * (0.3 + nightLift * 0.9 + moonless * 0.35);
       scene.environmentIntensity = 0.9 + nightLift * 1.4;
       flashLight.intensity = flash * 5;
       bolt.material.opacity = strikeAge < 0.3 ? state.storm : 0;
