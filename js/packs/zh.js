@@ -14,5 +14,8 @@ import { ZH as greenhouse } from './greenhouse.zh.js';
 import { ZH as puppets } from './puppets.zh.js';
 import { ZH as glassworks } from './glassworks.zh.js';
 import { ZH as station } from './station.zh.js';
+import { ZH as omens } from './omens.zh.js';
+import { ZH as tools } from './tools.zh.js';
+import { ZH as keepsakes } from './keepsakes.zh.js';
 
-export const PACK_ZH = { ...lotus, ...pillars, ...sunflower, ...geyser, ...globe, ...lanterns, ...crater, ...jelly, ...ferry, ...apiary, ...greenhouse, ...puppets, ...glassworks, ...station };
+export const PACK_ZH = { ...lotus, ...pillars, ...sunflower, ...geyser, ...globe, ...lanterns, ...crater, ...jelly, ...ferry, ...apiary, ...greenhouse, ...puppets, ...glassworks, ...station, ...omens, ...tools, ...keepsakes };

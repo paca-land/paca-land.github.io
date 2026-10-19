@@ -605,15 +605,273 @@ const CRITTERS = {
     ),
   },
 };
+// The newer animals (October 20): each with a shape you can tell from across the island.
+const cone = (r, h, n = 4) => new THREE.ConeGeometry(r, h, n);
+const eyes = (x, y, z, r = 0.012, color = '#1a1a1a') => [part(ball(r, 0), color, [-x, y, z]), part(ball(r, 0), color, [x, y, z])];
+// A cone standing out from the middle of a body, pointing along (dx, dy, dz).
+function spike(geo, color, at, [dx, dy, dz]) {
+  const e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, new THREE.Vector3(dx, dy, dz).normalize()));
+  return part(geo, color, at, { rx: e.x, ry: e.y, rz: e.z });
+}
+Object.assign(CRITTERS, {
+  // PaCaLand's own: a woolly neck, a topknot and banana ears.
+  alpaca: {
+    gait: 'walk', speed: 0.2, roam: 1.8, rest: [2, 6], sound: 'hum',
+    model: (coat = '#efe2c8') => model(
+      part(ball(0.15), coat, [0, 0.36, 0], { s: [0.9, 0.85, 1.35] }),
+      part(ball(0.07), coat, [0, 0.52, 0.15], { s: [1, 1.9, 1] }),
+      part(ball(0.075), coat, [0, 0.67, 0.18]),
+      part(ball(0.055), coat, [0, 0.74, 0.16]),
+      part(box(0.07, 0.05, 0.07), coat, [0, 0.64, 0.24]),
+      part(ball(0.014, 0), '#241c18', [0, 0.645, 0.28]),
+      ...eyes(0.04, 0.69, 0.235),
+      part(box(0.025, 0.09, 0.02), coat, [-0.045, 0.77, 0.17], { rz: 0.3 }),
+      part(box(0.025, 0.09, 0.02), coat, [0.045, 0.77, 0.17], { rz: -0.3 }),
+      ...legs(coat, 0.04, 0.26, 0.06, 0.11),
+      part(ball(0.045), coat, [0, 0.42, -0.2]),
+    ),
+  },
+  cow: {
+    gait: 'walk', speed: 0.15, roam: 1.6, rest: [3, 8], sound: 'moo',
+    model: () => model(
+      part(box(0.22, 0.2, 0.42), '#f4f1ea', [0, 0.36, 0]),
+      part(box(0.226, 0.13, 0.15), '#2a2622', [0, 0.39, -0.08]),
+      part(box(0.226, 0.1, 0.08), '#2a2622', [0, 0.41, 0.13]),
+      part(box(0.15, 0.15, 0.16), '#f4f1ea', [0, 0.47, 0.27]),
+      part(box(0.154, 0.06, 0.09), '#2a2622', [0, 0.52, 0.26]),
+      part(box(0.13, 0.08, 0.06), '#e8a8a0', [0, 0.43, 0.36]),
+      part(cone(0.018, 0.08), '#e8dcc0', [-0.065, 0.58, 0.25], { rz: 0.6 }),
+      part(cone(0.018, 0.08), '#e8dcc0', [0.065, 0.58, 0.25], { rz: -0.6 }),
+      part(box(0.07, 0.03, 0.04), '#2a2622', [-0.1, 0.52, 0.24]),
+      part(box(0.07, 0.03, 0.04), '#2a2622', [0.1, 0.52, 0.24]),
+      part(ball(0.045), '#e8a8a0', [0, 0.26, -0.06]),
+      part(box(0.02, 0.2, 0.02), '#2a2622', [0, 0.34, -0.22], { rx: 0.2 }),
+      ...legs('#f4f1ea', 0.05, 0.26, 0.07, 0.15),
+      ...legs('#2a2622', 0.055, 0.04, 0.07, 0.15),
+    ),
+  },
+  hen: {
+    gait: 'hop', speed: 0.5, hop: 0.03, roam: 1, rest: [0.6, 2.4], sound: 'cluck',
+    model: (coat = '#c8743a') => model(
+      part(ball(0.07), coat, [0, 0.11, 0], { s: [0.9, 0.95, 1.2] }),
+      part(ball(0.045), coat, [0, 0.19, 0.06]),
+      part(box(0.014, 0.04, 0.045), '#e0302a', [0, 0.24, 0.06]),
+      part(box(0.012, 0.03, 0.016), '#e0302a', [0, 0.155, 0.098]),
+      part(cone(0.014, 0.04), '#f0b030', [0, 0.19, 0.115], { rx: Math.PI / 2 }),
+      ...eyes(0.03, 0.2, 0.085, 0.009),
+      part(box(0.05, 0.09, 0.05), coat, [0, 0.17, -0.09], { rx: -0.5 }),
+      part(box(0.012, 0.06, 0.012), '#f0b030', [-0.025, 0.03, 0]),
+      part(box(0.012, 0.06, 0.012), '#f0b030', [0.025, 0.03, 0]),
+    ),
+  },
+  hedgehog: {
+    gait: 'walk', speed: 0.12, roam: 1, rest: [2, 6], sound: 'rustle',
+    model: () => model(
+      part(ball(0.08), '#6a4a32', [0, 0.07, -0.01], { s: [1, 0.8, 1.2] }),
+      ...[[0, 1, 0], [0.5, 0.8, 0], [-0.5, 0.8, 0], [0, 0.8, -0.5], [0.4, 0.7, -0.5], [-0.4, 0.7, -0.5], [0.7, 0.4, -0.3], [-0.7, 0.4, -0.3],
+        [0, 0.5, -0.9], [0.3, 0.9, 0.3], [-0.3, 0.9, 0.3], [0.8, 0.4, 0.2], [-0.8, 0.4, 0.2], [0.35, 0.35, -0.85], [-0.35, 0.35, -0.85]]
+        .map((d) => spike(cone(0.022, 0.09), '#4a3424', [d[0] * 0.07, 0.08 + d[1] * 0.05, -0.02 + d[2] * 0.08], d)),
+      part(ball(0.04), '#d8b890', [0, 0.05, 0.09], { s: [0.9, 0.8, 1.2] }),
+      part(ball(0.013, 0), '#1a1410', [0, 0.05, 0.14]),
+      ...eyes(0.022, 0.07, 0.115, 0.008),
+    ),
+  },
+  camel: {
+    gait: 'walk', speed: 0.18, roam: 2.2, rest: [2, 7], sound: 'thud',
+    model: () => model(
+      part(ball(0.13), '#c89a62', [0, 0.5, 0], { s: [0.75, 0.7, 1.6] }),
+      part(ball(0.1), '#c89a62', [0, 0.62, 0.08], { s: [0.9, 1.1, 1] }),
+      part(ball(0.1), '#c89a62', [0, 0.62, -0.11], { s: [0.9, 1.1, 1] }),
+      ...legs('#b88a56', 0.05, 0.44, 0.06, 0.14),
+      part(box(0.07, 0.07, 0.26), '#c89a62', [0, 0.57, 0.28], { rx: -0.9 }),
+      part(box(0.09, 0.08, 0.17), '#c89a62', [0, 0.68, 0.4]),
+      part(box(0.07, 0.05, 0.04), '#a87a4a', [0, 0.66, 0.49]),
+      ...eyes(0.047, 0.7, 0.42),
+      part(box(0.02, 0.04, 0.02), '#a87a4a', [-0.035, 0.74, 0.35]),
+      part(box(0.02, 0.04, 0.02), '#a87a4a', [0.035, 0.74, 0.35]),
+      part(box(0.02, 0.16, 0.02), '#a87a4a', [0, 0.46, -0.21], { rx: 0.2 }),
+    ),
+  },
+  tortoise: {
+    gait: 'walk', speed: 0.04, roam: 0.8, rest: [4, 10], sound: 'pop',
+    model: () => model(
+      part(ball(0.13), '#5e6e34', [0, 0.06, 0], { s: [1, 0.75, 1.15] }),
+      ...[[0, 0.16, 0], [0.07, 0.13, 0.06], [-0.07, 0.13, 0.06], [0.07, 0.13, -0.06], [-0.07, 0.13, -0.06], [0, 0.12, 0.1], [0, 0.12, -0.1]]
+        .map(([x, y, z]) => part(ball(0.04, 0), '#8a9a4a', [x, y, z], { s: [1, 0.45, 1] })),
+      part(new THREE.CylinderGeometry(0.135, 0.14, 0.025, 10), '#4a4428', [0, 0.04, 0], { s: [1, 1, 1.15] }),
+      part(ball(0.042), '#9a9060', [0, 0.07, 0.18], { s: [0.9, 0.85, 1.2] }),
+      ...eyes(0.022, 0.085, 0.215, 0.008),
+      ...legs('#9a9060', 0.05, 0.05, 0.09, 0.09, 0.025),
+      part(cone(0.02, 0.05), '#9a9060', [0, 0.04, -0.17], { rx: -Math.PI / 2 }),
+    ),
+  },
+  monkey: {
+    gait: 'hop', speed: 0.8, hop: 0.12, roam: 1.6, rest: [0.8, 3], sound: 'chatter',
+    model: () => model(
+      part(ball(0.08), '#7a4a2a', [0, 0.15, 0], { s: [0.95, 1.15, 0.9] }),
+      part(ball(0.065), '#7a4a2a', [0, 0.28, 0.03]),
+      part(ball(0.045), '#e0b890', [0, 0.27, 0.075], { s: [1.1, 1, 0.6] }),
+      part(ball(0.026), '#e0b890', [-0.07, 0.29, 0.02], { s: [0.5, 1, 1] }),
+      part(ball(0.026), '#e0b890', [0.07, 0.29, 0.02], { s: [0.5, 1, 1] }),
+      ...eyes(0.02, 0.29, 0.1, 0.01),
+      part(box(0.03, 0.13, 0.03), '#7a4a2a', [-0.08, 0.12, 0.03], { rz: 0.2 }),
+      part(box(0.03, 0.13, 0.03), '#7a4a2a', [0.08, 0.12, 0.03], { rz: -0.2 }),
+      part(box(0.035, 0.08, 0.035), '#7a4a2a', [-0.04, 0.04, 0]),
+      part(box(0.035, 0.08, 0.035), '#7a4a2a', [0.04, 0.04, 0]),
+      part(box(0.02, 0.16, 0.02), '#7a4a2a', [0, 0.16, -0.1], { rx: -0.5 }),
+      part(new THREE.TorusGeometry(0.045, 0.011, 4, 10, Math.PI * 1.5), '#7a4a2a', [0, 0.28, -0.17], { ry: Math.PI / 2 }),
+    ),
+  },
+  peacock: {
+    gait: 'walk', speed: 0.18, roam: 1.4, rest: [2, 6], sound: 'squawk',
+    model: () => model(
+      part(ball(0.07), '#1e5aa8', [0, 0.16, 0.02], { s: [0.9, 1, 1.2] }),
+      part(box(0.035, 0.15, 0.035), '#1e5aa8', [0, 0.27, 0.07], { rx: 0.2 }),
+      part(ball(0.036), '#1e5aa8', [0, 0.35, 0.09]),
+      part(cone(0.012, 0.04), '#d8c8a0', [0, 0.345, 0.135], { rx: Math.PI / 2 }),
+      ...eyes(0.025, 0.36, 0.11, 0.007),
+      ...[-0.015, 0, 0.015].map((x) => part(box(0.005, 0.05, 0.005), '#2a8a5a', [x, 0.4, 0.08])),
+      ...[-0.015, 0, 0.015].map((x) => part(ball(0.011, 0), '#2a8a5a', [x, 0.43, 0.08])),
+      // The fan: an upright half-disc behind, with eyes on both faces.
+      part(new THREE.CylinderGeometry(0.32, 0.32, 0.012, 18, 1, false, Math.PI / 2 + 0.25, Math.PI - 0.5), '#2a8a5a', [0, 0.14, -0.08], { rx: Math.PI / 2 }),
+      ...[[0.27, [-1.2, -0.6, 0, 0.6, 1.2]], [0.16, [-0.9, -0.3, 0.3, 0.9]]].flatMap(([r, angles]) => angles.flatMap((a) =>
+        [-1, 1].flatMap((side) => [
+          part(ball(0.024, 0), '#e8c040', [r * Math.sin(a), 0.14 + r * Math.cos(a), -0.08 + side * 0.008], { s: [1, 1, 0.4] }),
+          part(ball(0.013, 0), '#1a3a8a', [r * Math.sin(a), 0.14 + r * Math.cos(a), -0.08 + side * 0.014], { s: [1, 1, 0.4] }),
+        ]))),
+      part(box(0.012, 0.1, 0.012), '#8a7a6a', [-0.025, 0.05, 0.02]),
+      part(box(0.012, 0.1, 0.012), '#8a7a6a', [0.025, 0.05, 0.02]),
+    ),
+  },
+  crow: {
+    gait: 'hop', speed: 0.6, hop: 0.05, roam: 1.4, rest: [0.6, 2.5], sound: 'caw',
+    model: () => model(
+      part(ball(0.06), '#1c1c22', [0, 0.1, 0], { s: [0.85, 0.9, 1.35] }),
+      part(ball(0.042), '#1c1c22', [0, 0.165, 0.07]),
+      part(cone(0.015, 0.065), '#2e2e36', [0, 0.16, 0.13], { rx: Math.PI / 2 }),
+      part(box(0.05, 0.015, 0.1), '#1c1c22', [0, 0.11, -0.1], { rx: 0.25 }),
+      part(box(0.015, 0.05, 0.11), '#26262e', [-0.05, 0.11, -0.01]),
+      part(box(0.015, 0.05, 0.11), '#26262e', [0.05, 0.11, -0.01]),
+      ...eyes(0.026, 0.175, 0.095, 0.007, '#d8d0b8'),
+      part(box(0.01, 0.05, 0.01), '#2e2e36', [-0.02, 0.025, 0]),
+      part(box(0.01, 0.05, 0.01), '#2e2e36', [0.02, 0.025, 0]),
+    ),
+  },
+  seal: {
+    gait: 'walk', waddle: true, speed: 0.1, roam: 1.2, rest: [3, 9], sound: 'arf',
+    model: (coat = '#8a9098') => model(
+      part(ball(0.11), coat, [0, 0.09, 0], { s: [1, 0.8, 1.7] }),
+      part(ball(0.07), coat, [0, 0.17, 0.15]),
+      part(ball(0.032), coat, [0, 0.155, 0.21], { s: [1.2, 0.8, 1] }),
+      part(ball(0.012, 0), '#1a1a1a', [0, 0.165, 0.24]),
+      ...eyes(0.03, 0.19, 0.2, 0.015),
+      part(box(0.09, 0.015, 0.05), coat, [-0.1, 0.03, 0.08], { rz: 0.3, ry: 0.4 }),
+      part(box(0.09, 0.015, 0.05), coat, [0.1, 0.03, 0.08], { rz: -0.3, ry: -0.4 }),
+      part(box(0.11, 0.012, 0.05), coat, [0, 0.02, -0.2]),
+    ),
+  },
+  flamingo: {
+    gait: 'walk', speed: 0.15, roam: 1.2, rest: [3, 8], sound: 'squawk',
+    model: () => model(
+      part(ball(0.075), '#f08aa0', [0, 0.42, 0], { s: [0.85, 0.8, 1.35] }),
+      part(box(0.035, 0.03, 0.07), '#e87890', [0, 0.4, -0.11]),
+      part(box(0.024, 0.15, 0.024), '#f08aa0', [0, 0.51, 0.07], { rx: -0.35 }),
+      part(box(0.024, 0.13, 0.024), '#f08aa0', [0, 0.63, 0.06], { rx: 0.4 }),
+      part(ball(0.032), '#f08aa0', [0, 0.7, 0.09]),
+      part(box(0.02, 0.02, 0.06), '#f4f0e8', [0, 0.69, 0.13], { rx: 0.5 }),
+      part(box(0.021, 0.021, 0.025), '#2a2422', [0, 0.67, 0.16], { rx: 0.9 }),
+      ...eyes(0.026, 0.71, 0.1, 0.007),
+      // On one leg, the other folded up.
+      part(box(0.013, 0.36, 0.013), '#e87890', [0, 0.18, 0]),
+      part(box(0.013, 0.12, 0.013), '#e87890', [0.02, 0.32, -0.03]),
+      part(box(0.013, 0.1, 0.013), '#e87890', [0.02, 0.28, 0.03], { rx: 1.2 }),
+    ),
+  },
+  unicorn: {
+    gait: 'walk', speed: 0.25, roam: 2.4, rest: [2, 6], sound: 'chime',
+    model: () => model(
+      part(box(0.16, 0.16, 0.36), '#f8f6fa', [0, 0.42, 0]),
+      ...legs('#f8f6fa', 0.045, 0.34, 0.055, 0.13),
+      ...legs('#e8c860', 0.05, 0.04, 0.055, 0.13),
+      part(box(0.08, 0.2, 0.09), '#f8f6fa', [0, 0.56, 0.17], { rx: 0.45 }),
+      part(box(0.08, 0.08, 0.17), '#f8f6fa', [0, 0.66, 0.26], { rx: 0.25 }),
+      part(cone(0.016, 0.14, 6), '#f0d060', [0, 0.76, 0.29], { rx: 0.5 }),
+      part(cone(0.014, 0.04), '#f8f6fa', [-0.03, 0.72, 0.22]),
+      part(cone(0.014, 0.04), '#f8f6fa', [0.03, 0.72, 0.22]),
+      ...eyes(0.042, 0.68, 0.29, 0.01),
+      ...[['#f6a8c8', 0.69, 0.18], ['#c8b0f4', 0.63, 0.14], ['#a8d8f4', 0.57, 0.1], ['#b8f0c8', 0.51, 0.07]].map(([c, y, z]) => part(ball(0.04, 0), c, [0, y, z])),
+      ...[['#f6a8c8', 0.46, -0.2], ['#c8b0f4', 0.39, -0.23], ['#a8d8f4', 0.32, -0.24]].map(([c, y, z]) => part(ball(0.04, 0), c, [0, y, z])),
+    ),
+  },
+  // Brass, with a key in its back.
+  mouse: {
+    gait: 'walk', speed: 0.5, roam: 1.4, rest: [0.6, 2.5], sound: 'tick', material: { metalness: 0.7, roughness: 0.35 },
+    model: () => model(
+      part(ball(0.06), '#c8a050', [0, 0.05, 0], { s: [0.9, 0.8, 1.4] }),
+      part(cone(0.035, 0.07, 6), '#c8a050', [0, 0.05, 0.1], { rx: Math.PI / 2 }),
+      part(ball(0.011, 0), '#2a2422', [0, 0.05, 0.14]),
+      ...eyes(0.025, 0.07, 0.08, 0.008),
+      part(new THREE.CylinderGeometry(0.03, 0.03, 0.008, 10), '#b08a40', [-0.035, 0.1, 0.05], { rx: Math.PI / 2 }),
+      part(new THREE.CylinderGeometry(0.03, 0.03, 0.008, 10), '#b08a40', [0.035, 0.1, 0.05], { rx: Math.PI / 2 }),
+      part(box(0.008, 0.05, 0.008), '#8a7a6a', [0, 0.11, -0.01]),
+      part(new THREE.TorusGeometry(0.022, 0.006, 4, 10), '#8a7a6a', [0, 0.15, -0.01]),
+      part(box(0.006, 0.006, 0.12), '#8a7a6a', [0, 0.03, -0.13]),
+    ),
+  },
+});
+
+// Su and Chel, the two legendary dogs: a curly little poodle cross, nose first (+z),
+// with floppy ears and a plumed tail. Su is a white and apricot cavapoo, Chel a
+// whole apricot cockapoo. Very rarely one of them turns up on a land (buildLife).
+function dog(kind) {
+  const su = kind === 'su';
+  const coat = su ? '#f6f1ea' : '#e2a062';
+  const ears = su ? '#e3a066' : '#c98245';
+  const dark = '#241c18';
+  const curls = [[0.07, 0.25, 0.06], [-0.07, 0.24, -0.05], [0.06, 0.22, -0.11], [-0.06, 0.27, 0.09], [0, 0.29, -0.08]]
+    .map(([x, y, z]) => part(ball(0.055, 0), coat, [x, y, z]));
+  return model(
+    part(ball(0.12), coat, [0, 0.21, 0], { s: [0.85, 0.8, 1.35] }),
+    ...curls,
+    part(ball(0.08), coat, [0, 0.23, 0.12]),
+    part(ball(0.085), coat, [0, 0.34, 0.19]),
+    part(ball(0.046), coat, [0, 0.315, 0.27], { s: [1, 0.8, 1.1] }),
+    part(ball(0.017, 0), dark, [0, 0.325, 0.315]),
+    part(ball(0.012, 0), dark, [-0.034, 0.36, 0.255]),
+    part(ball(0.012, 0), dark, [0.034, 0.36, 0.255]),
+    part(ball(0.046), ears, [-0.078, 0.3, 0.18], { s: [0.6, 1.55, 0.85] }),
+    part(ball(0.046), ears, [0.078, 0.3, 0.18], { s: [0.6, 1.55, 0.85] }),
+    // Su's apricot saddle and the patch round one eye.
+    ...(su ? [part(ball(0.075), ears, [0.02, 0.29, -0.04], { s: [1.1, 0.42, 1.25] }), part(ball(0.032), ears, [0.036, 0.37, 0.235])] : []),
+    ...legs(coat, 0.055, 0.15, 0.058, 0.09),
+    part(ball(0.045), su ? coat : ears, [0, 0.31, -0.17], { s: [0.8, 1.45, 0.8], rx: -0.6 }),
+  );
+}
+// The dogs are friendly: tapped, they bounce where they are instead of running off.
+CRITTERS.su = { gait: 'walk', speed: 0.55, roam: 3, rest: [0.6, 2.4], sound: 'woof', friendly: true, model: () => dog('su') };
+CRITTERS.chel = { gait: 'walk', speed: 0.55, roam: 3, rest: [0.6, 2.4], sound: 'woof', friendly: true, model: () => dog('chel') };
+export const CRITTER_KINDS = Object.keys(CRITTERS);
+// One animal on its own (Wa's balloon carries the dogs this way).
+export function critterModel(kind, coat) {
+  const mesh = new THREE.Mesh(CRITTERS[kind].model(coat), material(CRITTERS[kind].material));
+  mesh.castShadow = true;
+  return mesh;
+}
+
 // Who lives where (the older animals are below, in buildLife): [kind, fewest, most, coat].
+// New kinds go at the end of a list, so the ones before them keep their draws.
 const NEIGHBOURS = {
-  meadow: [['sheep', 2, 5]], blossom: [['squirrel', 1, 3]], autumn: [['squirrel', 3, 5]],
-  highlands: [['goat', 2, 4]], desert: [['lizard', 3, 5, '#c8a46a']], snowfield: [['penguin', 3, 6]],
-  heath: [['sheep', 3, 5]], lavender: [['sheep', 2, 4]], cloudisle: [['sheep', 3, 5, '#ffffff']],
-  stormcrag: [['goat', 2, 4]], terraces: [['goat', 1, 3]], ember: [['lizard', 2, 4, '#c8462a']],
-  savanna: [['giraffe', 2, 3], ['lizard', 1, 2, '#b89a5a']], mire: [['frog', 3, 6]],
-  jungle: [['frog', 3, 5, '#3ac85a']], toadstool: [['snail', 3, 5], ['frog', 1, 3]], bamboo: [['panda', 1, 3], ['frog', 2, 3]],
-  coral: [['crab', 4, 7]], giant: [['snail', 2, 4]],
+  meadow: [['sheep', 2, 5], ['cow', 1, 2]], blossom: [['squirrel', 1, 3], ['peacock', 1, 2]], autumn: [['squirrel', 3, 5], ['hedgehog', 1, 2]],
+  highlands: [['goat', 2, 4], ['alpaca', 1, 3]], desert: [['lizard', 3, 5, '#c8a46a'], ['camel', 1, 2]], snowfield: [['penguin', 3, 6], ['seal', 1, 3]],
+  dream: [['unicorn', 1, 2]],
+  heath: [['sheep', 3, 5], ['hedgehog', 1, 2]], lavender: [['sheep', 2, 4]], cloudisle: [['sheep', 3, 5, '#ffffff'], ['alpaca', 2, 3, '#ffffff']],
+  stormcrag: [['goat', 2, 4], ['crow', 1, 2]], terraces: [['goat', 1, 3], ['alpaca', 1, 2, '#a8784e'], ['hen', 2, 3]], ember: [['lizard', 2, 4, '#c8462a']],
+  savanna: [['giraffe', 2, 3], ['lizard', 1, 2, '#b89a5a'], ['tortoise', 1, 2]], mire: [['frog', 3, 6], ['tortoise', 1, 2]],
+  jungle: [['frog', 3, 5, '#3ac85a'], ['monkey', 2, 4]], toadstool: [['snail', 3, 5], ['frog', 1, 3]], bamboo: [['panda', 1, 3], ['frog', 2, 3]],
+  coral: [['crab', 4, 7], ['flamingo', 2, 3]], giant: [['snail', 2, 4], ['tortoise', 1, 1]],
+  gilded: [['peacock', 2, 3]], withered: [['crow', 3, 5]], wreck: [['crow', 2, 3]], icefall: [['seal', 2, 4, '#f2f2ee']],
+  whale: [['seal', 1, 2]], orchard: [['hen', 3, 5], ['hedgehog', 1, 2]], clockwork: [['mouse', 3, 5]],
+  maze: [['peacock', 1, 2]], sugar: [['unicorn', 1, 2]],
   ...Object.fromEntries(Object.entries(ISLANDS).map(([id, island]) => [id, island.neighbours ?? []])),
 };
 
@@ -621,7 +879,7 @@ const NEIGHBOURS = {
 function buildCritters({ kind, spots, shape, r, count, coat, sound, note }) {
   const spec = CRITTERS[kind];
   if (!count || spots.length < 8) return null;
-  const mesh = new THREE.InstancedMesh(spec.model(coat), material(), count);
+  const mesh = new THREE.InstancedMesh(spec.model(coat), material(spec.material), count);
   mesh.castShadow = true;
   mesh.frustumCulled = false;
   const crowd = Array.from({ length: count }, () => {
@@ -644,6 +902,14 @@ function buildCritters({ kind, spots, shape, r, count, coat, sound, note }) {
   mesh.userData.onClick = (hit) => {
     const c = crowd[hit.instanceId];
     if (!c) return;
+    if (spec.friendly) {
+      c.moving = false;
+      c.happy = 1.2;
+      c.rest = Math.max(c.rest, 1.6);
+      sound(spec.sound);
+      note(kind);
+      return;
+    }
     const away = Math.atan2(c.x - hit.point.x, c.z - hit.point.z) + (Math.random() - 0.5) * 0.8;
     go(c, c.x + Math.sin(away) * 1.4, c.z + Math.cos(away) * 1.4);
     c.flee = 1.4;
@@ -676,6 +942,11 @@ function buildCritters({ kind, spots, shape, r, count, coat, sound, note }) {
           if (spec.gait === 'hop') lift = Math.abs(Math.sin(c.phase * 0.5)) * spec.hop;
           else lift = Math.abs(Math.sin(c.phase)) * 0.012;
           if (spec.waddle) roll = Math.sin(c.phase) * 0.18;
+        } else if (c.happy > 0) {
+          // Bouncing on the spot, wagging all over.
+          c.happy -= dt;
+          lift = Math.abs(Math.sin(c.happy * 14)) * 0.06;
+          roll = Math.sin(c.happy * 24) * 0.12;
         } else if ((c.rest -= dt) <= 0) {
           const s = nearby(c);
           go(c, s.x, s.z);
@@ -692,7 +963,7 @@ function buildCritters({ kind, spots, shape, r, count, coat, sound, note }) {
   };
 }
 
-export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, fauna, water, waterLevel, sound, note }) {
+export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, fauna, dog: legend, dogs, water, waterLevel, sound, note }) {
   const group = new THREE.Group();
   const updaters = [], clickables = [];
   const add = (part) => {
@@ -731,6 +1002,8 @@ export function buildLife({ top, shape, biome, biomeKey, blocked, bursts, r, fau
   for (const [kind, fewest, most, coat] of NEIGHBOURS[biomeKey] ?? []) {
     add(buildCritters({ kind, spots, shape, r: fauna, count: fauna.int(fewest, most), coat, sound, note }));
   }
+  // And, very rarely, Su or Chel (world.js decides which, on its own stream).
+  if (legend) add(buildCritters({ kind: legend, spots, shape, r: dogs, count: 1, sound, note }));
 
   return {
     object: group,

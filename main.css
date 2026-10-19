@@ -964,6 +964,17 @@ body.is-day .hud-top .tier-epic {
   transition: width 1.2s ease;
 }
 
+/* Someone else on the way to the Edge (Ga, on her race). */
+.voyage-marker {
+  position: absolute;
+  top: 3px;
+  margin-left: -0.5em;
+  font-size: 0.8rem;
+  line-height: 1;
+  transition: left 1.2s ease;
+  pointer-events: auto;
+}
+
 /* The gates on the way. */
 .voyage-gate-mark {
   position: absolute;

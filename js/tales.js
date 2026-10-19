@@ -9,7 +9,7 @@
 // saying what happened (see `talesView` in voyage.js). Every line goes through
 // t() (i18n.js), so it can be read in Chinese too.
 import { t, lang } from './i18n.js';
-import { ISLANDS, BUILDINGS } from './packs/index.js';
+import { ISLANDS, BUILDINGS, OMENS as PACK_OMENS, ITEMS as PACK_ITEMS, KEEPSAKES as PACK_KEEPSAKES } from './packs/index.js';
 
 // --- Wa ---------------------------------------------------------------------------
 // You are Wa's grandchild. She called you Ca when you were three, and her
@@ -20,7 +20,7 @@ import { ISLANDS, BUILDINGS } from './packs/index.js';
 // for once; it ended with “If you go, don't come back” and “Then I won't”, and
 // neither of them said a word to the other again. The Hush that follows her is made
 // of words nobody said, and hers is the one at her heels: the Cloud Wall's page
-// says something followed her, Captain Odile tells you about the row, the Wind
+// says something followed her, Captain Ga tells you about the row, the Wind
 // Gate's page says what the Hush is and that it's hers, and at the Edge she says
 // it at last, with your words to say it with (the Hush had eaten hers: that's why
 // the balloon came home for words). Then home, where she and your mother say sorry
@@ -114,10 +114,10 @@ export const WA_MEMORIES = {
 
 // Wa's notes in the margin, shown the first time you learn a kind of word.
 export const WA_NOTES = {
-  winter: t('Cold makes you hungry. Your grandfather always packed two lunches.'),
+  winter: t('Cold makes you hungry. Your grandpa, Ha, always packed two lunches.'),
   sand: t('I lost my good hat in a desert. Hold on to yours.'),
   harvest: t('Autumn trees give fuel and nuts. I made jam once. It was terrible.'),
-  mountain: t('Highland pinecones burn for ages. Your grandfather hated them.'),
+  mountain: t('Highland pinecones burn for ages. Your grandpa, Ha, hated them.'),
   field: t('Meadows feed you. I used to nap in them.'),
   dream: t('Dream fruit sells for coins. It tastes of nothing, but it fills you up.'),
   volcano: t('Lava gives fuel, not fish. I learned that the hard way.'),
@@ -148,7 +148,7 @@ export const WA_NOTES = {
   dark: t('Dark places pay, but they bite. I still have the scar.'),
   music: t('The Hush hates singing. So I sang.'),
   unsaid: t('Say it while you still can. I didn’t.'),
-  friend: t('Say hello and someone comes along. That’s how I met your grandfather.'),
+  friend: t('Say hello and someone comes along. That’s how I met your grandpa, Ha.'),
   question: t('Ask the sky something. It always answers, but never the way you’d expect.'),
   fast: t('Fast words go further. Hold on to your hat.'),
   small: t('Tiny things weigh nothing. I once crossed a whole sea of cloud on ‘crumb’.'),
@@ -228,9 +228,9 @@ export const RIDDLES = {
 // One per voyage: a twist with a good side and a bad side.
 export const OMENS = {
   hungry: { name: t('a hungry sky'), line: t('Every flight eats one more food, but trees and water give one more food too.') },
-  vowels: { name: t('heavy vowels'), line: t('Every vowel after the first in a word costs an extra fuel, but you set out with eight more fuel.') },
+  vowels: { fromStart: true, name: t('heavy vowels'), line: t('Every vowel after the first in a word costs an extra fuel, but you set out with eight more fuel.') },
   gusty: { name: t('restless winds'), line: t('Wind words (breeze, gust, flight…) cost only a quarter of the fuel, but storms come twice as often.') },
-  gilded: { name: t('a gilded sky'), line: t('Every coin you find is doubled, but the balloon sets out with only four hearts.') },
+  gilded: { fromStart: true, name: t('a gilded sky'), line: t('Every coin you find is doubled, but the balloon sets out with only four hearts.') },
   long: { name: t('long days'), line: t('Four hours on every island instead of three, but the Hush, a silence that follows you once you pass the first gate, moves faster.') },
   short: { name: t('short breath'), line: t('The sky can’t hear words longer than eight letters, but words of four letters or fewer carry you a mile further.') },
   mirror: { name: t('a mirror sky'), line: t('A word that starts and ends with the same letter costs half the fuel, but every other word costs one more.') },
@@ -240,6 +240,8 @@ export const OMENS = {
   wander: { name: t('wanderlust'), line: t('Every kind of island new to this voyage tops up your burner (+2 🔥), but landing on a kind you’ve already been to this voyage costs an hour.') },
   lean: { name: t('a lean year'), line: t('The trees give less, but everything you buy costs a coin less.') },
   fullmoon: { name: t('a full-moon voyage'), line: t('A full moon lights every night, so the sky never mishears you in the dark; but the Hush hunts by moonlight, and gains twice as fast after dark.') },
+  // And the content packs' (packs/omens.js), which carry their own rules as hooks.
+  ...PACK_OMENS,
 };
 
 // --- Island traits --------------------------------------------------------------
@@ -269,6 +271,7 @@ export const ITEMS = {
   umbrella: { icon: '☂️', name: t('umbrella'), line: t('Your next take-off in a storm won’t tear the balloon.') },
   vane: { icon: '🐓', name: t('weathervane'), line: t('Fair skies on the next island.') },
   needle: { icon: '🪡', name: t('compass needle'), line: t('It points at the strange islands: the next island you reach is one of them.') },
+  ...PACK_ITEMS,
 };
 
 // --- Keepsakes ------------------------------------------------------------------
@@ -290,6 +293,7 @@ export const KEEPSAKES = {
   // Two that cut both ways.
   anchor: { icon: '⚓', name: t('golden anchor'), line: t('Every landing pays 2 coins, but every flight burns one more fuel.') },
   musicbox: { icon: '🎶', name: t('music box'), line: t('Every third flight its tune drives the Hush back 5 miles, but gulls follow the music and take a food.') },
+  ...PACK_KEEPSAKES,
 };
 
 // --- Passengers -----------------------------------------------------------------
@@ -331,6 +335,26 @@ export const CREW = {
 
 // --- Dares ----------------------------------------------------------------------
 // Something your next word has to do (saved as data: { id, letter }).
+// --- Su and Chel --------------------------------------------------------------------
+// Two legendary dogs. Now and then one turns up on a voyage island (and, very rarely,
+// on an ordinary land: a journal find). Tap her and she hops into the basket; from
+// then on she's waiting on the quay at the start of every voyage. Dogs sit at your
+// feet, so they take no seat and eat nothing. voyage.js does what `help` says, by id.
+export const DOGS = {
+  su: {
+    icon: '🐶', name: 'Su', kind: t('a white and apricot cavapoo'),
+    help: t('Su’s nose: on about half the islands she digs up a coin or a bite to eat, and she growls at the Hush, which falls back a mile each time you land.'),
+    meet: t('A white and apricot cavapoo comes bounding across the grass, ears flying, and sits down on your foot. The tag on her collar says SU. She looks at the balloon, then at you, as if it’s all been decided.'),
+    joined: t('Su hops into the basket, turns round three times and settles at your feet. She’ll be waiting on the quay for every voyage from now on.'),
+  },
+  chel: {
+    icon: '🐕', name: 'Chel', kind: t('an apricot cockapoo'),
+    help: t('Chel fetches: the first tree you shake on each island gives one more of what it gives most, and she curls up with you through a storm, so waiting one out takes an hour, not two.'),
+    meet: t('An apricot cockapoo trots up with a stick nearly as long as she is, and drops it at your feet. The tag on her collar says CHEL. You throw it; she brings it straight back to the balloon, and climbs into the basket after it.'),
+    joined: t('Chel settles in the basket with her stick, tail thumping. She’ll be waiting on the quay for every voyage from now on.'),
+  },
+};
+
 export const DARES = {
   pirates: {
     icon: '🏴‍☠️',
@@ -358,7 +382,7 @@ export const pickLetter = (r, avoid = []) => {
 // words drive it back.
 export const HUSH = {
   start: 10, // miles behind you when it comes through the wall
-  speed: 1.3, // miles an hour
+  speed: 1.5, // miles an hour (1.3 until the omens round: careful players outran it too easily)
   knock: 14, // how far back it falls after catching you
   light: 6, // how far a sunny, morning or evening word drives it back
   music: 5, // and a music word
@@ -403,16 +427,16 @@ export const SKY_EVENTS = [
     // High Winds: Wa's old rival, and why Wa left.
     id: 'odile', weight: 8, when: (g) => g.reach >= 1 && g.run.gates >= 1 && !g.found,
     title: t('a purple balloon'),
-    text: t('A patched purple balloon swings alongside. The old woman in its basket squints at yours. “That’s Wa’s! And you’ll be Ca, all grown up. You have her chin.” She sticks out a hand. “Captain Odile. Your grandmother beat me to every island in the Low Sky, the old goose.”'),
+    text: t('A patched purple balloon swings alongside. The old woman in its basket squints at yours. “That’s Wa’s! And you’ll be Ca, all grown up. You have her chin.” She sticks out a hand. “Captain Ga. Your grandmother beat me to every island in the Low Sky, the old goose.”'),
     options: [
       {
         label: t('ask why Wa never came back'),
-        act: () => t('Odile stops smiling. “Your mother grew up waving that balloon goodbye. The night before Wa flew for the Edge, she begged her to stay home, just once. Wa wouldn’t. Your mother said, ‘If you go, don’t come back,’ and Wa said, ‘Then I won’t.’ Then a door slammed, and there hasn’t been a word between them since. Twenty years.” She looks at the quiet behind you. “That’s when the Hush started.”'),
+        act: () => t('Ga stops smiling. “Your mother grew up waving that balloon goodbye. The night before Wa flew for the Edge, she begged her to stay home, just once. Wa wouldn’t. Your mother said, ‘If you go, don’t come back,’ and Wa said, ‘Then I won’t.’ Then a door slammed, and there hasn’t been a word between them since. Twenty years.” She looks at the quiet behind you. “That’s when the Hush started.”'),
       },
       {
         label: t('race her to the next cloud'), note: t('a gamble: +3 miles, or −2 🔥'),
         act: (g) => `${g.chance(0.5)
-          ? t('You win by a basket’s width, and Odile roars with laughter. {miles}', { miles: g.leagues(3) })
+          ? t('You win by a basket’s width, and Ga roars with laughter. {miles}', { miles: g.leagues(3) })
           : t('She wins easily. “Wa always said I cheat,” she shouts back. {got}', { got: g.give({ fuel: -2 }) })} ${t('Afterwards, over tea in her basket, she tells you why Wa never came home: your mother begged her to stay, just once, and it ended in a slammed door and twenty years without a word. “That’s when the Hush started.”')}`,
       },
     ],
@@ -589,12 +613,12 @@ export const SKY_EVENTS = [
   },
   // --- Stories that play out over the next few islands ---
   {
-    id: 'race', weight: 2, when: (g) => g.run.words.length >= 3 && !g.flag('race'),
+    id: 'race', weight: 2, when: (g) => g.run.words.length >= 3 && !g.flag('race') && g.run.omen !== 'ga',
     title: t('a race'),
     text: (g) => {
       const goal = g.goal(true);
       g.mark('raceGoal', goal);
-      return t('A patched purple balloon draws level: Captain Odile, grinning. “Race you to {island}!” she shouts. “First to land on one wins. Your grandmother always beat me. Let’s see about you.”', { island: goal.island });
+      return t('A patched purple balloon draws level: Captain Ga, grinning. “Race you to {island}!” she shouts. “First to land on one wins. Your grandmother always beat me. Let’s see about you.”', { island: goal.island });
     },
     options: (g) => [
       {

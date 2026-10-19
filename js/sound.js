@@ -159,6 +159,15 @@ export function createSoundscape() {
       if (kind === 'quack') [0, 0.17].forEach((delay) => tone({ frequency: 430, to: 300, duration: 0.12, level: 0.05, type: 'sawtooth', delay }));
       if (kind === 'thud') tone({ frequency: 160, to: 70, duration: 0.25, level: 0.12, type: 'triangle' });
       if (kind === 'baa') [0, 0.09, 0.18].forEach((delay) => tone({ frequency: 360, to: 330, duration: 0.1, level: 0.04, type: 'sawtooth', delay }));
+      if (kind === 'woof') [0, 0.16].forEach((delay) => tone({ frequency: 300, to: 180, duration: 0.09, level: 0.09, type: 'square', delay }));
+      if (kind === 'moo') tone({ frequency: 150, to: 105, duration: 0.7, level: 0.08, type: 'sawtooth' });
+      if (kind === 'hum') tone({ frequency: 280, to: 360, duration: 0.5, level: 0.07, type: 'triangle' });
+      if (kind === 'cluck') [0, 0.1, 0.2].forEach((delay) => tone({ frequency: 700, to: 500, duration: 0.05, level: 0.05, type: 'square', delay }));
+      if (kind === 'caw') [0, 0.3].forEach((delay) => tone({ frequency: 620, to: 470, duration: 0.18, level: 0.06, type: 'sawtooth', delay }));
+      if (kind === 'chatter') [0, 0.06, 0.12, 0.18, 0.24].forEach((delay) => tone({ frequency: 1100, to: 900, duration: 0.04, level: 0.04, type: 'square', delay }));
+      if (kind === 'squawk') tone({ frequency: 900, to: 600, duration: 0.25, level: 0.06, type: 'sawtooth' });
+      if (kind === 'arf') [0, 0.2].forEach((delay) => tone({ frequency: 420, to: 300, duration: 0.1, level: 0.07, type: 'square', delay }));
+      if (kind === 'tick') [0, 0.08, 0.16, 0.24].forEach((delay) => tone({ frequency: 2400, duration: 0.02, level: 0.05, type: 'square', delay }));
       if (kind === 'ribbit') [0, 0.11].forEach((delay) => tone({ frequency: 170, to: 260, duration: 0.07, level: 0.06, type: 'square', delay }));
     },
   };

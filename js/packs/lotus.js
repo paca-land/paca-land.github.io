@@ -296,7 +296,7 @@ export default {
     },
     species: [['willow', 4], ['round', 1], ['bamboo', 1], ['pine', 1]],
     grass: { density: 0.9 },
-    neighbours: [['frog', 2, 4]],
+    neighbours: [['frog', 2, 4], ['flamingo', 2, 3]],
     furniture: { plan, build },
     word: {
       id: 'koi', name: t('lotus and koi words call lotus gardens'),

@@ -1,10 +1,12 @@
 import * as THREE from 'three';
+import { critterModel } from './life.js';
 
 // Wa's balloon, which carries you on a voyage. It lives in the scene rather
 // than on a land, so it can cast off from one island, ride out the flight and
 // tie up at the next. It wears the voyage: a tear for every heart lost (gone
 // again once mended), a burner that burns low with the fuel, and a little
-// lamp on the basket for each lantern. Nobody is drawn in the basket: that's you.
+// lamp on the basket for each lantern. Nobody is drawn in the basket (that's you),
+// except Su and Chel, once they're aboard, with their noses over the rim.
 
 const TEAL = new THREE.Color('#2b7a8c'), CREAM = new THREE.Color('#f2e6c8'), GOLD = new THREE.Color('#e2ae48');
 // It never crosses an island: it travels on a ring outside every rim (the
@@ -115,6 +117,17 @@ export function createWaBalloon({ onTap } = {}) {
     return lamp;
   });
 
+  // The dogs, if they're aboard: standing on the basket floor, heads over the rim.
+  const dogs = { su: critterModel('su'), chel: critterModel('chel') };
+  dogs.su.position.set(-0.12, 0.13, 0.08);
+  dogs.chel.position.set(0.13, 0.13, 0.04);
+  dogs.chel.rotation.y = 0.5;
+  dogs.su.rotation.y = -0.3;
+  for (const dog of Object.values(dogs)) {
+    dog.visible = false;
+    rig.add(dog);
+  }
+
   // The rope that ties it to the island, and the stake it's tied to.
   const tether = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1, 4).translate(0, 0.5, 0), rope);
   const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.5, 5).translate(0, 0.25, 0), rim);
@@ -221,6 +234,11 @@ export function createWaBalloon({ onTap } = {}) {
         const lost = THREE.MathUtils.clamp(gear.maxHull - gear.hull, 0, tears.length);
         tears.forEach((tear, i) => (tear.visible = i < lost));
         lamps.forEach((lamp, i) => (lamp.visible = i < gear.lanterns));
+        for (const [id, dog] of Object.entries(dogs)) {
+          dog.visible = gear.dogs.includes(id);
+          // Looking about as the world goes by.
+          dog.rotation.y = (id === 'su' ? -0.3 : 0.5) + Math.sin(t * 0.7 + (id === 'su' ? 0 : 2)) * 0.5;
+        }
         // On its last heart, the envelope sags.
         sag += ((gear.hull <= 1 ? 0.9 : 1) - sag) * Math.min(1, dt * 2);
         envelope.scale.y = sag;

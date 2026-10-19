@@ -2000,8 +2000,13 @@ export function generateLand(seed, want = {}) {
 
   // Wildlife: birds, butterflies, bats and dragonflies in the air; rabbits and
   // deer on the ground; ducks and fish in the lake.
+  // One land in forty has a legendary dog on it, Su or Chel, from her own stream
+  // (so nothing else on the land moves); a voyage says whose island it is instead.
+  const dogs = makeRandom(seed, 'dogs');
+  const rolledDog = dogs() < 0.025 ? (dogs() < 0.5 ? 'su' : 'chel') : null;
+  const dog = want.dog === undefined ? rolledDog : want.dog;
   const life = buildLife({
-    top, shape, biome, biomeKey, blocked, bursts, r: makeRandom(seed, 'life'), fauna: makeRandom(seed, 'fauna'),
+    top, shape, biome, biomeKey, blocked, bursts, r: makeRandom(seed, 'life'), fauna: makeRandom(seed, 'fauna'), dog, dogs,
     water: water?.ripple ? water : null, waterLevel: WATER_LEVEL, sound: (kind) => hooks.sound(kind), note: (kind) => hooks.note(kind),
   });
   add(life);
@@ -2097,6 +2102,7 @@ export function generateLand(seed, want = {}) {
     hasLake: Boolean(shape.lake),
     hasWaterfall: Boolean(shape.river),
     hasBalloon: Boolean(balloon),
+    dog,
     mooring: pickMooring(shape, islets, landmark),
     // The hedge maze, for its ball game: its walls in the maze's own frame, the ground under it, and the fountain at its heart.
     maze: maze && { ...maze, ground: (x, z) => shape.heightAt(x, z), centre: [hedgeMaze.fountain, hedgeMaze.pool] },

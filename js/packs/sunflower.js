@@ -121,7 +121,7 @@ export default {
     },
     species: [['round', 2], ['oak', 2], ['poplar', 1]],
     grass: { density: 1, tip: '#d8c860' },
-    neighbours: [['sheep', 1, 3]],
+    neighbours: [['sheep', 1, 3], ['hen', 2, 3]],
     furniture: { plan, build },
     word: {
       id: 'sunflower', name: t('sunflower words call sunflower hills'),

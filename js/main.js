@@ -46,6 +46,7 @@ function adminLand(raw) {
     else if (part === 'falls' || part === 'waterfall' || part === 'river') Object.assign(out.want, { lake: true, river: true });
     else if (part === 'dry') Object.assign(out.want, { lake: false, river: false });
     else if (part === 'balloon') out.want.balloon = true;
+    else if (part === 'su' || part === 'chel') out.want.dog = part;
     else if (WEATHERS[part]) out.weather = part;
     else if (ADMIN_HOURS[part] !== undefined) out.hour = ADMIN_HOURS[part];
     else if (/^\d{1,2}(\.\d+)?$/.test(part)) out.hour = Number(part) % 24;
@@ -53,7 +54,7 @@ function adminLand(raw) {
   }
   return out;
 }
-const ADMIN_HELP = `admin · #${ADMIN}island/landmark/lake|falls|dry/balloon/weather/hour/word · islands: ${Object.keys(BIOMES).join(' ')} · landmarks: ${LANDMARK_TYPES.join(' ')} none · weather: ${Object.keys(WEATHERS).join(' ')} · hours: 0–23 or ${Object.keys(ADMIN_HOURS).join(' ')}`;
+const ADMIN_HELP = `admin · #${ADMIN}island/landmark/lake|falls|dry/balloon/su|chel/weather/hour/word · islands: ${Object.keys(BIOMES).join(' ')} · landmarks: ${LANDMARK_TYPES.join(' ')} none · weather: ${Object.keys(WEATHERS).join(' ')} · hours: 0–23 or ${Object.keys(ADMIN_HOURS).join(' ')}`;
 const $ = (sel) => document.querySelector(sel);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lowPower = matchMedia('(pointer: coarse)').matches;

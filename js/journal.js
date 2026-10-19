@@ -49,6 +49,18 @@ export const SECTIONS = [
     ['life:squirrel', '🐿️', 'squirrel', 'busy in the autumn woods'],
     ['life:lizard', '🦎', 'lizard', 'sunning itself on desert rock'],
     ['life:penguin', '🐧', 'penguin', 'waddling over the snow'],
+    ['life:cow', '🐄', 'cow', 'lying about in a meadow'],
+    ['life:alpaca', '🦙', 'alpaca', 'humming in the highlands'],
+    ['life:hedgehog', '🦔', 'hedgehog', 'under the leaves in the autumn woods'],
+    ['life:peacock', '🦚', 'peacock', 'showing off in a blossom vale'],
+    ['life:camel', '🐫', 'camel', 'crossing a desert mesa'],
+    ['life:seal', '🦭', 'seal', 'lolling about on a snowfield'],
+    ['life:unicorn', '🦄', 'unicorn', 'grazing in dreamland'],
+  ]],
+  // The two legendary dogs: about one land in eighty each.
+  ['legendary friends', [
+    ['life:su', '🐶', 'Su', 'a white and apricot cavapoo, very rarely'],
+    ['life:chel', '🐕', 'Chel', 'an apricot cockapoo, very rarely'],
   ]],
   ['curiosities', [
     ['odd:balloon', '🎈', 'hot-air balloon', 'about one land in seven'],
@@ -105,6 +117,12 @@ export const SECTIONS = [
     ['life:snail', '🐌', 'snail', 'in a toadstool wood, on a voyage'],
     ['life:giraffe', '🦒', 'giraffe', 'out on a savanna, on a voyage'],
     ['life:panda', '🐼', 'panda', 'in a bamboo grove, on a voyage'],
+    ['life:hen', '🐔', 'hen', 'on the tea terraces or an orchard isle, on a voyage'],
+    ['life:monkey', '🐒', 'monkey', 'in a jungle, on a voyage'],
+    ['life:tortoise', '🐢', 'tortoise', 'on a savanna or in the mire, on a voyage'],
+    ['life:crow', '🐦‍⬛', 'crow', 'in a withered wood or a balloon graveyard, on a voyage'],
+    ['life:flamingo', '🦩', 'flamingo', 'on a coral shoal or in a lotus garden, on a voyage'],
+    ['life:mouse', '🐭', 'clockwork mouse', 'on the clockwork isle, on a voyage'],
   ]],
 ];
 // Content packs' islands and buildings go in the voyage sections (packs/index.js).
@@ -116,7 +134,7 @@ for (const [title, kind, packs] of [['voyage islands', 'land', ISLANDS], ['voyag
 const ENTRIES = new Map(SECTIONS.flatMap(([, items]) => items.map((item) => [item[0], item])));
 // Voyage islands and animals are a bonus: Drift is behind a password, so the naturalist
 // badge asks only for what ordinary lands hold.
-const VOYAGE_ONLY = new Set(SECTIONS.filter(([title]) => title.startsWith('voyage ')).flatMap(([, items]) => items.map(([id]) => id)));
+const VOYAGE_ONLY = new Set(SECTIONS.filter(([title]) => title.startsWith('voyage ') || title === 'legendary friends').flatMap(([, items]) => items.map(([id]) => id)));
 
 // [id, emoji, name, what to do, counter, goal]
 export const BADGES = [
@@ -142,7 +160,7 @@ const NOTES = {
   fish: { find: 'life:fish' },
   bats: { find: 'life:bats' },
   fireflies: { find: 'life:fireflies' },
-  ...Object.fromEntries(['sheep', 'goat', 'squirrel', 'lizard', 'penguin', 'frog', 'crab', 'snail', 'giraffe', 'panda'].map((kind) => [kind, { find: `life:${kind}` }])),
+  ...Object.fromEntries(['sheep', 'goat', 'squirrel', 'lizard', 'penguin', 'frog', 'crab', 'snail', 'giraffe', 'panda', 'su', 'chel', 'alpaca', 'cow', 'hen', 'hedgehog', 'camel', 'tortoise', 'monkey', 'peacock', 'crow', 'seal', 'flamingo', 'unicorn', 'mouse'].map((kind) => [kind, { find: `life:${kind}` }])),
 };
 
 function load() {
@@ -358,19 +376,6 @@ export function createJournal({ button, panel, toasts, onGo }) {
     },
 
     restore() {
-      // Voyage islands reached before the journal listed them are in Wa's book (voyage.js).
-      let islands = {};
-      try {
-        islands = JSON.parse(localStorage.getItem('paca-language') ?? '{}').islands ?? {};
-      } catch {}
-      let added = false;
-      for (const [key, at] of Object.entries(islands)) {
-        const id = `land:${key}`;
-        if (!VOYAGE_ONLY.has(id) || data.found[id]) continue;
-        data.found[id] = { seed: null, at, voyage: true };
-        added = true;
-      }
-      if (added) save();
       if (data.news) button.classList.add('has-news');
     },
   };
