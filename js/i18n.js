@@ -2,7 +2,11 @@
 // English is the source: text is looked up by its English wording, with {name}
 // placeholders for the parts that change. A voyage's words stay English either
 // way; only what the page says changes. Switching saves the choice and reloads.
-import { ZH } from './zh.js';
+import { ZH as CORE } from './zh.js';
+import { PACK_ZH } from './packs/zh.js';
+
+// The core's Chinese and every content pack's (packs/zh.js).
+const ZH = { ...CORE, ...PACK_ZH };
 
 const KEY = 'paca-lang';
 const stored = (() => {

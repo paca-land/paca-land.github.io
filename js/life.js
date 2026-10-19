@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ISLANDS } from './packs/index.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Wildlife. Every species is one or a few instanced meshes; bodies and wings
@@ -613,6 +614,7 @@ const NEIGHBOURS = {
   savanna: [['giraffe', 2, 3], ['lizard', 1, 2, '#b89a5a']], mire: [['frog', 3, 6]],
   jungle: [['frog', 3, 5, '#3ac85a']], toadstool: [['snail', 3, 5], ['frog', 1, 3]], bamboo: [['panda', 1, 3], ['frog', 2, 3]],
   coral: [['crab', 4, 7]], giant: [['snail', 2, 4]],
+  ...Object.fromEntries(Object.entries(ISLANDS).map(([id, island]) => [id, island.neighbours ?? []])),
 };
 
 // One kind of creature, wandering between nearby spots.

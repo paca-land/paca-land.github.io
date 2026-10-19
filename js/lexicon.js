@@ -9,6 +9,7 @@
 // "snowdrift" is wintry and "brainstorm" brings a storm. Each meaning has a
 // name for the language book and a line the sky says when you arrive.
 import { t } from './i18n.js';
+import { ISLANDS, BUILDINGS } from './packs/index.js';
 
 const MEANINGS_SPEC = [
   // --- Lands --------------------------------------------------------------
@@ -22,13 +23,13 @@ const MEANINGS_SPEC = [
     'autumn autumnal fall harvest leaf leaves maple october november september pumpkin cider acorn squirrel red crimson scarlet orange amber copper chestnut hazelnut walnut nut apple pear sweater cardigan russet auburn gourd squash scarecrow crow raven woodland forest woods wood oak beech birch fern thanksgiving halloween conker fig plum grape vineyard wine vintage cranberry foliage rustle crunch hayride',
     'autumn harvest maple pumpkin orchard acorn squirrel'],
   ['bloom', 'flower and love words call blossom vales', 'Pink petals everywhere, even in your hair.', { biome: 'blossom' },
-    'blossom bloom cherry sakura petal spring springtime flower floral rose tulip lily orchid peony lilac jasmine lotus camellia magnolia wisteria hydrangea poppy iris violet daffodil bluebell primrose love lover lovely kiss heart valentine romance romantic wedding bride darling sweetheart blush pink rosy peach garden perfume nectar bee butterfly april may easter nest songbird robin poem poetry sonnet tender silk silken lace ribbon japan kyoto kimono bouquet pollen',
+    'blossom bloom cherry sakura petal spring springtime flower floral rose tulip lily orchid peony lilac jasmine camellia magnolia wisteria hydrangea poppy iris violet daffodil bluebell primrose love lover lovely kiss heart valentine romance romantic wedding bride darling sweetheart blush pink rosy peach garden perfume nectar bee butterfly april may easter nest songbird robin poem poetry sonnet tender silk silken lace ribbon japan kyoto kimono bouquet pollen',
     'blossom bloom flower petal cherry sakura garden'],
   ['mountain', 'mountain words call the highlands', 'Pines climb toward a snowy peak.', { biome: 'highlands' },
     'mountain peak summit highland alpine alps pine pinecone ridge cliff eagle falcon hawk glen loch scotland scottish kilt bagpipe granite boulder rock rocky slate fjord yak sherpa everest himalaya tibet andes goat ibex marmot climb climber trek valley gorge ravine thistle wolf avalanche tartan whisky highlander altitude vista',
     'mountain summit alpine highland cliff'],
   ['field', 'field words call meadows', 'Grass ripples all the way to the edge.', { biome: 'meadow' },
-    'meadow field grass grassy farm farmer farmyard cow cattle sheep lamb pony horse foal picnic clover daisy dandelion buttercup pasture hay haystack barn summer june july august bunny rabbit hare cricket grasshopper countryside shepherd dairy milk lark hedge hedgerow tractor plough plow sunflower wildflower green verdant pastoral acre goose hen chicken piglet pig',
+    'meadow field grass grassy farm farmer farmyard cow cattle sheep lamb pony horse foal picnic clover daisy dandelion buttercup pasture hay haystack barn summer june july august bunny rabbit hare cricket grasshopper countryside shepherd dairy milk lark hedge hedgerow tractor plough plow wildflower green verdant pastoral acre goose hen chicken piglet pig',
     'meadow pasture grass'],
   ['dream', 'starry, dreamy words call dreamlands', 'Purple grass, glowing crystals, and trees the colour of mint.', { biome: 'dream' },
     'dream dreamy dreamer sleep sleepy slumber lullaby star starry starlight galaxy cosmic cosmos nebula comet planet universe wish fairy unicorn pegasus dragon myth mythic legend spirit soul velvet wonder wonderland imagine imagination fantasy illusion kaleidoscope glitter sparkle twinkle constellation constellations oracle tarot zodiac astral ether elysium nirvana paradise heaven angel halo celestial iridescent pastel neverland moonbeam stardust daydream reverie whimsy whimsical lucid',
@@ -36,7 +37,7 @@ const MEANINGS_SPEC = [
 
   // Islands only a voyage reaches (see BIOMES in world.js).
   ['volcano', 'volcano words call ember isles', 'Lava glows in the cracks, and the ground is warm underfoot.', { biome: 'ember' },
-    'volcano volcanic lava magma molten cinder cinders obsidian basalt sulfur sulphur brimstone eruption erupt crater caldera pumice scorch smoulder smolder geyser vulcan pompeii hellfire',
+    'volcano volcanic lava magma molten cinder cinders obsidian basalt sulfur sulphur brimstone eruption erupt crater caldera pumice scorch smoulder smolder vulcan pompeii hellfire',
     'volcan lava magma molten erupt'],
   ['glass', 'glass words call glass isles', 'Trees of glass ring like bells whenever the wind blows.', { biome: 'glass' },
     'glass crystal crystals quartz prism mirror silver opal amethyst translucent transparent shimmer shimmering glint chandelier bauble geode lens window iridescent pane fragile',
@@ -51,8 +52,8 @@ const MEANINGS_SPEC = [
     'mushroom mushrooms toadstool toadstools fungus fungi fungal mould mold spore spores truffle morel chanterelle puffball mycelium moss mossy lichen gnome pixie sprite goblin hobbit burrow',
     'mushroom toadstool fung spore'],
   ['crag', 'wild, lonely words call storm crags', 'Wind howls over bare rock, and the pines all lean one way.', { biome: 'stormcrag' },
-    'crag craggy bluff spire pinnacle precipice tor scree windswept howl howling desolate barren bleak lonely lonesome stark heights eyrie',
-    'crag pinnacle precipice windswept'],
+    'crag craggy bluff precipice tor scree windswept howl howling desolate barren bleak lonely lonesome stark heights eyrie',
+    'crag precipice windswept'],
   ['jungle', 'jungle words call jungles', 'Vines hang from every branch, and the warm air drips.', { biome: 'jungle' },
     'jungle jungles rainforest canopy vine vines liana monkey monkeys gorilla tiger jaguar panther toucan sloth amazon congo borneo humid steamy orangutan chimpanzee',
     'jungl rainforest'],
@@ -104,7 +105,7 @@ const MEANINGS_SPEC = [
   ['eye', 'whirling words call storm’s eyes', 'Walls of storm turn all around you, but here in the middle it’s perfectly still.', { biome: 'stormeye' },
     'vortex vortices maelstrom eddy eddies whirlpool whirlpools spiral spirals swirl swirling eye',
     'vortex maelstrom whirlpool'],
-  ['orchard', 'orchard words call orchard isles', 'Row after row of fruit trees in blossom, and a bee in every one.', { biome: 'orchard' },
+  ['orchard', 'orchard words call orchard isles', 'Row after row of apple trees, heavy with fruit, and windfalls in the grass.', { biome: 'orchard' },
     'orchard orchards apricot apricots quince quinces greengage greengages damson damsons',
     'orchard apricot'],
   ['giant', 'giant words call giants’ gardens', 'The flowers here are taller than you are, and a snail the size of a cat is crossing the path.', { biome: 'giant' },
@@ -137,7 +138,7 @@ const MEANINGS_SPEC = [
     'stone stones druid henge stonehenge rune ritual solstice equinox menhir monolith megalith totem pagan celtic viking oath ancestor elder standing sacred rite chant drum tribe tribal omen prophecy',
     'stone druid ritual monolith'],
   ['magic', 'magic words summon wizards', 'A crooked tower leans against the sky.', { landmark: 'wizard' },
-    'wizard mage magi magic magical spell tower potion alchemy alchemist sorcerer sorcery warlock witch wand staff merlin enchant enchanted enchantment hex arcane grimoire familiar cauldron broom broomstick robe conjure charm trick riddle scroll tome spellbook apprentice library book books',
+    'wizard mage magi magic magical spell tower potion alchemy alchemist sorcerer sorcery warlock witch wand staff merlin enchant enchanted enchantment hex arcane grimoire familiar cauldron broom broomstick robe conjure charm trick riddle scroll tome spellbook apprentice book books',
     'wizard magic sorcer enchant alchem potion'],
   ['calm', 'calm words find shrines', 'A bell rings once, somewhere quiet.', { landmark: 'shrine' },
     'shrine zen torii prayer pray monk peace peaceful calm tranquil tranquility serene serenity quiet tea bamboo koi bell gong incense meditate meditation buddha karma harmony balance haiku blessing gratitude mindful stillness hush patience pilgrim pilgrimage temple bonsai origami',
@@ -257,6 +258,12 @@ const HOURS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, ei
 export const MEANINGS = MEANINGS_SPEC.map(([id, name, line, effect, words, roots]) => ({
   id, name: t(name), line: t(line), effect, words: new Set(words.split(' ')), roots: roots.split(' '),
 }));
+// Content packs' words (packs/index.js), after the old ones, so an old meaning
+// keeps a word both lists claim. (Their names and lines are translated already.)
+for (const [id, pack, key] of [...Object.entries(ISLANDS).map(([id, p]) => [id, p, 'biome']), ...Object.entries(BUILDINGS).map(([id, p]) => [id, p, 'landmark'])]) {
+  const { word } = pack;
+  MEANINGS.push({ id: word.id, name: word.name, line: word.line, effect: { [key]: id }, words: new Set(word.words.split(' ')), roots: word.roots.split(' ') });
+}
 MEANINGS.push({
   id: 'clock', name: t('numbers from one to twelve set the hour you arrive'), line: t('Somewhere a clock strikes, and you arrive right on the hour.'), effect: {}, words: new Set(Object.keys(HOURS)), roots: [],
 });

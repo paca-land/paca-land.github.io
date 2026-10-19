@@ -9,6 +9,7 @@
 // saying what happened (see `talesView` in voyage.js). Every line goes through
 // t() (i18n.js), so it can be read in Chinese too.
 import { t, lang } from './i18n.js';
+import { ISLANDS, BUILDINGS } from './packs/index.js';
 
 // --- Wa ---------------------------------------------------------------------------
 // You are Wa's grandchild. She called you Ca when you were three, and her
@@ -174,6 +175,7 @@ export const WA_NOTES = {
   icefall: t('It never gets light there. Take a lantern, and don’t expect firewood.'),
   eye: t('In the eye of the storm you can rest. Getting out is the hard part.'),
   orchard: t('Fill your basket at the orchard. You’ll be glad of it higher up.'),
+  ...Object.fromEntries([...Object.values(ISLANDS), ...Object.values(BUILDINGS)].map((p) => [p.word.id, p.note])),
 };
 
 // --- Reaches and gates --------------------------------------------------------
@@ -193,6 +195,8 @@ export const REACHES = [
     islands: [['glass', 3], ['ember', 3], ['moon', 3], ['cloudisle', 2], ['gilded', 2], ['stormcrag', 1], ['icefall', 2], ['stormeye', 1]], chance: 0.65,
   },
 ];
+// Content packs' islands join the reaches they name ([reach, weight], packs/*.js).
+for (const [id, island] of Object.entries(ISLANDS)) for (const [reach, weight] of island.reach) REACHES[reach].islands.push([id, weight]);
 export const reachOf = (miles) => REACHES.reduce((at, reach, i) => (miles >= reach.at ? i : at), 0);
 
 // Each gate lets through only a word that answers its riddle (one per voyage,

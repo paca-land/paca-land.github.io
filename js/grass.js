@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ISLANDS } from './packs/index.js';
 
 const TAU = Math.PI * 2;
 
@@ -33,6 +34,7 @@ const STYLES = {
   cloudisle: { density: 0.6, tip: '#ffffff' },
   withered: { density: 0.5, tip: '#8a8070' },
   sugar: { density: 0.7, tip: '#ffffff' },
+  ...Object.fromEntries(Object.entries(ISLANDS).map(([id, island]) => [id, island.grass ?? { density: 0.8 }])),
 };
 const MAX_BLADES = 16000;
 

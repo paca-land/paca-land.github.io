@@ -1074,7 +1074,7 @@ export const ZH = {
   "whirling words call storm’s eyes": "和漩涡有关的词会召来风暴眼",
   "Walls of storm turn all around you, but here in the middle it’s perfectly still.": "风暴的墙在你四周旋转，可这正中间一丝风也没有。",
   "orchard words call orchard isles": "和果园有关的词会召来果园岛",
-  "Row after row of fruit trees in blossom, and a bee in every one.": "一排又一排开满花的果树，每棵树上都有一只蜜蜂。",
+  "Row after row of apple trees, heavy with fruit, and windfalls in the grass.": "一排又一排开满花的果树，每棵树上都有一只蜜蜂。",
   "inn words find inns": "和客栈有关的词能找到客栈",
   "Warm light spills out of an inn, and someone inside is laughing.": "暖暖的灯光从一家客栈里透出来，里面有人在笑。",
   "fortune-telling words find fortune tellers": "和算命有关的词能找到算命人",

@@ -13,6 +13,7 @@
 // `ask` is how the chapter is offered on the building's card. Every line goes
 // through t() (i18n.js).
 import { t } from './i18n.js';
+import { BUILDINGS } from './packs/index.js';
 
 export const ARCS = {
   cabin: {
@@ -879,3 +880,6 @@ export const ARCS = {
     ],
   },
 };
+// Content packs' buildings tell their stories the same way (packs/*.js).
+for (const [id, building] of Object.entries(BUILDINGS)) ARCS[id] = building.arc;
+

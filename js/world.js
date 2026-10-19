@@ -12,6 +12,7 @@ import {
   makeMaterials, updateMaterials, buildLandmark, planPath, buildLanterns, planFields,
   buildDock, buildProps, buildLightPools, buildBalloon,
 } from './landmarks.js';
+import { ISLANDS, BUILDINGS, DRESSINGS } from './packs/index.js';
 
 const TAU = Math.PI * 2;
 const RADIUS = 10;
@@ -411,13 +412,20 @@ export const BIOMES = {
     grass: ['#6aa84a', '#8cc060'], dirt: '#7a5a3a', rock: ['#8a8070', '#6a6258'], sand: '#e0d0a0',
     hills: 1.6, peak: 1.0,
     water: { color: '#4aa0d0', opacity: 0.84 }, lake: 0.8, river: 0.5,
-    flora: { kind: 'round', count: 70, groves: -0.2, colors: ['#4a9a3a', '#5aaa45', '#f0b8c8', '#ffffff', '#3f8a34'] },
+    // Most of its trees stand in the rows of fruit trees (packs/orchard.js); these are the strays.
+    flora: { kind: 'round', count: 14, groves: -0.2, colors: ['#4a9a3a', '#5aaa45', '#f0b8c8', '#ffffff', '#3f8a34'] },
     tufts: ['#ffffff', '#ffd84a', '#ff86b0'],
     landmark: [['windmill', 3], ['inn', 2], ['village', 2], ['cabin', 1]], path: '#b8996a',
     weather: [['clear', 4], ['cloudy', 2], ['rain', 1]],
     ambient: ['petals'],
   },
 };
+// Content packs' islands (packs/index.js): voyage-only, whatever the pack says, so
+// free lands never roll one. Their buildings stand only on voyage-only islands.
+for (const [id, island] of Object.entries(ISLANDS)) BIOMES[id] = { ...island.biome, weight: 0 };
+for (const [id, building] of Object.entries(BUILDINGS)) {
+  for (const [home, weight] of building.homes) if (BIOMES[home] && !BIOMES[home].weight) BIOMES[home].landmark.push([id, weight]);
+}
 
 const SNOW = new THREE.Color('#f4f7fb');
 
@@ -518,11 +526,12 @@ function makeShape(seed, biome, want = {}) {
   if (want.lake ?? rollLake) {
     // Keep water away from the mountain so they don't fight for space.
     const a = peakAngle + Math.PI + r.range(-0.8, 0.8);
-    const size = r.weighted([[r.range(0.9, 1.4), 2], [r.range(1.5, 2.3), 3], [r.range(2.4, 3.1), 2]]);
+    // (An island that's all about its pond can ask for a big one: `bigLake`, after the same dice.)
+    const size = Math.max(r.weighted([[r.range(0.9, 1.4), 2], [r.range(1.5, 2.3), 3], [r.range(2.4, 3.1), 2]]), biome.bigLake ?? 0);
     lake = makePool(0, 0, size, r.range(0.5, 0.95), WATER_LEVEL);
     // The whole lake stays well inside the coast.
     const room = RADIUS * edgeScale(a) * 0.8;
-    lake.radius = Math.min(lake.radius, (room * 0.55) / (extent(lake) / lake.radius));
+    lake.radius = Math.min(lake.radius, (room * (biome.bigLake ? 0.72 : 0.55)) / (extent(lake) / lake.radius));
     const d = Math.max(0, Math.min(r.range(0.2, 0.36) * RADIUS * edgeScale(a), room - extent(lake)));
     lake.x = Math.cos(a) * d;
     lake.z = Math.sin(a) * d;
@@ -1243,6 +1252,7 @@ const TREE_SPECIES = {
   icefall: [['fir', 3], ['pine', 2], ['crystal', 1], ['dead', 1]],
   stormeye: [['round', 3], ['oak', 2], ['bush', 1]],
   orchard: [['round', 4], ['oak', 1], ['bush', 1]],
+  ...Object.fromEntries(Object.entries(ISLANDS).map(([id, island]) => [id, island.species])),
 };
 // How high each crown sits, for leaves shaken loose.
 const CROWN_TOP = {
@@ -1482,6 +1492,9 @@ function speciesColors(kind, biome, biomeKey) {
   if (own) return own.map((h) => new THREE.Color(h));
   return base;
 }
+
+// What a pack island's furniture gets to build with (packs/*.js).
+const FURNITURE_LIB = { THREE, mergeGeometries, shadeByHeight, ico, flat, smoothstep, sendGust, TAU };
 
 // Candidate ground spots: real mesh vertices, so nothing ever floats.
 function groundSpots(top, r) {
@@ -1889,6 +1902,9 @@ export function generateLand(seed, want = {}) {
   // main.js fills these in, so taps can make a noise and the journal hears
   // about what you did and saw (`note('tree')`, `note('bats')`…).
   const hooks = { sound() {}, note() {} };
+  const local = (hit) => group.worldToLocal(hit.point.clone());
+  let now = 0;
+  const clock = () => now;
 
   // The landmark and what surrounds it come first, so trees and paint can make room.
   const mats = makeMaterials(biomeKey);
@@ -1918,11 +1934,19 @@ export function generateLand(seed, want = {}) {
   // No path or field through the hedges.
   if (maze && path?.pts.some((p) => maze.inside(p.x, p.z, 0.4))) path = null;
   if (maze && fields) fields = null;
-  const blocked = (x, z) =>
+  const taken = (x, z) =>
     Boolean((landmark && Math.hypot(x - landmark.spot.x, z - landmark.spot.z) < landmark.radius)
       || (path && path.distTo(x, z) < 0.55)
       || (fields && fields.blocked(x, z))
       || (maze && maze.inside(x, z, 0.35)));
+  // A pack island (or an older voyage-only island a pack dresses) lays out its own
+  // furniture now (packs/*.js), so the trees make room for it.
+  const furnish = ISLANDS[biomeKey]?.furniture ?? (biome.weight ? null : DRESSINGS[biomeKey]);
+  const plan = furnish?.plan?.({
+    shape, top, biome, landmark, path, taken, waterLevel: WATER_LEVEL, lib: FURNITURE_LIB,
+    r: makeRandom(seed, 'furniture'), spots: groundSpots(top, makeRandom(seed, 'furniture spots')),
+  }) ?? null;
+  const blocked = (x, z) => taken(x, z) || Boolean(plan?.blocked?.(x, z));
 
   const fr = makeRandom(seed, 'flora');
   // A town island (the Harbour) is mostly town: fewer trees, only there.
@@ -1965,6 +1989,11 @@ export function generateLand(seed, want = {}) {
   add(islets);
   for (const kind of biome.ambient) add(buildAmbient(kind, top, shape, makeRandom(seed, `ambient:${kind}`)));
   add(buildGroundMist(top, shape, makeRandom(seed, 'mist')));
+  const furniture = furnish?.build({
+    plan, shape, top, biome, biomeKey, trees, landmark, mats, hooks, bursts, clock, local, blocked,
+    waterLevel: WATER_LEVEL, lib: FURNITURE_LIB, r: makeRandom(seed, 'furniture build'),
+  }) ?? null;
+  add(furniture);
   const rollBalloon = xr.chance(0.15);
   const balloon = (want.balloon ?? rollBalloon) ? buildBalloon(xr, mats) : null;
   add(balloon);
@@ -1979,9 +2008,6 @@ export function generateLand(seed, want = {}) {
   const fish = life.fish;
 
   // --- Things to tap ---
-  const local = (hit) => group.worldToLocal(hit.point.clone());
-  let now = 0;
-  const clock = () => now;
   ground.userData.onClick = (hit) => {
     const at = local(hit);
     if (hit.face.normal.y > 0.35) {
@@ -2055,7 +2081,7 @@ export function generateLand(seed, want = {}) {
   }
   // The maze's fountain starts the ball game (mazeball.js, via main.js).
   if (hedgeMaze) hedgeMaze.fountain.userData.onClick = () => hooks.play?.('maze');
-  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables].filter(Boolean);
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables, ...(furniture?.clickables ?? [])].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {
@@ -2086,7 +2112,7 @@ export function generateLand(seed, want = {}) {
     // For lake reflections: the water itself, its height, and what to leave out
     // of the mirrored pass (small things that barely show but cost a lot twice).
     water: water?.ripple ? water.mesh : null,
-    mirrorHide: [water?.mesh, grass?.object, details.object, life.object, garden.object, bursts.object].filter(Boolean),
+    mirrorHide: [water?.mesh, grass?.object, details.object, life.object, garden.object, bursts.object, ...(furniture?.mirrorHide ?? [])].filter(Boolean),
     waterLevel() {
       return water.mesh.localToWorld(new THREE.Vector3(0, WATER_LEVEL, 0)).y;
     },

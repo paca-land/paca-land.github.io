@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { softDot } from './sky.js';
+import { BUILDINGS } from './packs/index.js';
 
 const TAU = Math.PI * 2;
 
@@ -1037,6 +1038,11 @@ function addSmoke(group, at) {
   };
 }
 
+// Content packs' buildings (packs/index.js), built like the ones above.
+for (const [id, building] of Object.entries(BUILDINGS)) LANDMARKS[id] = { find: building.find, build: building.build };
+// What a pack's building gets to build with, besides the kit (see Kit and house above).
+const LIB = { THREE, box, cyl, cone, ball, gable, house, Kit, ROOFS, TAU };
+
 // Every kind there is (for the owner's #! links, main.js).
 export const LANDMARK_TYPES = Object.keys(LANDMARKS);
 
@@ -1047,7 +1053,10 @@ export function buildLandmark(type, ctx) {
   const yaw = ctx.r.range(0, TAU);
   const place = makePlace(spot, yaw, ctx.shape, def.find.radius);
   const kit = new Kit(ctx.mats);
-  const meta = def.build(kit, ctx, place);
+  // (A pack's building also learns which way is out to sea, for a pier.)
+  const out = Math.hypot(spot.x, spot.z) > 1e-6 ? [spot.x / Math.hypot(spot.x, spot.z), spot.z / Math.hypot(spot.x, spot.z)] : [1, 0];
+  const outward = [out[0] * Math.cos(yaw) - out[1] * Math.sin(yaw), out[0] * Math.sin(yaw) + out[1] * Math.cos(yaw)];
+  const meta = def.build(kit, ctx, place, { ...LIB, spot, yaw, outward, addSmoke });
   const group = kit.build();
   for (const extra of meta.extras ?? []) group.add(extra);
   group.position.set(spot.x, place.base, spot.z);

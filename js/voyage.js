@@ -6,6 +6,7 @@ import {
   STORY, WA_NOTES, REACHES, reachOf, GATES, RIDDLES, OMENS, KEEPSAKES, CREW, DARES, TREASURE_WORDS, HUSH, SKY_EVENTS, aLetter, TRAITS, ITEMS,
 } from './tales.js';
 import { ARCS } from './stories.js';
+import { ISLANDS, BUILDINGS as PACK_BUILDINGS } from './packs/index.js';
 
 // A voyage to the Edge of the Sky: every destination is a word you type (see
 // lexicon.js for how the sky reads it). On each land you have a few hours to
@@ -49,6 +50,7 @@ const TREES = {
   moon: [{ glimmer: 1, food: 1 }, t('moon dust and silverberries')], maze: [{ food: 2 }, t('hedge berries')], giant: [{ food: 3 }, t('a giant seed')],
   wreck: [{ fuel: 2 }, t('salvaged canvas and rope')], birds: [{ food: 2 }, t('eggs from the nests')], whale: [{ food: 2 }, t('barnacles and kelp')],
   icefall: [{ food: 1 }, t('frozen berries')], stormeye: [{ fuel: 1, food: 1 }, t('storm-snapped branches and nuts')], orchard: [{ food: 3 }, t('apples and pears')],
+  ...Object.fromEntries(Object.entries(ISLANDS).map(([id, island]) => [id, island.trees])),
 };
 // The first time you meet each kind of creature on an island, it has a coin for you.
 const THANKS = {
@@ -73,6 +75,7 @@ const LANDMARK_LABEL = {
   inn: t('an inn'), fortune: t('a fortune teller’s tent'), shipwright: t('a shipwright’s yard'), bathhouse: t('a bathhouse'), clocktower: t('a clock tower'),
   edge: t('Wa’s stone'),
   town: t('the town'),
+  ...Object.fromEntries(Object.entries(PACK_BUILDINGS).map(([id, b]) => [id, b.label])),
 };
 // The buildings the book's atlas counts (the town is home, so it isn't one to find).
 const BUILDINGS = Object.keys(LANDMARK_LABEL).filter((id) => id !== 'town');
@@ -93,7 +96,10 @@ const PLACE_MILES = {
   home: [-1, t('home is never far')], town: [-1, t('towns sit close together')], field: [-1, t('just over the hill')],
 };
 // The air you leave from: open, windy islands push you on; close, heavy air holds you back.
-const AIR_MILES = { whale: 3, stormcrag: 2, highlands: 1, cloudisle: 1, heath: 1, savanna: 1, ember: 1, mire: -1, jungle: -1, toadstool: -1 };
+const AIR_MILES = {
+  whale: 3, stormcrag: 2, highlands: 1, cloudisle: 1, heath: 1, savanna: 1, ember: 1, mire: -1, jungle: -1, toadstool: -1,
+  ...Object.fromEntries(Object.entries(ISLANDS).filter(([, island]) => island.air).map(([id, island]) => [id, island.air])),
+};
 const COLON = lang === 'zh' ? '：' : ': ';
 
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
@@ -375,6 +381,9 @@ const EVENTS = {
     };
   },
 };
+// Content packs' buildings (packs/*.js): their cards get the helpers the cards above use.
+const PACK_LIB = { friend, offer, MAX, cap, uncap, miles, hoursOf, KEEPSAKES, ITEMS, CREW, SECRETS };
+for (const [id, b] of Object.entries(PACK_BUILDINGS)) EVENTS[id] = (r, book, g, seen) => b.event(r, book, g, seen, PACK_LIB);
 
 // What's in a parcel at the post office: mostly something useful from home.
 function parcelOf(n) {
@@ -852,7 +861,7 @@ export function createVoyage(api) {
   // Hours of sleep "until morning": to the next 7:00, and at least one.
   const sleepHours = () => Math.max(1, ((7 - run.hours) % 24 + 24) % 24);
   const stayHours = () => STAY + (has('hourglass') ? 1 : 0) + (run.omen === 'long' ? 1 : 0);
-  const cold = () => ['snowfield', 'glass', 'icefall'].includes(run.here?.biome) || (env?.snowCover ?? 0) > 0.5 || reachOf(run.leagues) === 2;
+  const cold = () => ['snowfield', 'glass', 'icefall'].includes(run.here?.biome) || Boolean(BIOMES[run.here?.biome]?.cold) || (env?.snowCover ?? 0) > 0.5 || reachOf(run.leagues) === 2;
   const stormy = () => run.here?.weather === 'storm' && !run.waited && !has('stormglass');
   const dark = () => (env?.night ?? 0) > 0.5;
   const nightHour = (h) => h >= 20.5 || h < 5.5;
@@ -908,6 +917,9 @@ export function createVoyage(api) {
     if (run.here?.trait === 'windswept') parts.push([2, TRAITS.windswept.name]);
     if (run.flags.sandbag) parts.push([3, ITEMS.sandbag.name]);
     if (run.omen === 'short' && reading.word.length <= 4) parts.push([1, OMENS.short.name]);
+    // A pack island's own pull on a hop (packs/*.js): [miles, why], or nothing.
+    const own = run.here && ISLANDS[run.here.biome]?.hop?.(reading, talesView());
+    if (own) parts.push(own);
     return { n: Math.max(1, reading.leagues + parts.reduce((sum, [k]) => sum + k, 0)), parts };
   }
   const leaguesOf = (reading) => hopOf(reading).n;
@@ -1379,6 +1391,8 @@ export function createVoyage(api) {
           const rest = gainText(give({ hull: 1 }));
           lines.push(`🌀 ${rest ? t('The storm’s eye is calm and still, and you rest: {got}. Leaving will mean flying through the storm.', { got: rest }) : t('The storm’s eye is calm and still. Leaving will mean flying through the storm.')}`);
         }
+        // A pack island's welcome, and anything a pack's building has waiting for you (packs/*.js).
+        for (const line of [ISLANDS[land.biomeKey]?.arrive?.(g, land), ...Object.values(PACK_BUILDINGS).map((b) => b.arrive?.(g, land))]) if (line) lines.push(line);
         lines.push(...storyLines(land));
       }
       // A kind of island or building new to your book: the islanders fill your burner.
@@ -1662,6 +1676,14 @@ export function createVoyage(api) {
   function note(kind) {
     if (!active || state !== 'land') return;
     const here = run.here;
+    // Something only a pack island has to tap (a geyser, a jellyfish): its own rules, no hour spent.
+    const own = ISLANDS[here.biome]?.taps?.[kind];
+    if (own) {
+      pending = own(talesView()) || null;
+      hud();
+      save();
+      return;
+    }
     if (THANKS[kind]) {
       if (run.met.includes(kind)) return;
       run.met.push(kind);
@@ -1693,6 +1715,8 @@ export function createVoyage(api) {
       [gain, what] = kind === 'splash' ? [{ food: 2 + ((env?.rain ?? 0) > 0.5 ? 1 : 0) }, t('a fish')] : [{ food: 2 }, t('ice fishing')];
       if (has('net')) gain.food += 2;
     }
+    // A pack island's way with its trees and water (packs/*.js) can change what they give.
+    what = ISLANDS[here.biome]?.gather?.(kind, gain, talesView(), what) ?? what;
     if (run.omen === 'hungry' && !lava) gain.food = (gain.food ?? 0) + 1;
     if (kind === 'tree' && here.trait === 'fruitful') gain.food = (gain.food ?? 0) + 1;
     if (kind !== 'tree' && here.trait === 'driftwood') gain.fuel = (gain.fuel ?? 0) + 1;
@@ -1836,6 +1860,11 @@ export function createVoyage(api) {
     }
     if (o.mapHalf) toast('🗺️', treasureMap().replace('🗺️ ', ''));
     if (o.item) toast(ITEMS[o.item].icon, giveItem(o.item));
+    // An offer with its own doing (a content pack's building): it says what happened.
+    if (o.act) {
+      const said = o.act(talesView());
+      if (said) toast(o.icon ?? '✨', said);
+    }
     if (o.dice) {
       if (has('coin') || Math.random() < 0.5) toast('🎲', t('you win at dice: {got}', { got: gainText(give({ glimmer: 5 })) }));
       else toast('🎲', t('you lose at dice: {got}', { got: gainText(give({ glimmer: -3 })) }));
@@ -2208,7 +2237,8 @@ export function createVoyage(api) {
   // What the sky makes of a word, in words: only the kinds of words you've learned,
   // and the form rules you've found. Anything else just stirs.
   function heardOf(reading) {
-    const known = reading.meanings.filter((m) => book.meanings[m.id]);
+    // (A glass lens from the glassworks names every kind of word for a few islands.)
+    const known = reading.meanings.filter((m) => book.meanings[m.id] || run.flags.lens > 0);
     const e = {};
     for (const m of known) for (const [k, v] of Object.entries(m.effect)) if (e[k] === undefined) e[k] = v;
     if (known.some((m) => m.id === 'clock')) e.hour = reading.effect.hour;
@@ -2483,7 +2513,7 @@ export function createVoyage(api) {
     if (lingering) parts.push(el('span', '', t('the Edge of the Sky')), chip(lingering === 'wa' ? t('⛵ fly Wa home') : t('⛵ fly home'), end));
     else if (state === 'flying') parts.push(el('span', '', t('flying…')));
     else if (state === 'land' || state === 'event') {
-      const taps = [t('trees'), run.here?.lake && t('water'), LANDMARK_LABEL[run.here?.landmark]].filter(Boolean);
+      const taps = [t('trees'), run.here?.lake && t('water'), ISLANDS[run.here?.biome]?.tapLabel, LANDMARK_LABEL[run.here?.landmark]].filter(Boolean);
       parts.push(el('span', '', run.stay > 0
         ? t('{hours} here · tap {where}', { hours: hoursOf(run.stay), where: orList(taps) })
         : t('time to go · type a word to fly on')));
@@ -2497,6 +2527,12 @@ export function createVoyage(api) {
       if (run.flags.fray && state === 'land') parts.push(chip(t('🪢 mend the rope · 1 hour'), mendRope));
       if (run.pack.length && state === 'land') parts.push(chip(`🎒 ${run.pack.map((id) => ITEMS[id].icon).join('')}`, openPack));
       if (TRAITS[run.here?.trait]) parts.push(el('span', 'status-gate', `${TRAITS[run.here.trait].icon} ${TRAITS[run.here.trait].name}`));
+      // What a content pack is keeping track of for you (a seedling, a lens).
+      const g = talesView();
+      for (const p of [ISLANDS[run.here?.biome], ...Object.values(PACK_BUILDINGS)]) {
+        const line = p?.status?.(g);
+        if (line) parts.push(el('span', 'status-gate', line));
+      }
       if (run.flags.front) parts.push(el('span', 'status-gate', `⛈️ ${t('storm front {miles} behind', { miles: miles(Math.max(0, Math.round(run.leagues - run.flags.front.at))) })}`));
       if (run.fuel < 3 + surcharge() && !run.freeLetter && !run.freeNext) {
         const fatal = 1 + leavingHarm() - (aboard('balloonist') ? 1 : 0) >= run.hull;
@@ -2594,8 +2630,10 @@ export function createVoyage(api) {
       const here = run.here;
       const r = makeRandom(here.word, 'voyage');
       const moonPhase = here.moon ?? (run.omen === 'fullmoon' ? 0.5 : r());
-      here.weather ??= rollWeather(r, land.biomeKey);
-      return { hours: land.biomeKey === 'icefall' ? 23 : run.hours, moonPhase, weather: here.weather };
+      // (A pack island can keep its own hour or weather: the lantern market is always at dusk.)
+      const own = ISLANDS[land.biomeKey]?.vibe;
+      here.weather ??= own?.weather ?? rollWeather(r, land.biomeKey);
+      return { hours: land.biomeKey === 'icefall' ? 23 : own?.hours ?? run.hours, moonPhase, weather: here.weather };
     },
     // Pick the saved voyage back up (after switching language); false if there's none.
     pickUp() {

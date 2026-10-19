@@ -993,7 +993,7 @@ function renderFrame() {
   document.body.classList.toggle('in-flight', Boolean(leaving) || rise < 0);
 
   // Aurora needs a cold place: a snowy or high land, fresh snow, or a freezing night at home.
-  sky.setCold(['snowfield', 'highlands', 'icefall'].includes(land.biomeKey) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
+  sky.setCold(['snowfield', 'highlands', 'icefall'].includes(land.biomeKey) || Boolean(land.biome.cold) || env.snowCover > 0.5 || (isHome() && live?.temperature < 1) || voyage.finale);
   sky.setShower(voyage.finale);
   updateIntro(dt);
   updateFocus(t);

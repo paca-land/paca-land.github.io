@@ -2,6 +2,7 @@
 // things you keep doing. It lives in this browser's localStorage; nothing
 // leaves the page. Names are kept in English here and translated when shown.
 import { t, lang } from './i18n.js';
+import { ISLANDS, BUILDINGS } from './packs/index.js';
 
 const KEY = 'paca-journal';
 const COLON = lang === 'zh' ? '：' : ': ';
@@ -106,6 +107,12 @@ export const SECTIONS = [
     ['life:panda', '🐼', 'panda', 'in a bamboo grove, on a voyage'],
   ]],
 ];
+// Content packs' islands and buildings go in the voyage sections (packs/index.js).
+for (const [title, kind, packs] of [['voyage islands', 'land', ISLANDS], ['voyage landmarks', 'landmark', BUILDINGS]]) {
+  const items = SECTIONS.find(([name]) => name === title)[1];
+  const at = kind === 'landmark' ? items.findIndex(([id]) => id === 'landmark:edge') : items.length;
+  items.splice(at, 0, ...Object.entries(packs).map(([id, p]) => [`${kind}:${id}`, ...p.journal]));
+}
 const ENTRIES = new Map(SECTIONS.flatMap(([, items]) => items.map((item) => [item[0], item])));
 // Voyage islands and animals are a bonus: Drift is behind a password, so the naturalist
 // badge asks only for what ordinary lands hold.
