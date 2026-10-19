@@ -1,0 +1,108 @@
+<!doctype html>
+<!-- mview: every wandering animal side by side, for checking their models.
+     mview.html?only=cow,alpaca narrows it down; tap a name to show or hide it. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mview · PaCaLand</title>
+  <style>
+    body { margin: 0; background: #b8d8ec; font: 12px system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; }
+    .tag { position: absolute; transform: translate(-50%, 0); color: #233; background: #fff9; padding: 1px 5px; border-radius: 4px; pointer-events: none; white-space: nowrap; }
+    #kinds { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+    #kinds button { font: inherit; border: 0; border-radius: 10px; padding: 2px 8px; background: #fff; color: #233; cursor: pointer; }
+    #kinds button.off { background: #fff5; color: #2337; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+<div id="kinds"></div>
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { CRITTER_KINDS, critterModel } from './js/life.js';
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+  document.body.append(renderer.domElement);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight('#dfefff', '#6a7a4a', 1.4));
+  const sun = new THREE.DirectionalLight('#fff4e0', 2.2);
+  sun.position.set(3, 6, 4);
+  sun.castShadow = true;
+  Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 });
+  scene.add(sun);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: '#8ab860' }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  // Which kinds are out: ?only=cow,alpaca, or all of them.
+  const only = new URLSearchParams(location.search).get('only')?.split(',');
+  const shown = new Set(CRITTER_KINDS.filter((k) => !only || only.includes(k)));
+  let models = [];
+  function layout() {
+    for (const [mesh, tag] of models) {
+      scene.remove(mesh);
+      tag.remove();
+    }
+    const kinds = CRITTER_KINDS.filter((k) => shown.has(k));
+    const cols = Math.max(1, Math.ceil(Math.sqrt(kinds.length)));
+    models = kinds.map((kind, i) => {
+      const mesh = critterModel(kind);
+      mesh.position.set((i % cols - (cols - 1) / 2) * 0.9, 0, (Math.floor(i / cols) - (Math.ceil(kinds.length / cols) - 1) / 2) * 0.9);
+      mesh.rotation.y = 0.5;
+      scene.add(mesh);
+      const tag = Object.assign(document.createElement('div'), { className: 'tag', textContent: kind });
+      document.body.append(tag);
+      return [mesh, tag];
+    });
+    camera.position.set(0, cols * 0.9 + 0.4, cols * 1.3 + 0.6);
+    controls.target.set(0, 0.3, 0);
+    history.replaceState(null, '', shown.size === CRITTER_KINDS.length ? location.pathname : `?only=${kinds.join(',')}`);
+  }
+  for (const kind of CRITTER_KINDS) {
+    const chip = Object.assign(document.createElement('button'), { textContent: kind });
+    chip.classList.toggle('off', !shown.has(kind));
+    chip.onclick = () => {
+      if (shown.has(kind)) shown.delete(kind);
+      else shown.add(kind);
+      chip.classList.toggle('off', !shown.has(kind));
+      layout();
+    };
+    document.querySelector('#kinds').append(chip);
+  }
+  layout();
+
+  function resize() {
+    renderer.setSize(innerWidth, innerHeight);
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize);
+  resize();
+  const v = new THREE.Vector3();
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    renderer.render(scene, camera);
+    for (const [mesh, tag] of models) {
+      v.copy(mesh.position).project(camera);
+      tag.style.left = `${(v.x + 1) / 2 * innerWidth}px`;
+      tag.style.top = `${(1 - v.y) / 2 * innerHeight + 4}px`;
+    }
+  });
+  // From the console: view(x, y, z) moves the camera, looking at (tx, ty, tz).
+  window.view = (x, y, z, tx = 0, ty = 0.3, tz = 0) => {
+    camera.position.set(x, y, z);
+    controls.target.set(tx, ty, tz);
+  };
+</script>
+</body>
+</html>
