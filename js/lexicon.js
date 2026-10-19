@@ -317,7 +317,8 @@ export const clean = (raw) => raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
 // Everything the sky makes of a word, given the voyage so far:
 // { word, problem, real, leagues, fuel, meanings, effect, rules, wonder, secret, echoOf }.
 // `leagues` is the distance, shown as miles; `problem` is 'empty' or what to tell you.
-export function readWord(raw, { used = [], last = null } = {}) {
+// `muted`: kinds of words that mean nothing to the sky right now (the Hoarder has them).
+export function readWord(raw, { used = [], last = null, muted = [] } = {}) {
   const word = clean(raw);
   const reading = { word, problem: null, leagues: word.length, fuel: word.length, meanings: [], effect: {}, rules: [], wonder: 0, secret: null, echoOf: null };
   if (!word) return { ...reading, problem: 'empty' };
@@ -330,7 +331,7 @@ export function readWord(raw, { used = [], last = null } = {}) {
 
   // Meanings, first come first served per kind of effect.
   const effect = {};
-  for (const m of meaningsOf(word)) {
+  for (const m of meaningsOf(word).filter((m) => !muted.includes(m.id))) {
     for (const [key, value] of Object.entries(m.effect)) {
       if (effect[key] === undefined) effect[key] = value;
     }

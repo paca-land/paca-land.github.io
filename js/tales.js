@@ -171,15 +171,15 @@ export const WA_NOTES = {
 export const REACHES = [
   {
     at: 0, name: t('the Low Sky'), line: '',
-    islands: [['coral', 1], ['toadstool', 1], ['mire', 1], ['lavender', 1], ['heath', 1], ['sugar', 1], ['savanna', 1], ['terraces', 1], ['maze', 1], ['giant', 1]], chance: 0.22,
+    islands: [['coral', 1], ['toadstool', 1], ['mire', 1], ['lavender', 1], ['heath', 1], ['sugar', 1], ['savanna', 1], ['terraces', 1], ['maze', 1], ['giant', 1]], chance: 0.3,
   },
   {
     at: 30, name: t('the High Winds'), line: t('You’ve climbed into the High Winds, and the basket sways. Storms come more often up here, and the islands get stranger.'),
-    islands: [['stormcrag', 3], ['jungle', 2], ['withered', 2], ['bamboo', 2], ['clockwork', 2], ['paper', 2], ['mire', 1], ['toadstool', 1], ['savanna', 1], ['heath', 1]], chance: 0.45,
+    islands: [['stormcrag', 3], ['jungle', 2], ['withered', 2], ['bamboo', 2], ['clockwork', 2], ['paper', 2], ['mire', 1], ['toadstool', 1], ['savanna', 1], ['heath', 1]], chance: 0.5,
   },
   {
     at: 65, name: t('the Thin Air'), line: t('You’ve reached the Thin Air. It’s cold enough to see your breath, so every flight up here eats one more food. The islands turn strange: glass, fire, cloud and gold.'),
-    islands: [['glass', 3], ['ember', 3], ['moon', 3], ['cloudisle', 2], ['gilded', 2], ['stormcrag', 1]], chance: 0.6,
+    islands: [['glass', 3], ['ember', 3], ['moon', 3], ['cloudisle', 2], ['gilded', 2], ['stormcrag', 1]], chance: 0.65,
   },
 ];
 export const reachOf = (miles) => REACHES.reduce((at, reach, i) => (miles >= reach.at ? i : at), 0);
@@ -424,6 +424,97 @@ export const SKY_EVENTS = [
         { label: t('fight them off'), note: t('a gamble: +6 🪙, or −1 ❤️'), act: () => (g.chance(0.5) ? t('They flee, dropping their loot. {got}', { got: g.give({ glimmer: 6 }) }) : t('They swarm aboard, and cut a rope before they go. {hurt}', { hurt: g.hurt(1) })) },
       ];
     },
+  },
+  // --- Trouble that stays with you: each bites over several islands unless you deal with it ---
+  {
+    id: 'leak', weight: 3, when: (g) => g.reach >= 1 && !g.flag('leak'),
+    title: t('a leak in the burner'), text: t('A seam on the burner splits with a pop, and it starts to hiss.'),
+    options: [
+      { label: t('mend it properly'), note: '−4 🪙', disabled: (g) => g.run.glimmer < 4, act: (g) => t('A passing tinker sells you a proper patch, and the hissing stops. {got}', { got: g.give({ glimmer: -4 }) }) },
+      {
+        label: t('bind it with rope'), note: t('a gamble: it holds, or it leaks after all'),
+        act: (g) => {
+          if (g.chance(0.5)) return t('You bind it tight, and it holds.');
+          g.mark('leak', true);
+          return t('The rope slips in the heat, and the hiss comes back. Every flight burns 1 more 🔥 until a village, a campsite or a balloon workshop mends it.');
+        },
+      },
+      {
+        label: t('fly on and mend it later'), note: t('every flight burns 1 more 🔥 until a village, a campsite or a balloon workshop mends it'),
+        act: (g) => { g.mark('leak', true); return t('You keep one ear on the hiss, and fly on.'); },
+      },
+    ],
+  },
+  {
+    id: 'shadow', weight: 3, when: (g) => g.reach >= 1 && !g.flag('shadow'),
+    title: t('a black balloon behind you'), text: t('A patched black balloon falls in behind you, close enough to see the crew grinning. Sky pirates, and in no hurry at all.'),
+    options: [
+      { label: t('pay them to go away'), note: '−8 🪙', disabled: (g) => g.run.glimmer < 8, act: (g) => t('They take the coins, salute, and turn away. {got}', { got: g.give({ glimmer: -8 }) }) },
+      {
+        label: t('turn and fight'), note: t('a gamble: they flee, or −1 ❤️ and they follow'),
+        act: (g) => {
+          if (g.chance(0.5)) return t('You charge them with the burner roaring, and they scatter.');
+          g.mark('shadow', 3);
+          return t('They cut a rope and fall in behind you again, laughing. {hurt}', { hurt: g.hurt(1) });
+        },
+      },
+      {
+        label: t('let them follow'), note: t('for 3 islands they take 3 🪙 (or 2 🍞) each time you land; a word of 9 letters or more loses them'),
+        act: (g) => { g.mark('shadow', 3); return t('They follow at a lazy distance. You’ll need a long word to lose them.'); },
+      },
+    ],
+  },
+  {
+    id: 'fray', weight: 3, when: (g) => g.reach >= 1 && !g.flag('fray'),
+    title: t('a fraying rope'), text: t('One of the ropes that holds the basket is fraying, strand by strand.'),
+    options: [
+      { label: t('splice it now'), note: t('two hours pass'), act: (g) => t('You splice it in mid-air, slowly and carefully. {hours}', { hours: g.hours(2) }) },
+      {
+        label: t('mend it on the island'), note: t('an hour on this island, or −1 ❤️ when you take off'),
+        act: (g) => { g.mark('fray', true); return t('You tie it off for now. Mend it before you leave, or it will snap.'); },
+      },
+    ],
+  },
+  // The Hoarder keeps words in jars and never says any of them: he bottles a kind
+  // of word you've been using (lexicon.js `muted`), and in the Thin Air you can
+  // steal it back from his basket.
+  {
+    id: 'hoarder', weight: 3, when: (g) => g.reach >= 1 && !g.flag('hoarded') && g.run.seen.length >= 2,
+    title: t('the Hoarder'),
+    text: (g) => {
+      g.mark('hoard', g.run.seen[Math.floor(Math.random() * g.run.seen.length)]);
+      return t('A thin man in a long coat sails up in a basket stacked with jars. Every jar holds a word, and not one of them has ever been said out loud. “Lovely,” he says, peering at Wa’s book. “I’ll have those.” He taps a page: {words}.', { words: g.examples(g.flag('hoard')) });
+    },
+    options: (g) => [
+      {
+        label: t('let him take them'), note: t('words like {words} mean nothing to the sky for the rest of this voyage', { words: g.examples(g.flag('hoard')) }),
+        act: () => { g.mark('hoarded', g.flag('hoard')); return t('He uncorks a jar, and the words fly into it. He corks it and sails off, humming.'); },
+      },
+      { label: t('buy him off'), note: '−8 🪙', disabled: g.run.glimmer < 8, act: () => t('He sighs, and takes the coins instead. {got}', { got: g.give({ glimmer: -8 }) }) },
+      {
+        label: t('ask him to say one out loud'), note: t('a gamble: he flees, or he takes them anyway, and 3 🪙'),
+        act: () => {
+          if (g.chance(0.5)) return t('He opens his mouth. Nothing comes out. He goes red to the ears, and sails off without a word.');
+          g.mark('hoarded', g.flag('hoard'));
+          return t('He laughs, bottles them anyway, and takes a few coins for your cheek. {got}', { got: g.give({ glimmer: -3 }) });
+        },
+      },
+    ],
+  },
+  {
+    id: 'jars', weight: 8, when: (g) => Boolean(g.flag('hoarded')) && g.reach === 2,
+    title: t('the Hoarder’s basket'), text: t('You spot the Hoarder’s basket moored to a cloud. He’s fast asleep among his jars, snoring.'),
+    options: [
+      {
+        label: t('creep aboard and take your words back'), note: t('a gamble: your words back and some of his coins, or −1 ❤️'),
+        act: (g) => {
+          if (!g.chance(0.6)) return t('A jar rolls off the edge and smashes. He wakes up roaring, and you only just get away. {hurt}', { hurt: g.hurt(1) });
+          g.mark('hoarded', null);
+          return t('You find your jar and uncork it, and your words fly home to the book. You take a few of his coins too, for the trouble. {got}', { got: g.give({ glimmer: 4 }) });
+        },
+      },
+      { label: t('leave him sleeping'), act: () => t('You let him snore. The words will have to wait for another voyage.') },
+    ],
   },
   {
     id: 'star', weight: 2, when: (g) => g.night,

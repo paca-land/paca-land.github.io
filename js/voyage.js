@@ -22,9 +22,10 @@ const PASSWORD = 'family';
 const GOAL = 100; // miles to the Edge of the Sky (the last gate); the code calls them leagues
 const STAY = 3; // hours to spend on each land
 const START = { fuel: 14, food: 6, hull: 5, glimmer: 0, lanterns: 1 };
-const MAX = { fuel: 30, food: 12, hull: 5, lanterns: 3 };
+const MAX = { fuel: 30, food: 10, hull: 5, lanterns: 3 };
 const ICON = { fuel: '🔥', food: '🍞', hull: '❤️', glimmer: '🪙', lanterns: '🏮' };
 const ROOM = 2; // passengers in the basket at once
+const KEEP = 3; // keepsakes you can carry at once
 const SKY_EVENT_CHANCE = 0.45; // that something happens on the way
 const LIGHT = ['sun', 'dawn', 'golden']; // meanings that drive the Hush back
 
@@ -32,16 +33,16 @@ const LIGHT = ['sun', 'dawn', 'golden']; // meanings that drive the Hush back
 const TREES = {
   meadow: [{ food: 2 }, t('fruit')], blossom: [{ food: 1, glimmer: 1 }, t('honey')], autumn: [{ fuel: 2, food: 1 }, t('kindling and nuts')],
   highlands: [{ fuel: 3 }, t('pinecones')], snowfield: [{ fuel: 2 }, t('pinecones')], desert: [{ food: 1, glimmer: 1 }, t('cactus fruit')],
-  dream: [{ glimmer: 2, food: 1 }, t('starfruit')],
+  dream: [{ glimmer: 1, food: 1 }, t('starfruit')],
   mire: [{ food: 1, fuel: 1 }, t('bog myrtle and peat')], coral: [{ food: 2, glimmer: 1 }, t('sea grapes')],
   toadstool: [{ food: 2, glimmer: 1 }, t('mushrooms')], stormcrag: [{ fuel: 2 }, t('wind-dried wood')],
-  glass: [{ glimmer: 3 }, t('glass fruit')], ember: [{ fuel: 3 }, t('charcoal')], gilded: [{ glimmer: 2, food: 1 }, t('golden pears')],
+  glass: [{ glimmer: 2 }, t('glass fruit')], ember: [{ fuel: 3 }, t('charcoal')], gilded: [{ glimmer: 1, food: 1 }, t('golden pears')],
   jungle: [{ food: 2, fuel: 1 }, t('bananas and vines')], savanna: [{ fuel: 2, food: 1 }, t('dry branches and figs')],
-  heath: [{ fuel: 2 }, t('heather and peat')], lavender: [{ glimmer: 2 }, t('lavender to sell')], cloudisle: [{ food: 1, glimmer: 1 }, t('cloudberries')],
+  heath: [{ fuel: 2 }, t('heather and peat')], lavender: [{ glimmer: 1, fuel: 1 }, t('lavender to sell, and dry stalks')], cloudisle: [{ food: 1, glimmer: 1 }, t('cloudberries')],
   withered: [{ fuel: 3 }, t('dead wood')], sugar: [{ food: 3 }, t('sweets')],
-  bamboo: [{ food: 1, fuel: 2 }, t('bamboo shoots and dry canes')], terraces: [{ glimmer: 2, food: 1 }, t('tea leaves to sell')],
+  bamboo: [{ food: 1, fuel: 2 }, t('bamboo shoots and dry canes')], terraces: [{ glimmer: 1, food: 1 }, t('tea leaves to sell')],
   clockwork: [{ fuel: 2, glimmer: 1 }, t('spare cogs and lamp oil')], paper: [{ fuel: 3 }, t('paper to burn')],
-  moon: [{ glimmer: 2, food: 1 }, t('moon dust and silverberries')], maze: [{ food: 2 }, t('hedge berries')], giant: [{ food: 3 }, t('a giant seed')],
+  moon: [{ glimmer: 1, food: 1 }, t('moon dust and silverberries')], maze: [{ food: 2 }, t('hedge berries')], giant: [{ food: 3 }, t('a giant seed')],
 };
 // The first time you meet each kind of creature on an island, it has a coin for you.
 const THANKS = {
@@ -66,6 +67,12 @@ const LANDMARK_LABEL = {
   edge: t('Wa’s stone'),
   town: t('the town'),
 };
+// The buildings the book's atlas counts (the town is home, so it isn't one to find).
+const BUILDINGS = Object.keys(LANDMARK_LABEL).filter((id) => id !== 'town');
+// The kind of word that calls each island or building, for sightings.
+const ISLAND_WORD = Object.fromEntries(MEANINGS.filter((m) => m.effect.biome).map((m) => [m.effect.biome, m.id]));
+const BUILDING_WORD = Object.fromEntries(MEANINGS.filter((m) => m.effect.landmark).map((m) => [m.effect.landmark, m.id]));
+const SIGHTING_CHANCE = 0.35; // that an island shows you one you haven't reached
 // The Harbour, where every voyage starts: your home town, the same every time.
 const HOME = { biome: 'meadow', landmark: 'town', lake: true, balloon: false };
 // The Edge of the Sky, the last island: one of a few legendary ones, picked by the
@@ -169,7 +176,10 @@ const EVENTS = {
         t('The keeper fills your lanterns from the great lamp. At night, a lantern stops the sky from changing a letter of your word.'),
         t('The keeper is polishing the great lamp. He fills your lanterns without being asked.'),
       ]),
-    options: [{ label: t('take the lantern'), gain: { lanterns: friend(book, 'lighthouse') ? 2 : 1 } }],
+    options: [
+      { label: t('take the lantern'), gain: { lanterns: friend(book, 'lighthouse') ? 2 : 1 } },
+      ...(g.canSight ? [{ label: t('look out from the top'), sight: true, free: true, once: 'sight', note: t('an island you haven’t reached, and the words that lead there') }] : []),
+    ],
   }),
   campsite: (r, book, g, { first }) => {
     const options = [
@@ -256,6 +266,7 @@ const EVENTS = {
           note: t('−1 🍞 · fair weather for the next {n} islands', { n }),
         },
         { label: t('help with the star charts'), gain: { fuel: 3 } },
+        ...(g.canSight ? [{ label: t('look through the telescope'), sight: true, free: true, once: 'sight', note: t('an island you haven’t reached, and the words that lead there') }] : []),
       ],
     };
   },
@@ -288,13 +299,13 @@ const EVENTS = {
       : r.pick([t('Somebody in the shed is singing through a mouthful of pins.'), t('Bolts of striped cloth are stacked by the door, and an old woman is up the scaffold with a needle.')]),
     options: [
       { label: t('have the balloon patched'), pay: friend(book, 'workshop') ? 2 : 4, gain: { hull: 2 } },
-      { label: t('help with the sewing'), gain: { glimmer: 4 } },
+      { label: t('help with the sewing'), gain: { glimmer: 3 } },
     ],
   }),
   bandstand: (r, book, g, { first }) => {
     const n = friend(book, 'bandstand') ? 9 : 6;
     const options = [
-      { label: t('sit in for the drummer'), gain: { glimmer: 3 } },
+      { label: t('sit in for the drummer'), gain: { glimmer: 2 } },
       { label: t('share the band’s picnic'), gain: { food: 3 } },
     ];
     if (g.run.hush !== null) options.unshift({ label: t('ask for something loud'), loud: n, once: 'loud', note: t('the Hush falls back {miles}', { miles: miles(n) }) });
@@ -346,6 +357,13 @@ const clock = (h) => {
   return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };
 const meaning = (id) => MEANINGS.find((m) => m.id === id);
+// A few example words of a kind: three different words, not three forms of one (tea, teas…).
+function examplesOf(m, n = 3) {
+  const like = (a, b) => a.startsWith(b.slice(0, Math.max(3, b.length - 2))) || b.startsWith(a.slice(0, Math.max(3, a.length - 2)));
+  const examples = [];
+  for (const w of m.words) if (examples.length < n && !examples.some((e) => like(e, w))) examples.push(w);
+  return examples;
+}
 const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 
 // A fresh voyage, with its omen and the riddles its gates will ask.
@@ -357,13 +375,17 @@ function newRun() {
     leagues: 0, hours: 6.5, day: 1, words: [], used: [], here: null, stay: STAY,
     quest: null, questDone: false, freeLetter: null, freeNext: false, blessing: false, calm: 0, waited: false, met: [], lands: {},
     omen, riddles, gates: 0, reach: 0, hush: null, banned: [], keepsakes: [], crew: [], crewMet: [], dare: null,
-    flags: {}, events: [], seen: [], patched: false, delivered: 0, darkWords: 0,
+    flags: {}, events: [], seen: [], patched: false, delivered: 0, darkWords: 0, sighting: null, rough: 0,
   };
 }
 
 // `api`: fly(seed), leave(), setClock(hours), clearStorm(), toast(emoji, text).
 export function createVoyage(api) {
-  const book = { meanings: {}, rules: {}, secrets: {}, voyages: [], islands: {}, keepsakes: {}, crew: {}, omens: {}, pages: {}, arcs: {}, found: false, ...store.get(BOOK, {}) };
+  const book = { meanings: {}, rules: {}, secrets: {}, voyages: [], islands: {}, buildings: {}, sighted: {}, keepsakes: {}, crew: {}, omens: {}, pages: {}, arcs: {}, found: false, ...store.get(BOOK, {}) };
+  // Books from before buildings were kept: a building whose story you began, you've been to.
+  for (const id of Object.keys(book.arcs)) book.buildings[id] ??= 1;
+  if (book.found) book.buildings.edge ??= 1;
+  book.edges ??= book.voyages.filter((v) => v.won).length;
   // A saved voyage, if any (not active until resumed). Older saves get the newer fields.
   const saved = store.get(SAVE, null);
   let run = saved && { ...newRun(), ...saved };
@@ -559,6 +581,8 @@ export function createVoyage(api) {
     closeCard();
     if (!book.named) return signLogbook();
     run = newRun();
+    // Each time you reach the Edge, the sky is a notch rougher on the next voyage (up to three).
+    run.rough = Math.min(3, book.edges);
     book.omens[run.omen] ??= Date.now();
     book.pages.last ??= Date.now();
     saveBook();
@@ -643,6 +667,7 @@ export function createVoyage(api) {
     // The postmistress's letters (stories.js) reach Wa in whichever ending comes first.
     const letters = friend(book, 'post') && !book.lettersGiven;
     if (letters) book.lettersGiven = true;
+    book.edges = (book.edges ?? 0) + 1;
     record(true);
     // The voyage is over: a reload mustn't land you back here and count it twice.
     store.set(SAVE, null);
@@ -753,7 +778,8 @@ export function createVoyage(api) {
     api.setClock(run.hours);
   }
 
-  const hushSpeed = () => HUSH.speed * (run.omen === 'long' ? 1.5 : 1);
+  const roughLine = () => `${'✦'.repeat(run.rough)} ${t('The sky remembers you, and it’s rougher than on your first voyage: the Hush is quicker, storms come more often, and everything costs more.')}`;
+  const hushSpeed = () => HUSH.speed * (run.omen === 'long' ? 1.5 : 1) * (1 + 0.1 * run.rough);
   // Hours of sleep "until morning": to the next 7:00, and at least one.
   const sleepHours = () => Math.max(1, ((7 - run.hours) % 24 + 24) % 24);
   const stayHours = () => STAY + (has('hourglass') ? 1 : 0) + (run.omen === 'long' ? 1 : 0);
@@ -777,6 +803,7 @@ export function createVoyage(api) {
     if (run.omen === 'vowels') fuel += Math.max(0, (w.match(/[aeiou]/g) ?? []).length - 1);
     if (reading.rules.includes('chain')) fuel = Math.ceil(fuel / (has('compass') ? 4 : 2));
     if (e.wind) fuel = Math.ceil(fuel / (has('kite') || run.omen === 'gusty' ? 4 : 2));
+    if (run.flags.leak) fuel += 1;
     return fuel > 0 ? fuel : 0;
   }
 
@@ -860,6 +887,10 @@ export function createVoyage(api) {
       get gateKnown() {
         return gateKnown();
       },
+      // Whether there's an island left to sight (the lighthouse and the telescope).
+      get canSight() {
+        return sightings().length > 0;
+      },
       get found() {
         return Boolean(book.found);
       },
@@ -921,6 +952,7 @@ export function createVoyage(api) {
         return Boolean(book.name);
       },
       arcDone: (id) => friend(book, id),
+      examples: (id) => examplesOf(meaning(id)).join(t(', ')),
       // One particular word of Wa's, for a story that reveals it ('' if it's known).
       learn: (word) => {
         if (book.secrets[word]) return '';
@@ -935,12 +967,18 @@ export function createVoyage(api) {
     const left = Object.keys(KEEPSAKES).filter((k) => !has(k));
     id ??= left[Math.floor(Math.random() * left.length)];
     if (!id || has(id)) return t('{got} (you have every keepsake already)', { got: gainText(give({ glimmer: 4 })) });
+    let dropped = '';
+    if (run.keepsakes.length >= KEEP) {
+      const old = KEEPSAKES[run.keepsakes.shift()];
+      dropped = ` ${t('There’s only room for three keepsakes, so you leave the {name} behind.', { name: old.name })}`;
+      toast(old.icon, t('no room: you leave the {name} behind', { name: old.name }));
+    }
     run.keepsakes.push(id);
     book.keepsakes[id] ??= Date.now();
     saveBook();
     const k = KEEPSAKES[id];
     toast(k.icon, t('a keepsake: the {name}', { name: k.name }));
-    return t('{icon} the {name}, a keepsake for the rest of the voyage. {line}', { icon: k.icon, name: k.name, line: k.line });
+    return `${t('{icon} the {name}, a keepsake for the rest of the voyage. {line}', { icon: k.icon, name: k.name, line: k.line })}${dropped}`;
   }
 
   function board(id) {
@@ -976,7 +1014,7 @@ export function createVoyage(api) {
 
   // --- Flying -----------------------------------------------------------------
   function context() {
-    return { used: run.used, last: run.words.length > 1 ? run.words[run.words.length - 1] : null };
+    return { used: run.used, last: run.words.length > 1 ? run.words[run.words.length - 1] : null, muted: run.flags.hoarded ? [run.flags.hoarded] : [] };
   }
 
   function submit(text) {
@@ -1023,6 +1061,10 @@ export function createVoyage(api) {
       }
       run.blessing = false;
       if (stormy()) harm(1, t('the storm tears at the balloon as you leave'));
+      if (run.flags.fray) {
+        run.flags.fray = false;
+        harm(1, t('the frayed rope snaps as you take off'));
+      }
       if (dark() && !has('feather')) {
         if (run.lanterns > 0) {
           run.lanterns--;
@@ -1108,6 +1150,12 @@ export function createVoyage(api) {
       Object.assign(run.here.want, HOME);
       run.here.weather = 'clear';
     }
+    // A word of the kind a sighting named steers you straight for that island.
+    if (!first && !echo && run.sighting && heard.meanings.some((m) => m.id === run.sighting.word)) {
+      Object.assign(run.here.want, { biome: run.sighting.biome, landmark: run.sighting.landmark });
+      story.push(`🔭 ${t('You steer for the island you saw from far off.')}`);
+      run.sighting = null;
+    }
     if (finale) Object.assign(run.here.want, makeRandom(heard.word, 'edge').pick(EDGES), { landmark: 'edge', lake: true, river: true, balloon: undefined });
     run.stay = stayHours() + (heard.echoOf ? 1 : 0);
     run.waited = false;
@@ -1131,7 +1179,7 @@ export function createVoyage(api) {
 
   function rollWeather(r, biomeKey) {
     // The sky turns rougher the further you go (and twice as rough on restless winds).
-    if (r() < (0.08 + run.leagues / 260) * (run.omen === 'gusty' ? 2 : 1)) {
+    if (r() < (0.08 + run.leagues / 260 + 0.025 * run.rough) * (run.omen === 'gusty' ? 2 : 1)) {
       return r.pick(['desert', 'ember'].includes(biomeKey) ? ['storm', 'mist'] : ['snowfield', 'glass'].includes(biomeKey) ? ['storm', 'snow', 'mist'] : ['storm', 'rain', 'mist']);
     }
     return r.weighted(BIOMES[biomeKey].weather);
@@ -1178,8 +1226,18 @@ export function createVoyage(api) {
       const pay = fresh.length * ((has('inkwell') ? 2 : 0) + (aboard('poet') ? 1 : 0));
       if (pay) lines.push(`${has('inkwell') ? '🖋️' : '📜'} ${t('A new kind of word for this voyage: {got}', { got: gainText(give({ glimmer: pay })) })}`);
       if (run.words.length === 1) lines.push(omenLine());
-      if (!BIOMES[land.biomeKey].weight && !book.islands[land.biomeKey]) lines.push(`🏝️ ${t('A new kind of island for your book: {name}.', { name: t(BIOMES[land.biomeKey].label) })}`);
+      if (run.words.length === 1 && run.rough) lines.push(roughLine());
+      // A kind of island or building new to your book: the islanders fill your burner.
+      const firsts = [];
+      if (!BIOMES[land.biomeKey].weight && !book.islands[land.biomeKey]) firsts.push(t(BIOMES[land.biomeKey].label));
+      if (BUILDINGS.includes(land.landmark) && land.landmark !== 'edge' && !book.buildings[land.landmark]) firsts.push(LANDMARK_LABEL[land.landmark]);
       book.islands[land.biomeKey] ??= Date.now();
+      if (BUILDINGS.includes(land.landmark)) book.buildings[land.landmark] ??= Date.now();
+      if (firsts.length && run.words.length > 1 && !finale) {
+        const [a, b] = firsts, got = gainText(give({ fuel: firsts.length }));
+        lines.push(`🗺️ ${b ? t('New to your book: {a} and {b}. The islanders top up your burner: {got}', { a, b, got }) : t('New to your book: {a}. The islanders top up your burner: {got}', { a, got })}`);
+        toast('🗺️', b ? t('new to your book: {a} and {b}', { a, b }) : t('new to your book: {a}', { a }));
+      }
       const reach = reachOf(run.leagues);
       if (reach > run.reach) {
         run.reach = reach;
@@ -1222,6 +1280,22 @@ export function createVoyage(api) {
       if (e.friend) {
         here.friend = run.crew.length < ROOM ? pickOf(Object.keys(CREW).filter((id) => !run.crewMet.includes(id))) ?? null : null;
         if (!here.friend) lines.push(`👋 ${t('Someone waves you off from the shore.')}`);
+      }
+      if (run.flags.shadow > 0) {
+        if (here.said.length >= 9) {
+          run.flags.shadow = 0;
+          lines.push(`🏴‍☠️ ${t('A word that long leaves the pirates far behind. You’ve lost them.')}`);
+        } else {
+          run.flags.shadow--;
+          const took = gainText(give(run.glimmer >= 3 ? { glimmer: -3 } : { food: -2 }));
+          lines.push(`🏴‍☠️ ${t('The pirates land right behind you and help themselves: {got}', { got: took })}`);
+        }
+      }
+      // Now and then you can see an island you haven't been to yet.
+      if (run.sighting?.biome === land.biomeKey) run.sighting = null;
+      if (!finale && run.words.length > 1 && !run.sighting && Math.random() < SIGHTING_CHANCE) {
+        const seen = sight();
+        if (seen) lines.push(`🔭 ${seen}`);
       }
       saveBook();
       narrate(here, got, [...news, ...lines]);
@@ -1462,7 +1536,7 @@ export function createVoyage(api) {
     } else if (lava) {
       [gain, what] = [{ fuel: 3 }, t('lava-warmed stones')];
     } else {
-      [gain, what] = kind === 'splash' ? [{ food: 3 + ((env?.rain ?? 0) > 0.5 ? 1 : 0) }, t('a fish')] : [{ food: 2 }, t('ice fishing')];
+      [gain, what] = kind === 'splash' ? [{ food: 2 + ((env?.rain ?? 0) > 0.5 ? 1 : 0) }, t('a fish')] : [{ food: 2 }, t('ice fishing')];
       if (has('net')) gain.food += 2;
     }
     if (run.omen === 'hungry' && !lava) gain.food = (gain.food ?? 0) + 1;
@@ -1511,6 +1585,11 @@ export function createVoyage(api) {
     visited[here.landmark] ??= here.word;
     const seen = { first: visited[here.landmark] === here.word && !book.found, again: visited[here.landmark] !== here.word };
     const event = EVENTS[here.landmark]?.(r, book, talesView(), seen) ?? { title: t('nobody home'), text: t('The place is quiet, and nobody answers.'), options: [] };
+    // Every building but home and the Edge can spare some lamp oil, and things cost more the higher you go.
+    const dear = reachOf(run.leagues) + run.rough;
+    if (run.flags.leak && ['village', 'workshop', 'campsite'].includes(here.landmark)) event.options.push({ label: t('mend the burner'), mend: 'leak', note: t('an hour, and the leak is gone') });
+    if (!['village', 'town', 'edge'].includes(here.landmark)) event.options.push({ label: t('buy lamp oil'), pay: 3, gain: { fuel: 4 }, once: 'oil' });
+    for (const o of event.options) if (o.pay) o.pay += dear;
     event.options = event.options.filter((o) => !o.once || !doneHere().includes(o.once));
     const arc = ARCS[here.landmark];
     const chapter = book.arcs[here.landmark]?.ch ?? 0;
@@ -1587,6 +1666,14 @@ export function createVoyage(api) {
       else toast('🗣️', t('they say {gate} opens only for {riddle}', { gate: gate.name, riddle: riddleOf(gate).ask }));
     }
     if (o.mapHalf) toast('🗺️', treasureMap().replace('🗺️ ', ''));
+    if (o.mend) {
+      run.flags[o.mend] = false;
+      toast('🔧', t('the burner is mended'));
+    }
+    if (o.sight) {
+      const seen = sight();
+      if (seen) toast('🔭', seen);
+    }
     if (o.calm) {
       run.calm = o.calm;
       toast('🔭', t('fair weather for the next {n} islands', { n: o.calm }));
@@ -1624,6 +1711,42 @@ export function createVoyage(api) {
     forced();
   }
 
+  // --- Sightings ------------------------------------------------------------------
+  // Islands and buildings you haven't reached, each with the kind of word that
+  // calls it. A sighting names one; say a word of that kind next and you steer
+  // straight for it (`run.sighting`, honoured in depart).
+  function sightings() {
+    const out = [];
+    for (const [key, b] of Object.entries(BIOMES)) {
+      if (b.weight || !ISLAND_WORD[key]) continue;
+      const fresh = b.landmark.map(([id]) => id).find((id) => !book.buildings[id]);
+      if (!book.islands[key]) out.push({ biome: key, landmark: fresh ?? b.landmark[0][0], word: ISLAND_WORD[key] });
+      else if (fresh) out.push({ biome: key, landmark: fresh, word: BUILDING_WORD[fresh] ?? ISLAND_WORD[key] });
+    }
+    return out;
+  }
+
+  function sightText(s) {
+    const m = meaning(s.word);
+    return t('Far off, you can make out {island}, with {building}. {kind} ({words}…).', {
+      island: t(BIOMES[s.biome].label), building: LANDMARK_LABEL[s.landmark], kind: cap(m.name), words: examplesOf(m).join(t(', ')),
+    });
+  }
+
+  // Sight an island: it goes in the book with the kind of word that leads there
+  // (as if someone had told you), and your next word of that kind flies there.
+  function sight() {
+    const s = pickOf(sightings());
+    if (!s) return '';
+    run.sighting = s;
+    const m = meaning(s.word);
+    book.meanings[m.id] ??= { words: examplesOf(m), heard: true };
+    book.sighted[`island:${s.biome}`] = s.word;
+    book.sighted[`building:${s.landmark}`] = s.word;
+    saveBook();
+    return sightText(s);
+  }
+
   // Someone explains kinds of words you haven't come across; returns what you learned.
   function teach(n) {
     const unknown = MEANINGS.filter((m) => !book.meanings[m.id]);
@@ -1635,16 +1758,25 @@ export function createVoyage(api) {
     const names = [];
     for (let i = 0; i < n && unknown.length; i++) {
       const m = unknown.splice(Math.floor(Math.random() * unknown.length), 1)[0];
-      // Three different words, not three forms of one (tea, teas…).
-      const like = (a, b) => a.startsWith(b.slice(0, Math.max(3, b.length - 2))) || b.startsWith(a.slice(0, Math.max(3, a.length - 2)));
-      const examples = [];
-      for (const w of m.words) if (examples.length < 3 && !examples.some((e) => like(e, w))) examples.push(w);
-      book.meanings[m.id] = { words: examples, heard: true };
+      book.meanings[m.id] = { words: examplesOf(m), heard: true };
       toast('📖', t('you learn: {name}', { name: m.name }));
       names.push(m.name);
     }
     saveBook();
     return t('📖 {list}.', { list: cap(names.join(t('; '))) });
+  }
+
+  function mendRope() {
+    if (state !== 'land' || !run.flags.fray) return;
+    if (run.stay > 0) spend(1);
+    else {
+      advance(1);
+      api.setClock(run.hours);
+    }
+    run.flags.fray = false;
+    toast('🪢', t('you splice the frayed rope'));
+    save();
+    hud();
   }
 
   function waitOutStorm() {
@@ -1706,8 +1838,12 @@ export function createVoyage(api) {
           : run.omen === 'gusty' ? t('a wind word, on restless winds: a quarter of the fuel') : has('kite') ? t('a wind word, on a kite string: a quarter of the fuel') : t('a wind word: half the fuel'));
       }
       if (reading.effect.leagues && !reading.secret) notes.push(knows('fast') ? t('a fast word: +{miles}', { miles: miles(reading.effect.leagues) }) : t('something about this word carries you further…'));
+      if (run.flags.leak) notes.push(t('the leaking burner: +1 🔥'));
       if (reading.effect.light) notes.push(knows('small') ? t('a tiny thing: no food for this flight') : t('something about this word weighs less…'));
     }
+    if (run.flags.shadow > 0) notes.push(reading.word.length >= 9 ? t('🏴‍☠️ long enough to lose the pirates') : t('🏴‍☠️ the pirates follow (9 letters or more would lose them)'));
+    const bottled = run.flags.hoarded && readWord(reading.word).meanings.some((m) => m.id === run.flags.hoarded);
+    if (bottled) notes.push(t('🫙 the Hoarder has this kind of word: it means nothing to the sky'));
     if (notes.length) lines.push(el('p', 'read-line', [...new Set(notes)].join(' · ')));
 
     // (Mist by the land's weather: heavy rain fogs the air too, but doesn't muffle words.)
@@ -1721,7 +1857,7 @@ export function createVoyage(api) {
     } else {
       const { items } = heardOf(reading);
       if (items.length) lines.push(el('p', 'read-line', t('the sky hears: {items}', { items: items.join(' · ') })));
-      else if (!reading.secret) lines.push(el('p', 'read-line', t('you don’t know what this word does yet')));
+      else if (!reading.secret && !bottled) lines.push(el('p', 'read-line', t('you don’t know what this word does yet')));
     }
 
     // Gates, dares, the map, and what your passengers would make of it.
@@ -1731,6 +1867,9 @@ export function createVoyage(api) {
     if (gate && answers(gate, reading)) good.push(`🚪 ${t('{gate} will open for this word', { gate: gate.name })}`);
     else if (gate && !reading.real) warnings.push(`🚪 ${t('{gate} only opens for real English words: −1 ❤️, and you stop short', { gate: gate.name })}`);
     else if (gate) warnings.push(`🚪 ${t('{gate} won’t open for this word: it wants {riddle}. −1 ❤️, and you stop short', { gate: gate.name, riddle: riddleOf(gate).ask })}`);
+    if (run.sighting && reading.meanings.some((m) => m.id === run.sighting.word) && run.leagues + go < GOAL) {
+      good.push(`🔭 ${t('to the island you saw: {island}, with {building}', { island: t(BIOMES[run.sighting.biome].label), building: LANDMARK_LABEL[run.sighting.landmark] })}`);
+    }
     if (run.dare) {
       const dare = DARES[run.dare.id];
       const L = run.dare.letter.toUpperCase();
@@ -1854,6 +1993,15 @@ export function createVoyage(api) {
       if (run.hush !== null) parts.push(el('p', 'book-entry', `🤫 ${t('{gap}. {line}', { gap: cap(hushText()), line: hushLine() })}`));
       if (run.banned.length) parts.push(el('p', 'book-entry', `🤐 ${t('swallowed letters: {letters}. Win them back at a wizard’s tower or a shrine.', { letters: run.banned.join(' ').toUpperCase() })}`));
       if (run.flags.map === 2) parts.push(el('p', 'book-entry', `🗺️ ${t('the map says: “{word}”.', { word: run.flags.treasure })}`));
+      if (run.sighting) parts.push(el('p', 'book-entry', `🔭 ${sightText(run.sighting)}`));
+      if (run.rough) parts.push(el('p', 'book-entry', roughLine()));
+      if (run.flags.leak) parts.push(el('p', 'book-entry', `🔥 ${t('the burner is leaking: every flight burns 1 more 🔥 until a village, a campsite or a balloon workshop mends it.')}`));
+      if (run.flags.fray) parts.push(el('p', 'book-entry', `🪢 ${t('a rope is fraying: mend it here (an hour), or lose a heart when you take off.')}`));
+      if (run.flags.shadow > 0) {
+        const left = run.flags.shadow === 1 ? t('1 more island') : t('{n} more islands', { n: run.flags.shadow });
+        parts.push(el('p', 'book-entry', `🏴‍☠️ ${t('pirates on your tail: they take 3 🪙 (or 2 🍞) each time you land, for {left}. A word of 9 letters or more loses them.', { left })}`));
+      }
+      if (run.flags.hoarded) parts.push(el('p', 'book-entry', `🫙 ${t('the Hoarder has your {words}: they mean nothing to the sky this voyage.', { words: examplesOf(meaning(run.flags.hoarded)).join(t(', ')) })}`));
     }
 
     const pages = Object.keys(STORY.pages).filter((id) => book.pages[id]);
@@ -1895,10 +2043,23 @@ export function createVoyage(api) {
     const hidden = Object.keys(SECRETS).length - knownSecrets.length;
     if (hidden) parts.push(el('p', 'book-entry unknown', t('{n} still hidden. Wizards know some, and so do her pages.', { n: hidden })));
 
-    parts.push(el('h3', '', t('islands and keepsakes')));
-    const higher = islands.length < Object.keys(BIOMES).length ? ` · ${t('and stranger ones, higher up')}` : '';
-    parts.push(el('p', 'book-entry', `${islands.map((k) => t(BIOMES[k].label)).join(t(', ')) || t('none yet')}${higher}`));
-    parts.push(el('p', 'book-entry', `${Object.keys(KEEPSAKES).map((k) => (book.keepsakes[k] ? KEEPSAKES[k].icon : '·')).join(' ')}`));
+    // The atlas: every island and building, reached, sighted (with the words that
+    // lead there) or still to find.
+    parts.push(el('h3', '', t('atlas')));
+    const atlas = (keys, kind, label, line) => {
+      const reached = keys.filter((k) => (kind === 'island' ? book.islands : book.buildings)[k]);
+      const sighted = keys.filter((k) => !reached.includes(k) && book.sighted[`${kind}:${k}`]);
+      parts.push(el('p', 'book-entry', line(reached.length, reached.map(label).join(t(', ')) || t('none yet'))));
+      if (sighted.length) {
+        const list = sighted.map((k) => t('{name} ({words}…)', { name: label(k), words: examplesOf(meaning(book.sighted[`${kind}:${k}`])).join(t(', ')) }));
+        parts.push(el('p', 'book-entry', `🔭 ${t('sighted: {list}', { list: list.join(t('; ')) })}`));
+      }
+      const left = keys.length - reached.length - sighted.length;
+      if (left) parts.push(el('p', 'book-entry unknown', t('still to find: {n}', { n: left })));
+    };
+    atlas(Object.keys(BIOMES), 'island', (k) => t(BIOMES[k].label), (n, list) => `🏝️ ${t('{n} of {all} islands: {list}', { n, all: Object.keys(BIOMES).length, list })}`);
+    atlas(BUILDINGS, 'building', (k) => LANDMARK_LABEL[k], (n, list) => `🏛️ ${t('{n} of {all} buildings: {list}', { n, all: BUILDINGS.length, list })}`);
+    parts.push(el('p', 'book-entry', t('keepsakes: {icons}', { icons: Object.keys(KEEPSAKES).map((k) => (book.keepsakes[k] ? KEEPSAKES[k].icon : '·')).join(' ') })));
     const metCrew = Object.keys(CREW).filter((k) => book.crew[k]);
     if (metCrew.length) {
       const list = metCrew.map((k) => `${CREW[k].icon} ${book.crew[k] === 'home' ? t('{name} (home)', { name: CREW[k].name }) : CREW[k].name}`).join(t(', '));
@@ -2021,6 +2182,7 @@ export function createVoyage(api) {
       }
       if (run.flags.map === 2) parts.push(el('span', 'status-gate', `🗺️ ${t('the map says: “{word}”', { word: run.flags.treasure })}`));
       if (stormy()) parts.push(chip(t('wait out the storm · 1 hour'), waitOutStorm));
+      if (run.flags.fray && state === 'land') parts.push(chip(t('🪢 mend the rope · 1 hour'), mendRope));
       if (run.fuel < (run.omen === 'vowels' ? 4 : 3) && !run.freeLetter && !run.freeNext) {
         const fatal = 1 + leavingHarm() - (aboard('balloonist') ? 1 : 0) >= run.hull;
         parts.push(chip(t('low on fuel: drift a few miles on the wind (it picks the word) · {cost}', { cost: fatal ? t('it would end your voyage') : '−1 ❤️' }), drift));
