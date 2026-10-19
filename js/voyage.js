@@ -21,6 +21,7 @@ const ALPHA = 'paca-alpha'; // this browser knows the password
 const PASSWORD = 'family';
 const GOAL = 100; // miles to the Edge of the Sky (the last gate); the code calls them leagues
 const STAY = 3; // hours to spend on each land
+const STORM_WAIT = 2; // hours a storm takes to blow itself out (what's left of your stay first, then the clock)
 const START = { fuel: 14, food: 6, hull: 5, glimmer: 0, lanterns: 1 };
 const MAX = { fuel: 30, food: 10, hull: 5, lanterns: 3 };
 const ICON = { fuel: '🔥', food: '🍞', hull: '❤️', glimmer: '🪙', lanterns: '🏮' };
@@ -147,7 +148,7 @@ const EVENTS = {
     if (ware) options.push({ label: t('buy the {name} {icon}', { name: KEEPSAKES[ware].name, icon: KEEPSAKES[ware].icon }), pay: price(6), keepsake: ware, hint: KEEPSAKES[ware].line });
     // A tool for the pack, when there's room for one.
     const tool = r.pick(Object.keys(ITEMS));
-    if (g.packRoom) options.push({ label: t('buy the {name} {icon}', { name: ITEMS[tool].name, icon: ITEMS[tool].icon }), pay: price(4), item: tool, hint: ITEMS[tool].line });
+    if (g.packRoom) options.push({ label: t('buy the {name} {icon}', { name: ITEMS[tool].name, icon: ITEMS[tool].icon }), pay: price(6), item: tool, once: 'tool', hint: ITEMS[tool].line });
     if (g.room && !g.met('poet')) options.push(offer('poet'));
     if (g.gate && !g.gateKnown) options.push({ label: t('listen to the gossip'), gossip: true, note: t('what {gate} wants', { gate: g.gate.name }) });
     return {
@@ -877,6 +878,10 @@ export function createVoyage(api) {
     if (run.flags.leak) fuel += 1;
     return fuel > 0 ? fuel : 0;
   }
+
+  // What a short plain word costs on top of its letters (the anchor, a leak, an omen), so
+  // "low on fuel" still means "only the shortest words are left" when every word costs more.
+  const surcharge = () => (has('anchor') ? 1 : 0) + (run.flags.leak ? 1 : 0) + (['vowels', 'mirror'].includes(run.omen) ? 1 : 0) + (run.omen === 'lucky' && run.lucky ? 1 : 0);
 
   function costOf(reading) {
     const free = run.freeLetter && reading.word.includes(run.freeLetter) ? 'letter' : run.freeNext ? 'whale' : null;
@@ -1709,7 +1714,10 @@ export function createVoyage(api) {
     const got = give(gain);
     pending = `${gainText(got)} ${what}${fullNote(gain, got)}`.trim();
     // Wrecks are full of things worth keeping.
-    if (kind === 'tree' && here.biome === 'wreck' && Math.random() < 0.2) pending += ` · ${giveItem()}`;
+    if (kind === 'tree' && here.biome === 'wreck' && run.flags.salvaged !== here.word && Math.random() < 0.15) {
+      run.flags.salvaged = here.word;
+      pending += ` · ${giveItem()}`;
+    }
     hud();
     save();
     forced();
@@ -2071,9 +2079,10 @@ export function createVoyage(api) {
 
   function waitOutStorm() {
     if (state !== 'land' || !stormy()) return;
-    if (run.stay > 0) spend(1);
-    else {
-      advance(1);
+    const stay = Math.min(Math.max(run.stay, 0), STORM_WAIT);
+    if (stay) spend(stay);
+    if (stay < STORM_WAIT) {
+      advance(STORM_WAIT - stay);
       api.setClock(run.hours);
     }
     run.waited = true;
@@ -2484,12 +2493,12 @@ export function createVoyage(api) {
         parts.push(el('span', 'status-gate', `🚪 ${t('{gate} in {miles}: it opens only for {riddle}', { gate: gate.name, miles: miles(Math.max(0, gate.at - run.leagues)), riddle: riddleOf(gate).ask })}${known}`));
       }
       if (run.flags.map === 2) parts.push(el('span', 'status-gate', `🗺️ ${t('the map says: “{word}”', { word: run.flags.treasure })}`));
-      if (stormy()) parts.push(chip(t('wait out the storm · 1 hour'), waitOutStorm));
+      if (stormy()) parts.push(chip(t('wait out the storm · {n} hours', { n: STORM_WAIT }), waitOutStorm));
       if (run.flags.fray && state === 'land') parts.push(chip(t('🪢 mend the rope · 1 hour'), mendRope));
       if (run.pack.length && state === 'land') parts.push(chip(`🎒 ${run.pack.map((id) => ITEMS[id].icon).join('')}`, openPack));
       if (TRAITS[run.here?.trait]) parts.push(el('span', 'status-gate', `${TRAITS[run.here.trait].icon} ${TRAITS[run.here.trait].name}`));
       if (run.flags.front) parts.push(el('span', 'status-gate', `⛈️ ${t('storm front {miles} behind', { miles: miles(Math.max(0, Math.round(run.leagues - run.flags.front.at))) })}`));
-      if (run.fuel < (run.omen === 'vowels' ? 4 : 3) && !run.freeLetter && !run.freeNext) {
+      if (run.fuel < 3 + surcharge() && !run.freeLetter && !run.freeNext) {
         const fatal = 1 + leavingHarm() - (aboard('balloonist') ? 1 : 0) >= run.hull;
         parts.push(chip(t('low on fuel: drift a few miles on the wind (it picks the word) · {cost}', { cost: fatal ? t('it would end your voyage') : '−1 ❤️' }), drift));
       }

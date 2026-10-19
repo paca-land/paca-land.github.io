@@ -567,7 +567,7 @@ export const SKY_EVENTS = [
     ],
   },
   {
-    id: 'peddler', weight: 2, when: (g) => g.packRoom,
+    id: 'peddler', weight: 1, when: (g) => g.packRoom,
     title: t('a peddler’s balloon'),
     text: (g) => {
       const ids = Object.keys(ITEMS);
@@ -577,8 +577,8 @@ export const SKY_EVENTS = [
     },
     options: (g) => [
       ...g.flag('wares').map((id, i) => ({
-        label: t('buy the {name} {icon}', { name: ITEMS[id].name, icon: ITEMS[id].icon }), note: `−${3 + i} 🪙 · ${ITEMS[id].line}`, disabled: g.run.glimmer < 3 + i,
-        act: () => `${g.give({ glimmer: -(3 + i) })} ${g.item(id)}`,
+        label: t('buy the {name} {icon}', { name: ITEMS[id].name, icon: ITEMS[id].icon }), note: `−${5 + i} 🪙 · ${ITEMS[id].line}`, disabled: g.run.glimmer < 5 + i,
+        act: () => `${g.give({ glimmer: -(5 + i) })} ${g.item(id)}`,
       })),
       { label: t('just looking'), act: () => t('“Suit yourself,” says the peddler, and drifts off rattling.') },
     ],

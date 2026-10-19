@@ -1153,7 +1153,7 @@ export const ZH = {
   "(the book has {n})": "· 书里记着 {n} 个",
   "{gate} in {miles}: it opens only for {riddle}": "{miles}后是{gate}：它只为{riddle}打开",
   "the map says: “{word}”": "地图上写着：“{word}”",
-  "wait out the storm · 1 hour": "等风暴过去 · 1 小时",
+  "wait out the storm · {n} hours": "等风暴过去 · {n} 小时",
   "low on fuel: drift a few miles on the wind (it picks the word) · {cost}": "燃料不足：随风飘几里（风替你选词）· {cost}",
 
   // --- The alpha password ---

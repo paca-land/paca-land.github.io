@@ -6,7 +6,7 @@ import { t } from './i18n.js';
 // maze's own (u, v) frame (grounds.js), against the same wall segments the hedges
 // were built from, so what you see is what the ball bumps into.
 
-const R = 0.1; // the ball
+const R = 0.14; // the ball: as big as the corridors (0.42 between hedges) allow, so a phone can see it
 const REACH = R + 0.1; // how close the ball's middle comes to a wall's middle line (half a hedge is 0.1)
 const ACCEL = 7; // how hard a full tilt or a held key pushes, in units a second squared
 const DRAG = 1.4; // rolling friction
@@ -21,7 +21,7 @@ export function createMazeBall({ onWin, onEnd }) {
   const tilt = { x: 0, y: 0, base: null };
   const ball = new THREE.Mesh(
     new THREE.IcosahedronGeometry(R, 2),
-    new THREE.MeshStandardMaterial({ color: '#f4d35e', metalness: 0.3, roughness: 0.35, emissive: '#6a5410', emissiveIntensity: 0.35, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: '#f4d35e', metalness: 0.3, roughness: 0.35, emissive: '#b08a1a', emissiveIntensity: 0.8, flatShading: true }),
   );
   ball.castShadow = true;
 
@@ -160,12 +160,18 @@ export function createMazeBall({ onWin, onEnd }) {
       stop();
       return null;
     }
-    // Look down on the maze from a little to the camera's side of it.
+    // Look down on the maze from a little to the camera's side of it, far enough
+    // back that all of it (corners, gate and a margin) fits on screen. An upright
+    // phone sees far less across than up and down, so the narrower view decides.
     const centre = land.group.localToWorld(new THREE.Vector3(maze.x, maze.ground(maze.x, maze.z), maze.z));
+    const vf = THREE.MathUtils.degToRad(camera.fov) / 2;
+    const hf = Math.atan(Math.tan(vf) * camera.aspect);
+    const reach = (maze.half * Math.SQRT2 + 0.5) * land.group.scale.x;
+    const back = (reach / Math.tan(Math.min(vf, hf))) * 1.15;
     const side = camera.position.clone().sub(centre).setY(0);
     if (side.lengthSq() < 1e-6) side.set(0, 0, 1);
-    side.setLength(maze.half * 1.1);
-    return { target: centre, position: centre.clone().add(side).add(new THREE.Vector3(0, maze.half * 3.4 + 2.5, 0)) };
+    const dir = side.setLength(0.35).add(new THREE.Vector3(0, 1, 0)).normalize();
+    return { target: centre, position: centre.clone().addScaledVector(dir, back) };
   }
 
   return {
