@@ -697,7 +697,7 @@ const LANDMARKS = {
       kit.add('stone', box(1.05, 0.7, 0.85), [sx, g - 0.66, sz]);
       kit.add('wood', box(1.0, 0.62, 0.06), [sx, g, sz - 0.38]);
       for (const side of [-1, 1]) kit.add('wood', box(0.06, 0.62, 0.8), [sx + side * 0.47, g, sz]);
-      for (const side of [-1, 1]) kit.add('darkWood', box(0.07, 0.62, 0.07), [sx + side * 0.47, g, sz + 0.38]);
+      for (const side of [-1, 1]) kit.add('darkWood', box(0.09, 0.66, 0.09), [sx + side * 0.47, g, sz + 0.365]);
       kit.add('roofSlate', gable(1.18, 0.42, 0.98), [sx, g + 0.62, sz]);
       kit.add('darkWood', box(0.7, 0.05, 0.28), [sx, g + 0.32, sz - 0.18]);
       kit.add('glow', box(0.2, 0.15, 0.03), [sx, g + 0.42, sz - 0.34]);
@@ -766,7 +766,7 @@ const LANDMARKS = {
         kit.add('darkStone', box(0.18, 0.13, 0.01), [x, floor + 0.47, z + 0.02], { rx: -0.4 });
       }
       kit.add('#c8302a', cyl(0.2, 0.2, 0.16, 12), [0.42, floor + 0.25, 0.15], { rx: Math.PI / 2 });
-      kit.add('#f5efe2', cyl(0.205, 0.205, 0.02, 12), [0.42, floor + 0.25, 0.24], { rx: Math.PI / 2 });
+      kit.add('#f5efe2', cyl(0.215, 0.215, 0.02, 12), [0.42, floor + 0.25, 0.24], { rx: Math.PI / 2 });
       // Lamps round it.
       const lights = [];
       for (const a of [0.4, 2.5, 4.4]) {
@@ -885,8 +885,11 @@ const LANDMARKS = {
       kit.add('darkWood', box(0.2, 0.3, 0.04), [-0.35, g, 0.12]);
       kit.add('glow', box(0.14, 0.12, 0.04), [-0.1, g + 0.22, 0.12]);
       const px = 0.5, pz = 0.3, gp = place.ground(px, pz);
+      // The water stands a little above the stone, inside a raised lip (level with the
+      // stone's top, the two flickered).
       kit.add('stone', cyl(0.42, 0.45, 0.16, 12), [px, gp - 0.04, pz]);
-      kit.add('#6ab8d0', cyl(0.36, 0.36, 0.02, 12), [px, gp + 0.1, pz]);
+      kit.add('#6ab8d0', cyl(0.37, 0.37, 0.02, 12), [px, gp + 0.12, pz]);
+      kit.add('stone', new THREE.TorusGeometry(0.38, 0.035, 6, 18), [px, gp + 0.14, pz], { rx: Math.PI / 2 });
       for (let i = 0; i < 6; i++) {
         const x = 0.15 + i * 0.12;
         kit.add('#8aa04a', cyl(0.02, 0.02, 0.5, 4), [x, place.ground(x, -0.25), -0.25]);
@@ -1199,9 +1202,10 @@ export function buildDock(ctx, r, toward) {
   const mid = ctx.shape.shoreDistance(lake, a) - 0.35;
   kit.add('wood', box(0.42, 0.05, 1.5), [lake.x + dx * mid, W + 0.08, lake.z + dz * mid], { ry: yaw });
   for (const along of [-0.6, 0.6]) {
-    for (const side of [-0.18, 0.18]) {
+    for (const side of [-0.25, 0.25]) {
       const d = mid + along;
-      kit.add('darkWood', cyl(0.03, 0.03, 0.55, 5), [lake.x + dx * d + dz * side, W - 0.42, lake.z + dz * d - dx * side]);
+      // The posts stand a little above the deck (level with it, their tops flickered).
+      kit.add('darkWood', cyl(0.03, 0.03, 0.6, 5), [lake.x + dx * d + dz * side, W - 0.42, lake.z + dz * d - dx * side]);
     }
   }
   const group = kit.build();

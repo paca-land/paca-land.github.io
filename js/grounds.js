@@ -111,20 +111,29 @@ export function buildMaze(maze, shape, biome, r) {
   const pieces = [], m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
   for (const [u0, v0, u1, v1] of maze.walls) {
     const [x0, z0] = maze.toLand(u0, v0), [x1, z1] = maze.toLand(u1, v1);
-    const len = Math.hypot(x1 - x0, z1 - z0) + WALL.thick;
+    // Every other piece along a line is a little thicker, and each stops just inside the
+    // wall it meets: pieces of the same size overlapping at the joints had their faces
+    // in the same planes, and those flickered.
+    const k = Math.round(((v0 === v1 ? Math.min(u0, u1) : Math.min(v0, v1)) + maze.half) / CELL);
+    const thick = WALL.thick + (k % 2) * 0.024;
+    const len = Math.hypot(x1 - x0, z1 - z0) + WALL.thick - 0.024;
     const g0 = Math.min(shape.heightAt(x0, z0), shape.heightAt(x1, z1), shape.heightAt((x0 + x1) / 2, (z0 + z1) / 2));
     const g1 = Math.max(shape.heightAt(x0, z0), shape.heightAt(x1, z1));
     const height = WALL.height + (g1 - g0) + r.range(-0.03, 0.04);
-    const geo = new THREE.BoxGeometry(len, height, WALL.thick, Math.max(1, Math.round(len / 0.3)), 2, 1).translate(0, height / 2, 0).toNonIndexed();
-    // Darker at the roots, freshly clipped on top.
-    const pos = geo.attributes.position, colors = [], tone = r.range(-0.03, 0.03), col = new THREE.Color();
+    const geo = new THREE.BoxGeometry(len, height, thick, Math.max(1, Math.round(len / 0.3)), 2, 1).translate(0, height / 2, 0).toNonIndexed();
+    q.setFromAxisAngle(up, -Math.atan2(z1 - z0, x1 - x0));
+    geo.applyMatrix4(m.compose(new THREE.Vector3((x0 + x1) / 2, g0 - 0.06, (z0 + z1) / 2), q, new THREE.Vector3(1, 1, 1)));
+    // Darker at the roots, freshly clipped on top, with a slow wobble of shade across the
+    // maze. It's coloured by where each point is, not by which piece it's on: pieces
+    // overlap at every joint, and two shades in the same place flickered.
+    const pos = geo.attributes.position, colors = [], col = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
-      col.copy(hedge).lerp(clipped, Math.max(0, pos.getY(i) / height) ** 2).offsetHSL(0, 0, tone);
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const rise = THREE.MathUtils.clamp((y - shape.heightAt(x, z) + 0.06) / (WALL.height + 0.06), 0, 1);
+      col.copy(hedge).lerp(clipped, rise * rise).offsetHSL(0, 0, 0.03 * Math.sin(x * 1.7 + z * 1.1));
       colors.push(col.r, col.g, col.b);
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    q.setFromAxisAngle(up, -Math.atan2(z1 - z0, x1 - x0));
-    geo.applyMatrix4(m.compose(new THREE.Vector3((x0 + x1) / 2, g0 - 0.06, (z0 + z1) / 2), q, new THREE.Vector3(1, 1, 1)));
     pieces.push(geo);
   }
   const hedges = new THREE.Mesh(mergeGeometries(pieces), new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95 }));
@@ -139,10 +148,13 @@ export function buildMaze(maze, shape, biome, r) {
     new THREE.CylinderGeometry(0.3, 0.34, 0.2, 12).translate(0, 0.1, 0),
     new THREE.CylinderGeometry(0.05, 0.07, 0.42, 8).translate(0, 0.3, 0),
     new THREE.CylinderGeometry(0.14, 0.05, 0.06, 10).translate(0, 0.52, 0),
+    // A lip round the basin, which the water sits inside.
+    new THREE.TorusGeometry(0.28, 0.03, 6, 16).rotateX(Math.PI / 2).translate(0, 0.22, 0),
   ]), stone);
   fountain.position.set(maze.x, gy - 0.02, maze.z);
-  const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.02, 12), new THREE.MeshStandardMaterial({ color: '#5aa8d8', roughness: 0.2, metalness: 0.1 }));
-  pool.position.set(maze.x, gy + 0.17, maze.z);
+  // The water's top stands clear of the basin's (level with it, the two flickered).
+  const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.02, 12), new THREE.MeshStandardMaterial({ color: '#5aa8d8', roughness: 0.2, metalness: 0.1 }));
+  pool.position.set(maze.x, gy + 0.19, maze.z);
   fountain.castShadow = true;
   group.add(fountain, pool);
   const [gx, gz] = maze.gate;

@@ -77,7 +77,9 @@ if (!lowPower && !/[?&]pcss=0/.test(location.search)) useSoftShadows();
 renderer.toneMapping = THREE.NeutralToneMapping;
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1200);
+// The near plane sets how finely depth is told apart: the camera never comes closer than
+// about 3 to what it's looking at, and at 0.1 parts a few thousandths apart flickered.
+const camera = new THREE.PerspectiveCamera(40, 1, 0.25, 1200);
 camera.position.set(21, 11, 21);
 const HOME_TARGET = new THREE.Vector3(0, -1.2, 0);
 const controls = new OrbitControls(camera, renderer.domElement);

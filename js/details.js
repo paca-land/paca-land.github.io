@@ -118,7 +118,7 @@ export function buildDetails({ top, under, shape, biome, biomeKey, trees, landma
         if (r.chance(0.35)) parts.push(piece(new THREE.CylinderGeometry(0.02, 0.02, 0.1, 5).translate(0, h * 0.82, 0), '#6a4028', [x, y, z], lean));
       }
     }
-    const padParts = [];
+    const padParts = [], placed = [];
     for (const pool of shape.pools) {
       for (let i = Math.round(pool.radius * r.range(4, 7)); i > 0; i--) {
         const a = r.range(0, TAU), d = Math.sqrt(r()) * shape.shoreDistance(pool, a) * 0.85;
@@ -126,8 +126,12 @@ export function buildDetails({ top, under, shape, biome, biomeKey, trees, landma
         const depth = pool.level - groundY(x, z);
         if (depth < 0.12 || depth > 0.8) continue;
         const size = r.range(0.1, 0.18);
-        padParts.push(piece(new THREE.CylinderGeometry(size, size, 0.012, 10), r.pick(['#4f8f3a', '#5f9f45', '#467f35']), [x, pool.level + 0.01, z], { ry: r() * TAU }));
-        if (r.chance(0.3)) padParts.push(piece(new THREE.ConeGeometry(0.05, 0.06, 6), r.pick(['#ffffff', '#ffc4d6']), [x, pool.level + 0.05, z]));
+        // A pad over another floats a little higher (level with it, the two flickered).
+        const under = placed.filter((p) => Math.hypot(p.x - x, p.z - z) < p.size + size);
+        const lift = under.length ? Math.max(...under.map((p) => p.lift)) + 0.008 : 0;
+        placed.push({ x, z, size, lift });
+        padParts.push(piece(new THREE.CylinderGeometry(size, size, 0.012, 10), r.pick(['#4f8f3a', '#5f9f45', '#467f35']), [x, pool.level + 0.01 + lift, z], { ry: r() * TAU }));
+        if (r.chance(0.3)) padParts.push(piece(new THREE.ConeGeometry(0.05, 0.06, 6), r.pick(['#ffffff', '#ffc4d6']), [x, pool.level + 0.05 + lift, z]));
       }
     }
     if (padParts.length && water) {

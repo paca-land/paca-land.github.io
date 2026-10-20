@@ -26,7 +26,8 @@ function build(kit, ctx, place, lib) {
   // A bed of clover and flowers in front.
   for (let i = 0; i < 14; i++) {
     const a = ctx.r.range(0, TAU), d = ctx.r.range(0, 0.4), x = 0.4 + Math.cos(a) * d * 1.6, z = 0.95 + Math.sin(a) * d;
-    kit.add(ctx.r.pick(['#ffffff', '#f49ab5', '#c8a0ff', '#ffd23a']), new THREE.IcosahedronGeometry(0.045, 0), [x, place.ground(x, z) + 0.05, z]);
+    // Each turned its own way, so two that touch don't share a face plane.
+    kit.add(ctx.r.pick(['#ffffff', '#f49ab5', '#c8a0ff', '#ffd23a']), new THREE.IcosahedronGeometry(0.045, 0).rotateY(i * 1.7).rotateX(i * 0.9), [x, place.ground(x, z) + 0.05, z]);
   }
   kit.add('darkWood', cyl(0.025, 0.03, 0.7, 5), [-1.05, place.ground(-1.05, 0.3), 0.3]);
   kit.add('lamp', box(0.1, 0.12, 0.1), [-1.05, place.ground(-1.05, 0.3) + 0.7, 0.3]);

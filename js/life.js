@@ -299,7 +299,7 @@ function buildDeer({ spots, shape, r, count, sound, note }) {
   const bodyGeo = model(
     part(new THREE.BoxGeometry(0.22, 0.24, 0.58), coat, [0, 0.62, 0]),
     part(new THREE.BoxGeometry(0.18, 0.06, 0.5), belly, [0, 0.49, 0]),
-    ...[[-0.07, 0.2], [0.07, 0.2], [-0.07, -0.2], [0.07, -0.2]].map(([x, z]) => part(new THREE.BoxGeometry(0.05, 0.52, 0.05), coat, [x, 0.26, z])),
+    ...[[-0.076, 0.2], [0.076, 0.2], [-0.076, -0.2], [0.076, -0.2]].map(([x, z]) => part(new THREE.BoxGeometry(0.05, 0.54, 0.05), coat, [x, 0.27, z])),
     part(new THREE.BoxGeometry(0.06, 0.08, 0.04), '#f4f0e8', [0, 0.7, -0.31]),
   );
   // The head and neck pivot where the neck meets the body.
@@ -488,6 +488,9 @@ function buildFish({ lake, open, water, waterLevel, bursts, koi, note }) {
 
 const COATS = { snowfield: '#f4f4f2', desert: '#c8a47a', highlands: '#8a8478' };
 
+// Parts that overlap must stand clear of each other by 0.01 or more: two faces of
+// different colours closer than that flicker (z-fighting) at the default camera.
+// .claude/zfight-check.js finds them.
 // More creatures. Each is a little model and a way of getting about: hoppers
 // hop from spot to spot, walkers amble and stop to graze (a waddle rocks them
 // side to side), and scuttlers go sideways. Tap one and it scampers off.
@@ -513,7 +516,7 @@ const CRITTERS = {
       part(new THREE.ConeGeometry(0.018, 0.12, 4), '#5a4a3a', [-0.03, 0.51, 0.13], { rx: -0.7 }),
       part(new THREE.ConeGeometry(0.018, 0.12, 4), '#5a4a3a', [0.03, 0.51, 0.13], { rx: -0.7 }),
       part(box(0.03, 0.06, 0.02), '#d8d0c4', [0, 0.34, 0.24]),
-      ...legs('#cfc8bc', 0.035, 0.24, 0.045, 0.11),
+      ...legs('#cfc8bc', 0.035, 0.24, 0.04, 0.11),
     ),
   },
   squirrel: {
@@ -588,7 +591,7 @@ const CRITTERS = {
       part(box(0.09, 0.09, 0.18), '#e8b84a', [0, 1.3, 0.34]),
       part(box(0.015, 0.06, 0.015), '#6a4a2a', [-0.025, 1.38, 0.3]),
       part(box(0.015, 0.06, 0.015), '#6a4a2a', [0.025, 1.38, 0.3]),
-      ...[[0.05, 0.7, 0.08], [-0.06, 0.66, -0.1], [0.04, 0.6, -0.04], [-0.05, 0.74, 0.12], [0.0, 0.9, 0.24]].map(([x, y, z]) => part(box(0.07, 0.06, 0.07), '#9a5a2a', [x * 1.4, y, z])),
+      ...[[0.07, 0.7, 0.08, 0.07], [-0.084, 0.66, -0.1, 0.07], [0.075, 0.6, -0.04, 0.07], [-0.07, 0.74, 0.12, 0.07], [0, 0.9, 0.24, 0.1]].map(([x, y, z, w]) => part(box(w, 0.06, w), '#9a5a2a', [x, y, z])),
     ),
   },
   panda: {
@@ -635,11 +638,11 @@ Object.assign(CRITTERS, {
     gait: 'walk', speed: 0.15, roam: 1.6, rest: [3, 8], sound: 'moo',
     model: () => model(
       part(box(0.22, 0.2, 0.42), '#f4f1ea', [0, 0.36, 0]),
-      part(box(0.226, 0.13, 0.15), '#2a2622', [0, 0.39, -0.08]),
-      part(box(0.226, 0.1, 0.08), '#2a2622', [0, 0.41, 0.13]),
+      part(box(0.24, 0.14, 0.15), '#2a2622', [0, 0.4, -0.08]),
+      part(box(0.24, 0.11, 0.08), '#2a2622', [0, 0.415, 0.13]),
       part(box(0.15, 0.15, 0.16), '#f4f1ea', [0, 0.47, 0.27]),
-      part(box(0.154, 0.06, 0.09), '#2a2622', [0, 0.52, 0.26]),
-      part(box(0.13, 0.08, 0.06), '#e8a8a0', [0, 0.43, 0.36]),
+      part(box(0.17, 0.045, 0.09), '#2a2622', [0, 0.5, 0.26]),
+      part(box(0.13, 0.09, 0.06), '#e8a8a0', [0, 0.425, 0.36]),
       part(cone(0.018, 0.08), '#e8dcc0', [-0.065, 0.58, 0.25], { rz: 0.6 }),
       part(cone(0.018, 0.08), '#e8dcc0', [0.065, 0.58, 0.25], { rz: -0.6 }),
       part(box(0.07, 0.03, 0.04), '#2a2622', [-0.1, 0.52, 0.24]),
@@ -647,7 +650,7 @@ Object.assign(CRITTERS, {
       part(ball(0.045), '#e8a8a0', [0, 0.26, -0.06]),
       part(box(0.02, 0.2, 0.02), '#2a2622', [0, 0.34, -0.22], { rx: 0.2 }),
       ...legs('#f4f1ea', 0.05, 0.26, 0.07, 0.15),
-      ...legs('#2a2622', 0.055, 0.04, 0.07, 0.15),
+      ...legs('#2a2622', 0.07, 0.05, 0.07, 0.15, 0.018),
     ),
   },
   hen: {
@@ -685,7 +688,7 @@ Object.assign(CRITTERS, {
       ...legs('#b88a56', 0.05, 0.44, 0.06, 0.14),
       part(box(0.07, 0.07, 0.26), '#c89a62', [0, 0.57, 0.28], { rx: -0.9 }),
       part(box(0.09, 0.08, 0.17), '#c89a62', [0, 0.68, 0.4]),
-      part(box(0.07, 0.05, 0.04), '#a87a4a', [0, 0.66, 0.49]),
+      part(box(0.07, 0.06, 0.04), '#a87a4a', [0, 0.655, 0.49]),
       ...eyes(0.047, 0.7, 0.42),
       part(box(0.02, 0.04, 0.02), '#a87a4a', [-0.035, 0.74, 0.35]),
       part(box(0.02, 0.04, 0.02), '#a87a4a', [0.035, 0.74, 0.35]),
@@ -701,7 +704,7 @@ Object.assign(CRITTERS, {
       part(new THREE.CylinderGeometry(0.135, 0.14, 0.025, 10), '#4a4428', [0, 0.04, 0], { s: [1, 1, 1.15] }),
       part(ball(0.042), '#9a9060', [0, 0.07, 0.18], { s: [0.9, 0.85, 1.2] }),
       ...eyes(0.022, 0.085, 0.215, 0.008),
-      ...legs('#9a9060', 0.05, 0.05, 0.09, 0.09, 0.025),
+      ...legs('#9a9060', 0.05, 0.04, 0.09, 0.09, 0.02),
       part(cone(0.02, 0.05), '#9a9060', [0, 0.04, -0.17], { rx: -Math.PI / 2 }),
     ),
   },
@@ -734,11 +737,10 @@ Object.assign(CRITTERS, {
       ...[-0.015, 0, 0.015].map((x) => part(ball(0.011, 0), '#2a8a5a', [x, 0.43, 0.08])),
       // The fan: an upright half-disc behind, with eyes on both faces.
       part(new THREE.CylinderGeometry(0.32, 0.32, 0.012, 18, 1, false, Math.PI / 2 + 0.25, Math.PI - 0.5), '#2a8a5a', [0, 0.14, -0.08], { rx: Math.PI / 2 }),
-      ...[[0.27, [-1.2, -0.6, 0, 0.6, 1.2]], [0.16, [-0.9, -0.3, 0.3, 0.9]]].flatMap(([r, angles]) => angles.flatMap((a) =>
-        [-1, 1].flatMap((side) => [
-          part(ball(0.024, 0), '#e8c040', [r * Math.sin(a), 0.14 + r * Math.cos(a), -0.08 + side * 0.008], { s: [1, 1, 0.4] }),
-          part(ball(0.013, 0), '#1a3a8a', [r * Math.sin(a), 0.14 + r * Math.cos(a), -0.08 + side * 0.014], { s: [1, 1, 0.4] }),
-        ]))),
+      ...[[0.27, [-1.2, -0.6, 0, 0.6, 1.2]], [0.16, [-0.9, -0.3, 0.3, 0.9]]].flatMap(([r, angles]) => angles.flatMap((a) => [
+        part(ball(0.026, 0), '#e8c040', [r * Math.sin(a), 0.14 + r * Math.cos(a), -0.08], { s: [1, 1, 0.65] }),
+        part(ball(0.013, 0), '#1a3a8a', [r * Math.sin(a), 0.14 + r * Math.cos(a), -0.08], { s: [1, 1, 2.2] }),
+      ])),
       part(box(0.012, 0.1, 0.012), '#8a7a6a', [-0.025, 0.05, 0.02]),
       part(box(0.012, 0.1, 0.012), '#8a7a6a', [0.025, 0.05, 0.02]),
     ),
@@ -763,8 +765,8 @@ Object.assign(CRITTERS, {
       part(ball(0.11), coat, [0, 0.09, 0], { s: [1, 0.8, 1.7] }),
       part(ball(0.07), coat, [0, 0.17, 0.15]),
       part(ball(0.032), coat, [0, 0.155, 0.21], { s: [1.2, 0.8, 1] }),
-      part(ball(0.012, 0), '#1a1a1a', [0, 0.165, 0.24]),
-      ...eyes(0.03, 0.19, 0.2, 0.015),
+      part(ball(0.012, 0), '#1a1a1a', [0, 0.163, 0.25]),
+      ...eyes(0.035, 0.193, 0.208, 0.016),
       part(box(0.09, 0.015, 0.05), coat, [-0.1, 0.03, 0.08], { rz: 0.3, ry: 0.4 }),
       part(box(0.09, 0.015, 0.05), coat, [0.1, 0.03, 0.08], { rz: -0.3, ry: -0.4 }),
       part(box(0.11, 0.012, 0.05), coat, [0, 0.02, -0.2]),
@@ -779,7 +781,7 @@ Object.assign(CRITTERS, {
       part(box(0.024, 0.13, 0.024), '#f08aa0', [0, 0.63, 0.06], { rx: 0.4 }),
       part(ball(0.032), '#f08aa0', [0, 0.7, 0.09]),
       part(box(0.02, 0.02, 0.06), '#f4f0e8', [0, 0.69, 0.13], { rx: 0.5 }),
-      part(box(0.021, 0.021, 0.025), '#2a2422', [0, 0.67, 0.16], { rx: 0.9 }),
+      part(ball(0.014, 0), '#2a2422', [0, 0.674, 0.158]),
       ...eyes(0.026, 0.71, 0.1, 0.007),
       // On one leg, the other folded up.
       part(box(0.013, 0.36, 0.013), '#e87890', [0, 0.18, 0]),
@@ -792,7 +794,7 @@ Object.assign(CRITTERS, {
     model: () => model(
       part(box(0.16, 0.16, 0.36), '#f8f6fa', [0, 0.42, 0]),
       ...legs('#f8f6fa', 0.045, 0.34, 0.055, 0.13),
-      ...legs('#e8c860', 0.05, 0.04, 0.055, 0.13),
+      ...legs('#e8c860', 0.065, 0.05, 0.055, 0.13, 0.018),
       part(box(0.08, 0.2, 0.09), '#f8f6fa', [0, 0.56, 0.17], { rx: 0.45 }),
       part(box(0.08, 0.08, 0.17), '#f8f6fa', [0, 0.66, 0.26], { rx: 0.25 }),
       part(cone(0.016, 0.14, 6), '#f0d060', [0, 0.76, 0.29], { rx: 0.5 }),
@@ -837,8 +839,8 @@ function dog(kind) {
     part(ball(0.085), coat, [0, 0.34, 0.19]),
     part(ball(0.046), coat, [0, 0.315, 0.27], { s: [1, 0.8, 1.1] }),
     part(ball(0.017, 0), dark, [0, 0.325, 0.315]),
-    part(ball(0.012, 0), dark, [-0.034, 0.36, 0.255]),
-    part(ball(0.012, 0), dark, [0.034, 0.36, 0.255]),
+    part(ball(0.014, 0), dark, [-0.039, 0.363, 0.266]),
+    part(ball(0.014, 0), dark, [0.039, 0.363, 0.266]),
     part(ball(0.046), ears, [-0.078, 0.3, 0.18], { s: [0.6, 1.55, 0.85] }),
     part(ball(0.046), ears, [0.078, 0.3, 0.18], { s: [0.6, 1.55, 0.85] }),
     // Su's apricot saddle and the patch round one eye.

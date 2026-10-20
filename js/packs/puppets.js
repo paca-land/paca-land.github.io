@@ -15,7 +15,7 @@ function build(kit, ctx, place, lib) {
   kit.add('#c8a050', box(1.34, 0.08, 0.56), [0, g + 1.5, 0]);
   kit.add('roofRed', gable(1.3, 0.32, 0.5), [0, g + 1.58, 0]);
   // Curtains drawn back at either side of the stage.
-  for (const sx of [-1, 1]) kit.add('#8a1a2a', box(0.14, 0.52, 0.05), [sx * 0.37, g + 0.8, 0.28]);
+  for (const sx of [-1, 1]) kit.add('#8a1a2a', box(0.14, 0.5, 0.05), [sx * 0.37, g + 0.8, 0.28]);
   kit.add('#c8a050', box(0.9, 0.06, 0.06), [0, g + 1.32, 0.28]);
   // Two rows of benches.
   for (const z of [0.9, 1.25]) {

@@ -1261,7 +1261,9 @@ const CROWN_TOP = {
   gear: 1.5, paper: 1.4, topiary: 1.4, hedge: 0.55, flower: 1.45, puff: 1.15, kapok: 2, fern: 0.4, wreck: 1.3, nest: 0.5,
 };
 
-const ico = (r, x, y, z, sy = 1) => new THREE.IcosahedronGeometry(r, 0).scale(1, sy, 1).translate(x, y, z);
+// Each ball is turned by where it sits: lumps all facing the same way had faces in the
+// same plane where they overlapped, and those shimmered as the camera turned.
+const ico = (r, x, y, z, sy = 1) => new THREE.IcosahedronGeometry(r, 0).rotateY(x * 5.1 + y * 2.3 + z * 3.7).scale(1, sy, 1).translate(x, y, z);
 // Merge pieces of any make (indexed or not, which mergeGeometries won't mix).
 const flat = (...geos) => mergeGeometries(geos.map((g) => (g.index ? g.toNonIndexed() : g)));
 
@@ -1285,9 +1287,9 @@ function speciesGeometry(kind) {
       return plain(null, mergeGeometries([
         new THREE.CylinderGeometry(0.12, 0.14, 1.1, 6).translate(0, 0.55, 0),
         new THREE.CylinderGeometry(0.07, 0.07, 0.3, 5).rotateZ(Math.PI / 2).translate(0.2, 0.45, 0),
-        new THREE.CylinderGeometry(0.07, 0.07, 0.35, 5).translate(0.33, 0.62, 0),
+        new THREE.CylinderGeometry(0.07, 0.07, 0.35, 5).rotateY(Math.PI / 5).translate(0.33, 0.62, 0),
         new THREE.CylinderGeometry(0.06, 0.06, 0.25, 5).rotateZ(Math.PI / 2).translate(-0.18, 0.7, 0),
-        new THREE.CylinderGeometry(0.06, 0.06, 0.28, 5).translate(-0.29, 0.84, 0),
+        new THREE.CylinderGeometry(0.06, 0.06, 0.28, 5).rotateY(Math.PI / 5).translate(-0.29, 0.84, 0),
       ]), { dark: 0.7 });
     case 'oak': {
       const trunk = mergeGeometries([
@@ -1384,15 +1386,16 @@ function speciesGeometry(kind) {
     case 'gear': {
       // A big cog on a post, standing on its edge, with a little one turning against it.
       const post = new THREE.CylinderGeometry(0.04, 0.06, 0.8, 6).translate(0, 0.4, 0);
-      const cog = (r, teeth, x, y) => [
-        new THREE.CylinderGeometry(r, r, 0.1, 16).rotateX(Math.PI / 2).translate(x, y, 0),
-        new THREE.CylinderGeometry(r * 0.28, r * 0.28, 0.16, 8).rotateX(Math.PI / 2).translate(x, y, 0),
+      // (The little one sits a touch in front, so where the teeth meet they aren't level.)
+      const cog = (r, teeth, x, y, z = 0) => [
+        new THREE.CylinderGeometry(r, r, 0.1, 16).rotateX(Math.PI / 2).translate(x, y, z),
+        new THREE.CylinderGeometry(r * 0.28, r * 0.28, 0.16, 8).rotateX(Math.PI / 2).translate(x, y, z),
         ...Array.from({ length: teeth }, (_, i) => {
           const a = (i / teeth) * TAU;
-          return new THREE.BoxGeometry(r * 0.38, r * 0.34, 0.1).rotateZ(a).translate(x + Math.cos(a) * r * 1.12, y + Math.sin(a) * r * 1.12, 0);
+          return new THREE.BoxGeometry(r * 0.38, r * 0.34, 0.08).rotateZ(a).translate(x + Math.cos(a) * r * 1.12, y + Math.sin(a) * r * 1.12, z);
         }),
       ];
-      const wheel = flat(...cog(0.46, 9, 0, 1.12), ...cog(0.22, 7, 0.6, 1.5));
+      const wheel = flat(...cog(0.46, 9, 0, 1.12), ...cog(0.22, 7, 0.6, 1.5, 0.03));
       return { trunk: shadeByHeight(post, 0.6), trunkColor: '#6a5038', crown: shadeByHeight(wheel, 0.65) };
     }
     case 'paper': {

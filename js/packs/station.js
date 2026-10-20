@@ -14,7 +14,7 @@ function build(kit, ctx, place, lib) {
   const gs = place.ground(0.55, 0.45);
   for (const [x, z] of [[-0.12, -0.1], [0.12, -0.1], [-0.12, 0.1], [0.12, 0.1]]) kit.add('#f4f4ee', box(0.03, 0.6, 0.03), [0.55 + x, gs, 0.45 + z]);
   kit.add('#f4f4ee', box(0.34, 0.32, 0.28), [0.55, gs + 0.6, 0.45]);
-  for (let i = 0; i < 4; i++) kit.add('#d8d8d0', box(0.35, 0.02, 0.29), [0.55, gs + 0.66 + i * 0.07, 0.45]);
+  for (let i = 0; i < 4; i++) kit.add('#d8d8d0', box(0.37, 0.02, 0.31), [0.55, gs + 0.66 + i * 0.07, 0.45]);
   kit.add('#f4f4ee', box(0.4, 0.04, 0.34), [0.55, gs + 0.92, 0.45]);
   // The mast.
   const gm = place.ground(0.45, -0.45);

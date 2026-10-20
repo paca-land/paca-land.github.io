@@ -23,7 +23,7 @@ function build(kit, ctx, place, lib) {
   // A rack of bottles in every colour.
   const gr = place.ground(-0.45, 0.72);
   for (const y of [0.22, 0.48]) kit.add('darkWood', box(0.7, 0.03, 0.16), [-0.45, gr + y, 0.72]);
-  for (const x of [-0.78, -0.12]) kit.add('darkWood', box(0.03, 0.62, 0.16), [x, gr, 0.72]);
+  for (const x of [-0.78, -0.12]) kit.add('darkWood', box(0.03, 0.66, 0.16), [x, gr, 0.72]);
   const colours = ['#3ac8c8', '#58c85a', '#e8a03a', '#a878e8', '#e85a7a'];
   for (let i = 0; i < 10; i++) {
     const x = -0.72 + (i % 5) * 0.14, y = gr + (i < 5 ? 0.235 : 0.495);
