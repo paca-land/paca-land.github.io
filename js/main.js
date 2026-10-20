@@ -268,11 +268,16 @@ function arrive(next) {
   leaving = null;
   seed = next;
   admin = voyage.active ? null : adminLand(seed);
-  const grown = admin ? admin.word : seed;
-  land = generateLand(grown, voyage.landOptions(seed) ?? admin?.want);
+  // A note in the link puts a bottle on the shore (#kettle~ and the scrambled note).
+  const [plain, code] = voyage.active || admin ? [seed, null] : splitNote(seed);
+  const note = code && unscramble(plain, code);
+  const grown = admin ? admin.word : plain;
+  land = generateLand(grown, voyage.landOptions(seed) ?? admin?.want ?? (note ? { bottle: note } : undefined));
+  bottleSheet.hidden = true;
   land.setDetail(QUALITY[quality].grass);
   land.hooks.sound = (kind) => sound.play(kind);
   land.hooks.note = (kind) => {
+    if (kind === 'bottle' && typeof land.bottle === 'string') showBottle(land.bottle);
     journal.note(kind);
     voyage.note(kind);
   };
@@ -319,10 +324,16 @@ function arrive(next) {
   else if (voyage.active) $('#land-meta').textContent = t(land.biome.label);
   else if (admin) $('#land-meta').textContent = admin.asked ? `${t(land.biome.label)} · #${admin.word} · admin` : ADMIN_HELP;
   else {
-    $('#land-meta').replaceChildren(`${t(land.biome.label)} · #${seed} · `, tierTag(rarity));
+    $('#land-meta').replaceChildren(`${t(land.biome.label)} · #${splitNote(seed)[0]} · `, tierTag(rarity));
     explainRarity(rarity);
   }
-  if (!admin) journal.visit(land, seed, rarity, voyage.active);
+  // (The journal keeps the word, never a note someone sent.)
+  if (!admin) journal.visit(land, splitNote(seed)[0], rarity, voyage.active);
+  // (After the journal's own news about the land, which would push it out of the toasts.)
+  if (typeof land.bottle === 'string') {
+    const at = land;
+    setTimeout(() => land === at && showToast($('#toasts'), '🍾', t('a bottle has washed up here: tap it to read the note')), 2600);
+  }
   document.title = isHome() ? 'PaCaLand' : `${name} · PaCaLand`;
   renderChips();
   voyage.arrived(land, seed);
@@ -380,6 +391,13 @@ $('#share').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(location.href);
     button.dataset.state = 'copied';
+    // A free land's link can carry a note in a bottle too.
+    if (!voyage.active && !admin) {
+      const offer = $('#bottle-offer');
+      offer.hidden = false;
+      clearTimeout(offer.timer);
+      offer.timer = setTimeout(() => (offer.hidden = true), 8000);
+    }
   } catch {
     button.dataset.state = 'failed';
   }
@@ -462,6 +480,7 @@ const voyage = createVoyage({
     applyWeather('fade');
   },
   toast: (emoji, text) => showToast($('#toasts'), emoji, text),
+  bottle: (word, done) => writeBottle(word, done),
 });
 
 // 中文 / English. Switching reloads the page (the words are read once, as it
@@ -615,10 +634,105 @@ function readSeed() {
   } catch {
     raw = location.hash.slice(1);
   }
-  const word = raw.trim().toLowerCase();
+  // A note in a bottle can ride in the link, scrambled, after a ~. It keeps its case;
+  // the word before it doesn't.
+  const [plain, note] = splitNote(raw.trim());
+  const word = plain.toLowerCase();
   // An admin link can be long; any other word is cut at 40 letters, as it always was.
-  return word.slice(0, word.startsWith(ADMIN) ? 160 : 40) || HOME;
+  const cut = word.slice(0, word.startsWith(ADMIN) ? 160 : 40) || HOME;
+  return note ? `${cut}~${note}` : cut;
 }
+
+// --- Messages in bottles ---------------------------------------------------
+// Only ever text, shown with textContent, and capped; it lives in the link alone.
+const NOTE_MAX = 240;
+const cleanNote = (text) => text.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX);
+// The link's word, and the scrambled note after its ~ (if any).
+function splitNote(raw) {
+  const at = raw.indexOf('~');
+  return at > 0 ? [raw.slice(0, at), raw.slice(at + 1) || null] : [raw, null];
+}
+// The note travels scrambled: its UTF-8 bytes and a check byte, XORed with a stream
+// seeded by the land's word, then base64url. Nobody reads it in the address bar, and
+// decoding the base64 alone gives noise. Anything that doesn't come back cleanly
+// (a typo, a hand-made link) is no note at all.
+function noteStream(word, n) {
+  const r = makeRandom(word, 'bottle note');
+  return Uint8Array.from({ length: n }, () => Math.floor(r() * 256));
+}
+const checkByte = (bytes) => bytes.reduce((sum, b) => (sum + b) & 255, 0);
+function scramble(word, note) {
+  const text = new TextEncoder().encode(note);
+  const bytes = new Uint8Array(text.length + 1);
+  bytes.set(text);
+  bytes[text.length] = checkByte(text);
+  const key = noteStream(word, bytes.length);
+  const mixed = bytes.map((b, i) => b ^ key[i]);
+  return btoa(String.fromCharCode(...mixed)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function unscramble(word, code) {
+  try {
+    const raw = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
+    const key = noteStream(word, raw.length);
+    const bytes = Uint8Array.from(raw, (c, i) => c.charCodeAt(0) ^ key[i]);
+    const text = bytes.subarray(0, -1);
+    if (!text.length || checkByte(text) !== bytes[bytes.length - 1]) return null;
+    return cleanNote(new TextDecoder('utf-8', { fatal: true }).decode(text)) || null;
+  } catch {
+    return null;
+  }
+}
+const bottleSheet = $('#bottle'), bottleText = $('#bottle-text'), bottleWrite = $('#bottle-write'), bottleInput = $('#bottle-input');
+let bottleWord = '', bottleDone = null;
+function closeBottle() {
+  bottleSheet.hidden = true;
+  bottleDone?.();
+  bottleDone = null;
+}
+// Read the note that came in the link.
+function showBottle(note) {
+  setPanel(false);
+  journal.toggle(false);
+  bottleWrite.hidden = true;
+  bottleText.textContent = `“${note}”`;
+  bottleSheet.hidden = false;
+}
+// Write one: a link to the land `word`, with your note in it. `done` runs on close.
+function writeBottle(word, done = null) {
+  setPanel(false);
+  journal.toggle(false);
+  bottleWord = word;
+  bottleDone = done;
+  bottleText.textContent = t('Write a note, and the link will grow “{word}” with your bottle on its shore. The note lives only in the link.', { word });
+  bottleWrite.hidden = false;
+  bottleInput.value = '';
+  updateCount();
+  bottleSheet.hidden = false;
+  bottleInput.focus({ preventScroll: true });
+}
+function updateCount() {
+  $('#bottle-count').textContent = `${bottleInput.value.length} / ${NOTE_MAX}`;
+}
+bottleInput.addEventListener('input', updateCount);
+bottleWrite.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const note = cleanNote(bottleInput.value);
+  if (!note) return bottleInput.focus();
+  const link = `${location.origin}${location.pathname}#${encodeURIComponent(bottleWord)}~${scramble(bottleWord, note)}`;
+  let copied = true;
+  try {
+    await navigator.clipboard.writeText(link);
+  } catch {
+    copied = false;
+  }
+  bottleWrite.hidden = true;
+  bottleText.textContent = `${copied ? t('Link copied. Send it to someone, and they’ll find your bottle on its shore:') : t('Copy this link and send it to someone:')}\n${link}`;
+});
+$('#bottle-close').addEventListener('click', closeBottle);
+$('#bottle-offer').addEventListener('click', () => {
+  $('#bottle-offer').hidden = true;
+  writeBottle(splitNote(seed)[0]);
+});
 
 // --- Quality ------------------------------------------------------------
 // Starts high and steps down if the frame rate struggles; or pick a level.

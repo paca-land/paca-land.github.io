@@ -4,6 +4,7 @@ import { BIOMES } from './world.js';
 import { t, lang } from './i18n.js';
 import {
   STORY, WA_NOTES, REACHES, reachOf, GATES, RIDDLES, OMENS, KEEPSAKES, CREW, DARES, TREASURE_WORDS, HUSH, SKY_EVENTS, aLetter, TRAITS, ITEMS, DOGS,
+  BOTTLES, BOTTLE, WA, WA_ABOARD, HA_FAR, HA_KITE, GA_TALES, GA_REPLY, SILENCES, SILENCE,
 } from './tales.js';
 import { ARCS } from './stories.js';
 import { ISLANDS, BUILDINGS as PACK_BUILDINGS, OMENS as PACK_OMENS, ITEMS as PACK_ITEMS, KEEPSAKES as PACK_KEEPSAKES } from './packs/index.js';
@@ -33,6 +34,8 @@ const PACK = 4; // one-use tools in the pack at once
 const FEAST = ['feast', 'bread', 'sweet', 'harvest', 'tea', 'music'];
 const SKY_EVENT_CHANCE = 0.45; // that something happens on the way
 const DOG_CHANCE = 0.04; // that a dog you haven't met yet is on the next island
+const BOTTLE_CHANCE = 0.2; // that an island has the next message in a bottle (two a voyage at most)
+const FAR = 135; // miles to Ha's kite, past the Edge (tales.js, HA_KITE)
 const LIGHT = ['sun', 'dawn', 'golden']; // meanings that drive the Hush back
 
 // An hour spent shaking the trees, by kind of land.
@@ -88,11 +91,12 @@ const LANDMARK_LABEL = {
   observatory: t('an observatory'), teahouse: t('a teahouse'), post: t('a post office'), workshop: t('a balloon workshop'), bandstand: t('a bandstand'),
   inn: t('an inn'), fortune: t('a fortune teller’s tent'), shipwright: t('a shipwright’s yard'), bathhouse: t('a bathhouse'), clocktower: t('a clock tower'),
   edge: t('Wa’s stone'),
+  kite: t('Ha’s kite'),
   town: t('the town'),
   ...Object.fromEntries(Object.entries(PACK_BUILDINGS).map(([id, b]) => [id, b.label])),
 };
 // The buildings the book's atlas counts (the town is home, so it isn't one to find).
-const BUILDINGS = Object.keys(LANDMARK_LABEL).filter((id) => id !== 'town');
+const BUILDINGS = Object.keys(LANDMARK_LABEL).filter((id) => id !== 'town' && id !== 'kite');
 // The kind of word that calls each island or building, for sightings.
 const ISLAND_WORD = Object.fromEntries(MEANINGS.filter((m) => m.effect.biome).map((m) => [m.effect.biome, m.id]));
 const BUILDING_WORD = Object.fromEntries(MEANINGS.filter((m) => m.effect.landmark).map((m) => [m.effect.landmark, m.id]));
@@ -457,13 +461,14 @@ function newRun() {
     quest: null, questDone: false, freeLetter: null, freeNext: false, blessing: false, calm: 0, waited: false, met: [], lands: {},
     omen, riddles, gates: 0, reach: 0, hush: null, banned: [], keepsakes: [], crew: [], crewMet: [], dare: null,
     flags: {}, events: [], seen: [], patched: false, delivered: 0, darkWords: 0, sighting: null, rough: 0, pack: [], lucky: null, dogs: [],
+    tiles: null, wa: false, far: false, silence: null, bottles: 0, farLine: 0,
   };
 }
 
 // `api`: fly(seed), leave(), setClock(hours), clearStorm(), toast(emoji, text).
 export function createVoyage(api) {
   // (A book or a voyage saved before a field existed just gets that field's default.)
-  const book = { meanings: {}, rules: {}, secrets: {}, voyages: [], islands: {}, buildings: {}, sighted: {}, keepsakes: {}, crew: {}, omens: {}, pages: {}, arcs: {}, dogs: {}, found: false, edges: 0, ...store.get(BOOK, {}) };
+  const book = { meanings: {}, rules: {}, secrets: {}, voyages: [], islands: {}, buildings: {}, sighted: {}, keepsakes: {}, crew: {}, omens: {}, pages: {}, arcs: {}, dogs: {}, bottles: {}, silences: {}, ga: 0, found: false, edges: 0, ...store.get(BOOK, {}) };
   // A saved voyage, if any (not active until resumed).
   const saved = store.get(SAVE, null);
   let run = saved && { ...newRun(), ...saved };
@@ -476,6 +481,7 @@ export function createVoyage(api) {
   let finale = false;
   // After the last card, looking round the Edge: 'wa' (flying her home) or 'home'.
   let lingering = null;
+  let statusOpen = false; // on a phone: the status line's notes unfolded
   let winTimer = 0; // the last card, a moment after reaching the Edge
 
   // --- Elements -------------------------------------------------------------
@@ -538,7 +544,7 @@ export function createVoyage(api) {
 
   function showPill() {
     pill.hidden = active;
-    pill.textContent = run ? t('⛵ continue your voyage · {done} of {goal} miles', { done: run.leagues, goal: GOAL }) : book.found ? t('⛵ fly to the Edge for Wa') : t('⛵ follow Wa to the Edge of the Sky');
+    pill.textContent = run ? t('⛵ continue your voyage · {done} of {goal} miles', { done: run.leagues, goal: goalOf() }) : book.found ? t('⛵ fly to the Edge for Wa') : t('⛵ follow Wa to the Edge of the Sky');
   }
 
   function enter() {
@@ -660,6 +666,13 @@ export function createVoyage(api) {
     if (run.omen === 'lucky') run.lucky = pickOf([...'aeiorstnlcdmpbg']);
     // The dogs you've met are waiting on the quay.
     run.dogs = Object.keys(DOGS).filter((id) => book.dogs[id]);
+    // Wa's letter card: one of her words in blanks, filled by the first letters of the
+    // words you fly (one you don't know yet, while there are any).
+    const cards = Object.keys(SECRETS).filter((w) => w.length >= 5 && w.length <= 8);
+    const card = pickOf(cards.filter((w) => !book.secrets[w])) ?? pickOf(cards);
+    run.tiles = { word: card, got: '_'.repeat(card.length), done: false };
+    // Once Wa's found, the Hush is someone else's each voyage (tales.js, SILENCES).
+    if (book.found) run.silence = pickOf(Object.keys(SILENCES).filter((id) => !book.silences[id] && !(id === 'ga' && book.gaWord))) ?? null;
     told('begin');
     book.omens[run.omen] ??= Date.now();
     book.pages.last ??= Date.now();
@@ -675,7 +688,7 @@ export function createVoyage(api) {
         note: KEEPSAKES[id].line,
         act: () => {
           giveKeepsake(id);
-          depart(readWord('harbour'), { first: true });
+          quay();
         },
       })),
     });
@@ -684,7 +697,7 @@ export function createVoyage(api) {
   function resume() {
     if (!run?.here) return begin();
     enter();
-    finale = run.leagues >= GOAL;
+    finale = run.leagues >= goalOf();
     state = 'flying';
     hud();
     api.fly(`~${run.here.word}`);
@@ -735,7 +748,79 @@ export function createVoyage(api) {
     return (cabin?.ch ?? 0) >= 2 ? 'waiting' : null;
   }
 
+  // At the Edge with Wa aboard and Ha's last note read: fly on to his kite, or go home.
   function win() {
+    if (!active || state === 'over') return;
+    if (run.far) return haWin();
+    if (run.wa && haReady()) {
+      return openCard({
+        title: HA_KITE.edge.title,
+        text: HA_KITE.edge.text,
+        options: [
+          { label: HA_KITE.edge.on, note: HA_KITE.edge.onNote(miles(FAR - run.leagues)), primary: true, act: flyOn },
+          { label: HA_KITE.edge.home, note: HA_KITE.edge.homeNote, act: winNow },
+        ],
+      });
+    }
+    winNow();
+  }
+
+  // Through the Edge: the voyage goes on, to Ha's kite.
+  function flyOn() {
+    closeCard();
+    run.far = true;
+    finale = false;
+    run.hush = null;
+    run.silence = null;
+    run.gates = GATES.length;
+    run.stay = stayHours();
+    state = 'land';
+    toast('🪁', HA_KITE.wind);
+    hud();
+    save();
+  }
+
+  // The last card past the Edge.
+  function haWin() {
+    state = 'over';
+    status.replaceChildren();
+    book.haKite = Date.now();
+    book.edges = (book.edges ?? 0) + 1;
+    record(true);
+    store.set(SAVE, null);
+    const crew = run.crew.map((id) => CREW[id].name);
+    openCard({
+      title: HA_KITE.title,
+      text: [
+        ...HA_KITE.end,
+        HA_KITE.perk,
+        crew.length > 1 ? t('{a} and {b} were with you at the end.', { a: cap(crew[0]), b: crew[1] })
+          : crew.length ? t('{a} was with you at the end.', { a: cap(crew[0]) }) : '',
+        ...STORY.home(),
+      ].filter(Boolean),
+      poem: run.words.slice(1),
+      options: [
+        { label: t('sail again'), primary: true, act: () => { end(); intro(); } },
+        bottleOption(),
+        { label: t('back to the islands'), act: end },
+      ],
+    });
+  }
+
+  // Write someone real a message in a bottle (main.js), from the island you ended on.
+  function bottleOption() {
+    const word = run.here.word;
+    return {
+      label: t('✉ send someone a message in a bottle'), note: t('a link with your note in it'),
+      act: () => {
+        if (!api.bottle) return;
+        card.hidden = true;
+        api.bottle(word, () => (card.hidden = false));
+      },
+    };
+  }
+
+  function winNow() {
     if (!active || state === 'over') return;
     state = 'over';
     status.replaceChildren();
@@ -745,6 +830,11 @@ export function createVoyage(api) {
     // The postmistress's letters (stories.js) reach Wa in whichever ending comes first.
     const letters = friend(book, 'post') && !book.lettersGiven;
     if (letters) book.lettersGiven = true;
+    // Ha's notes (the first time you reach her), and Ga's word if you carry it.
+    const haNotes = !found && BOTTLES.some((b) => b.from === 'ha' && book.bottles[b.id]);
+    const gaWord = Boolean(book.gaWord) && !book.gaReply;
+    if (gaWord) book.gaReply = true;
+    const gaOmen = run.omen === 'ga' ? gaTale() : null;
     book.edges = (book.edges ?? 0) + 1;
     record(true);
     // The voyage is over: a reload mustn't land you back here and count it twice.
@@ -757,7 +847,8 @@ export function createVoyage(api) {
     openCard({
       title: t('the Edge of the Sky'),
       text: [
-        ...STORY.edge({ said: run.here.said, words: some.map((w) => `“${w}”`).join(lang === 'zh' ? '……' : '… '), found, name: book.name, tobias: tobiasNews(), letters }),
+        ...STORY.edge({ said: run.here.said, words: some.map((w) => `“${w}”`).join(lang === 'zh' ? '……' : '… '), found, name: book.name, tobias: tobiasNews(), letters, haNotes, gaWord }),
+        ...(gaOmen ? [`🎈 ${gaOmen}`] : []),
         why ? t('You reached the Edge in {n} words, on day {day}, and the sky will remember you as {title} ({why}).', how) : t('You reached the Edge in {n} words, on day {day}, and the sky will remember you as {title}.', how),
         crew.length > 1 ? t('{a} and {b} were with you at the end.', { a: cap(crew[0]), b: crew[1] })
           : crew.length ? t('{a} was with you at the end.', { a: cap(crew[0]) }) : '',
@@ -767,6 +858,7 @@ export function createVoyage(api) {
       options: [
         { label: t('sail again'), primary: true, act: () => { end(); intro(); } },
         { label: t('stay a while'), note: t('look round the Edge, then fly home'), act: () => linger(found ? 'home' : 'wa') },
+        bottleOption(),
         { label: t('back to the islands'), act: end },
       ],
     });
@@ -787,7 +879,8 @@ export function createVoyage(api) {
     record(false);
     openCard({
       title: t('lost in the clouds'),
-      text: [t('{why} You sink into the sea of clouds, {miles} short of the Edge, and drift slowly home.', { why, miles: miles(Math.max(0, GOAL - run.leagues)) }), STORY.lost(book.found)],
+      text: [run.far ? t('{why} You sink into the sea of clouds, {miles} short of Ha’s kite, and drift slowly home.', { why, miles: miles(Math.max(0, goalOf() - run.leagues)) })
+        : t('{why} You sink into the sea of clouds, {miles} short of the Edge, and drift slowly home.', { why, miles: miles(Math.max(0, GOAL - run.leagues)) }), STORY.lost(book.found)],
       poem: run.words.slice(1),
       options: [
         { label: t('sail again'), primary: true, act: () => { end(); intro(); } },
@@ -884,7 +977,8 @@ export function createVoyage(api) {
 
   const omenText = () => (typeof OMENS[run.omen].line === 'function' ? OMENS[run.omen].line(run) : OMENS[run.omen].line);
   const roughLine = () => `${'✦'.repeat(run.rough)} ${t('The sky remembers you, and it’s rougher than on your first voyage: the Hush is quicker, storms come more often, and everything costs more.')}`;
-  const hushSpeed = () => bend('hush', HUSH.speed * (run.omen === 'long' ? 1.5 : 1) * (1 + 0.3 * run.rough) * (run.omen === 'fullmoon' && dark() ? 2 : 1));
+  const hushSpeed = () => bend('hush', HUSH.speed * (run.omen === 'long' ? 1.5 : 1) * (1 + 0.3 * run.rough) * (run.omen === 'fullmoon' && dark() ? 2 : 1)
+    * Math.max(0.7, 1 - 0.05 * Object.keys(book.silences).length));
   // Hours of sleep "until morning": to the next 7:00, and at least one.
   const sleepHours = () => Math.max(1, ((7 - run.hours) % 24 + 24) % 24);
   const stayHours = () => bend('stay', STAY + (has('hourglass') ? 1 : 0) + (run.omen === 'long' ? 1 : 0));
@@ -893,6 +987,20 @@ export function createVoyage(api) {
   const dark = () => (env?.night ?? 0) > 0.5;
   const nightHour = (h) => h >= 20.5 || h < 5.5;
   const caught = () => run.hush !== null && run.hush >= run.leagues;
+  // How far this voyage is going: the Edge, or Ha's kite past it. (Declared, not
+  // const: showPill() asks before this line runs.)
+  function goalOf() {
+    return run?.far ? FAR : GOAL;
+  }
+  function reachHere() {
+    return Math.min(reachOf(run.leagues), run.far ? 3 : 2);
+  }
+  // Ha's last note read, Wa found and not yet flown to his kite.
+  function haReady() {
+    return book.found && Boolean(book.bottles.ha5) && !book.haKite;
+  }
+  // Wa's letter card as it stands: P _ E _ S E.
+  const tileCard = () => run.tiles.got.toUpperCase().split('').join(' ');
 
   // Every passenger but the cook eats a loaf a flight; the cook saves one.
   const foodCost = () => (run.blessing ? 0 : bend('food', Math.max(0, 1 + (cold() ? 1 : 0) + (run.omen === 'hungry' ? 1 : 0)
@@ -907,6 +1015,7 @@ export function createVoyage(api) {
     if (has('lodestone')) fuel -= (w.match(/[jqxz]/g) ?? []).length;
     if (run.omen === 'vowels') fuel += Math.max(0, (w.match(/[aeiou]/g) ?? []).length - 1);
     if (reading.rules.includes('chain')) fuel = Math.ceil(fuel / (has('compass') ? 4 : 2));
+    if (reading.rules.includes('ladder')) fuel = Math.max(1, fuel - 2);
     if (e.wind) fuel = Math.ceil(fuel / (has('kite') || run.omen === 'gusty' || run.here?.biome === 'birds' ? 4 : 2));
     if (run.omen === 'mirror') fuel = w[0] === w[w.length - 1] ? Math.ceil(fuel / 2) : fuel + 1;
     if (run.omen === 'lucky' && run.lucky && !w.includes(run.lucky)) fuel += 1;
@@ -942,6 +1051,9 @@ export function createVoyage(api) {
     const gust = Math.max(-2, Math.min(2, Math.round((r() + r() - 1) * 2.5)));
     if (gust) parts.push([gust, gust > 0 ? t('a gust') : t('a headwind')]);
     if (aboard('cartographer')) parts.push([1, CREW.cartographer.name]);
+    if (run.far) parts.push([2, HA_KITE.wind]);
+    else if (book.haKite && run.words.length === 1) parts.push([3, HA_KITE.wind]);
+    if (reading.rules.includes('alliteration')) parts.push([3, book.rules.alliteration ? RULES.alliteration.name : t('something you haven’t learned yet')]);
     if (run.here?.trait === 'windswept') parts.push([2, TRAITS.windswept.name]);
     if (run.flags.sandbag) parts.push([3, ITEMS.sandbag.name]);
     if (run.omen === 'short' && reading.word.length <= 4) parts.push([1, OMENS.short.name]);
@@ -979,7 +1091,7 @@ export function createVoyage(api) {
 
   // A word that asks for no kind of land gets one of the reach's own, sometimes.
   function reachIsland(word, leagues, always = false) {
-    const reach = REACHES[reachOf(leagues)];
+    const reach = REACHES[Math.min(reachOf(leagues), run.far ? 3 : 2)];
     const r = makeRandom(word, 'reach');
     return r() < bend('strange', reach.chance) || always ? r.weighted(reach.islands) : undefined;
   }
@@ -989,7 +1101,7 @@ export function createVoyage(api) {
     return {
       run,
       get reach() {
-        return reachOf(run.leagues);
+        return reachHere();
       },
       get night() {
         return nightHour(run.hours);
@@ -1161,7 +1273,10 @@ export function createVoyage(api) {
 
   // --- Flying -----------------------------------------------------------------
   function context() {
-    return { used: bend('used', run.used), last: run.words.length > 1 ? run.words[run.words.length - 1] : null, muted: run.flags.hoarded ? [run.flags.hoarded] : [] };
+    return {
+      used: bend('used', run.used), last: run.words.length > 1 ? run.words[run.words.length - 1] : null, muted: run.flags.hoarded ? [run.flags.hoarded] : [],
+      recent: run.words.slice(1).slice(-6), // (not the Harbour)
+    };
   }
 
   function submit(text) {
@@ -1285,6 +1400,38 @@ export function createVoyage(api) {
         give({ food: -1 });
         story.push(`🎶 ${t('The music box plays as you fly. {hush}Gulls follow the tune and take a food.', { hush: run.hush !== null ? t('The Hush falls back. ') : '' })}`);
       }
+      // A rhyme sets the sky humming (what you said, not what the night heard).
+      if (reading.rules.includes('rhyme') && !drifting) {
+        if (run.hush !== null) {
+          run.hush -= 2;
+          story.push(`🎵 ${t('Your rhyme sets the sky humming, and the Hush falls back 2 miles.')}`);
+        } else {
+          story.push(`🎵 ${t('Your rhyme sets the sky humming: {got}', { got: gainText(give({ glimmer: 1 })) })}`);
+        }
+      }
+      // The word leaves its first letter in the tile bag, if Wa's card has a space for it.
+      const tiles = run.tiles;
+      const at = tiles && !tiles.done && !drifting ? [...tiles.word].findIndex((c, k) => c === said[0] && tiles.got[k] === '_') : -1;
+      if (at >= 0) {
+        tiles.got = tiles.got.slice(0, at) + said[0] + tiles.got.slice(at + 1);
+        if (tiles.got === tiles.word) {
+          tiles.done = true;
+          learnSecret(tiles.word, true);
+          story.push(`🔤 ${t('The last tile clicks into place: {word}, one of Wa’s words. {line} {got}', { word: tiles.word.toUpperCase(), line: SECRETS[tiles.word].line, got: gainText(give({ glimmer: 5 })) })}`);
+        } else {
+          story.push(`🔤 ${t('“{word}” leaves its {letter} in the tile bag, and it fits Wa’s card: {card}', { word: said, letter: said[0].toUpperCase(), card: tileCard() })}`);
+        }
+      }
+      // The word someone never said: their silence lets go.
+      const silence = run.silence && SILENCES[run.silence];
+      if (silence && run.hush !== null && reading.real && silence.words.includes(said) && !drifting) {
+        book.silences[run.silence] = Date.now();
+        saveBook();
+        run.hush = null;
+        run.flags.silenced = true;
+        run.silence = null;
+        story.push(`🤫 ${silence.lifted} ${SILENCE.gone} ${t('For listening: {got}', { got: gainText(give({ hull: 1, glimmer: 3 })) })}`);
+      }
     }
 
     const e = { ...heard.effect };
@@ -1294,10 +1441,10 @@ export function createVoyage(api) {
       answer = r.pick(MEANINGS.filter((m) => !['question', 'friend', 'dark', 'clock', 'gift', 'fast', 'small'].includes(m.id) && Object.keys(m.effect).length));
       for (const [k, v] of Object.entries(answer.effect)) if (e[k] === undefined) e[k] = v;
     }
-    finale = run.leagues >= GOAL;
+    finale = run.leagues >= goalOf();
     const clocked = run.flags.clock ?? null;
     run.flags.clock = null;
-    if (finale) setHour(23.4);
+    if (finale) setHour(run.far ? 17.6 : 23.4);
     else if (e.hour !== undefined) setHour(e.hour);
     else if (clocked !== null) setHour(clocked);
     if (e.danger) run.darkWords++;
@@ -1345,7 +1492,16 @@ export function createVoyage(api) {
     // Now and then a dog you haven't met is on the next island (and otherwise none is).
     const strays = Object.keys(DOGS).filter((id) => !run.dogs.includes(id));
     run.here.want.dog = !first && strays.length && Math.random() < DOG_CHANCE ? pickOf(strays) : null;
-    if (finale) Object.assign(run.here.want, makeRandom(heard.word, 'edge').pick(EDGES), { landmark: 'edge', lake: true, river: true, balloon: undefined, dog: null });
+    if (finale && run.far) Object.assign(run.here.want, { biome: 'meadow', landmark: 'kite', lake: false, river: false, balloon: false, dog: null });
+    else if (finale) Object.assign(run.here.want, makeRandom(heard.word, 'edge').pick(EDGES), { landmark: 'edge', lake: true, river: true, balloon: undefined, dog: null });
+    if (run.far) run.here.weather = 'clear';
+    // Now and then the next message in a bottle has washed up (on a lake's shore).
+    const bottle = BOTTLES.find((b) => !book.bottles[b.id]);
+    if (!first && !finale && !run.far && bottle && run.bottles < 2 && Math.random() < BOTTLE_CHANCE) {
+      Object.assign(run.here.want, { bottle: true, lake: true });
+      run.here.bottle = bottle.id;
+      run.bottles++;
+    }
     run.stay = stayHours() + (heard.echoOf ? 1 : 0) + (clocked !== null && friend(book, 'clocktower') ? 1 : 0);
     run.waited = false;
     run.met = [];
@@ -1421,6 +1577,20 @@ export function createVoyage(api) {
         const [a, b] = run.dogs.map((id) => DOGS[id].name);
         lines.push(`🐾 ${b ? t('{a} and {b} are waiting on the quay, and hop into the basket.', { a, b }) : t('{a} is waiting on the quay, and hops into the basket.', { a })}`);
       }
+      if (run.words.length === 1 && run.tiles) {
+        lines.push(`🔤 ${t('In the basket: a bag for letter tiles, and a card in Wa’s hand with {n} spaces: {card}. Every word you fly from here leaves its first letter in the bag; fill the card and the word is yours.', { n: run.tiles.word.length, card: tileCard() })}`);
+      }
+      if (run.words.length === 1 && run.flags.waLine) lines.push(`${WA.icon} ${run.flags.waLine === 'came' ? WA.came : WA.stayed}`);
+      if (here.bottle && !land.bottle) {
+        here.bottle = null;
+        run.bottles--;
+      }
+      if (here.bottle) lines.push(`🍾 ${BOTTLE.there}`);
+      if (run.far && !finale && run.words.length > 1 && run.farLine < HA_FAR.length) lines.push(`🪁 ${HA_FAR[run.farLine++]}`);
+      else if (run.wa && !finale && WA_ABOARD[land.biomeKey] && !(run.flags.waSaid ?? []).includes(land.biomeKey)) {
+        run.flags.waSaid = [...(run.flags.waSaid ?? []), land.biomeKey];
+        lines.push(`${WA.icon} ${WA_ABOARD[land.biomeKey]}`);
+      }
       if (land.dog && !run.dogs.includes(land.dog)) lines.push(`🐾 ${t('There’s a dog running about this island: {kind}. Tap her to say hello.', { kind: DOGS[land.dog].kind })}`);
       if (run.words.length === 1 && run.rough) lines.push(roughLine());
       if (run.words.length > 1 && !finale) {
@@ -1477,10 +1647,10 @@ export function createVoyage(api) {
         lines.push(`🗺️ ${b ? t('New to your book: {a} and {b}. The islanders top up your burner: {got}', { a, b, got }) : t('New to your book: {a}. The islanders top up your burner: {got}', { a, got })}`);
         toast('🗺️', b ? t('new to your book: {a} and {b}', { a, b }) : t('new to your book: {a}', { a }));
       }
-      const reach = reachOf(run.leagues);
+      const reach = reachHere();
       if (reach > run.reach) {
         run.reach = reach;
-        lines.push(`🌌 ${REACHES[reach].line}`);
+        lines.push(`🌌 ${reach === 3 ? HA_KITE.reach : REACHES[reach].line}`);
       }
       if (run.flags.map === 2 && run.flags.treasure === here.word) {
         run.flags.map = 3;
@@ -1629,12 +1799,15 @@ export function createVoyage(api) {
     if (state === 'over') return false;
     if (run.flags.hushDue) {
       run.flags.hushDue = false;
-      // (On a voyage the Hush woke early for, it's following you already.)
-      run.hush ??= run.leagues - HUSH.start;
-      if (!book.found) book.pages.wall ??= Date.now();
-      saveBook();
-      tell(HUSH.arrive(book.found));
-      return true;
+      // (A silence already lifted, or the far side: no Hush comes through.)
+      if (!run.flags.silenced && !run.far) {
+        // (On a voyage the Hush woke early for, it's following you already.)
+        run.hush ??= run.leagues - HUSH.start;
+        if (!book.found) book.pages.wall ??= Date.now();
+        saveBook();
+        tell(HUSH.arrive(book.found, run.silence ? SILENCES[run.silence] : null, run.wa));
+        return true;
+      }
     }
     if (run.flags.pageDue) {
       run.flags.pageDue = false;
@@ -1650,6 +1823,62 @@ export function createVoyage(api) {
       return true;
     }
     return false;
+  }
+
+  // Off the quay. Once Wa's found, she may come too (and insists, once Ha's kite is waiting).
+  function quay() {
+    const go = () => depart(readWord('harbour'), { first: true });
+    if (!book.found) return go();
+    if (haReady()) {
+      run.wa = true;
+      run.flags.waLine = 'came';
+      return openCard({ title: WA.name, text: [WA.insists], options: [{ label: t('set off'), primary: true, act: go }] });
+    }
+    openCard({
+      title: WA.name,
+      text: [WA.ask],
+      options: [
+        { label: WA.yes, primary: true, act: () => { run.wa = true; run.flags.waLine = 'came'; go(); } },
+        { label: WA.no, act: () => { run.flags.waLine = 'stayed'; go(); } },
+      ],
+    });
+  }
+
+  // A message in a bottle: read it, and it goes in the book.
+  function openBottle(id) {
+    const b = BOTTLES.find((x) => x.id === id);
+    tell({
+      title: BOTTLE.title,
+      text: [BOTTLE.open[b.from], b.text],
+      options: [{
+        label: BOTTLE.keep,
+        act: () => {
+          book.bottles[id] = Date.now();
+          saveBook();
+          run.here.bottle = null;
+          return BOTTLE.kept;
+        },
+      }],
+    });
+  }
+
+  // The next of Ga's chapters (tales.js, GA_TALES), or her answer to Wa's page; null if none.
+  function gaTale() {
+    if (book.gaReply && !book.gaThanked) {
+      book.gaThanked = Date.now();
+      saveBook();
+      return GA_REPLY.ga;
+    }
+    const n = book.ga ?? 0;
+    if (n >= GA_TALES.length) return null;
+    book.ga = n + 1;
+    let line = GA_TALES[n];
+    if (n === GA_TALES.length - 1) {
+      book.gaWord = Date.now();
+      line = `${line} ${giveKeepsake('gacompass')}`;
+    }
+    saveBook();
+    return line;
   }
 
   // A legendary dog, the first time: she decides she's coming.
@@ -1697,6 +1926,7 @@ export function createVoyage(api) {
 
   function skyEvent() {
     const g = talesView();
+    if (run.far) return;
     const ready = SKY_EVENTS.filter((ev) => (ev.repeat || !run.events.includes(ev.id)) && (!ev.when || ev.when(g)));
     // A chapter of a longer story always turns up once it's due.
     const due = ready.filter((ev) => ev.weight >= 8);
@@ -1785,6 +2015,10 @@ export function createVoyage(api) {
       pending = shooed ?? `${gainText(give({ glimmer: 1 }))} ${THANKS[kind]}`;
       hud();
       save();
+      return;
+    }
+    if (kind === 'bottle') {
+      if (here.bottle && !book.bottles[here.bottle]) openBottle(here.bottle);
       return;
     }
     // A dog you haven't met: say hello (it costs no time).
@@ -1886,7 +2120,7 @@ export function createVoyage(api) {
     const seen = { first: visited[here.landmark] === here.word && !book.found, again: visited[here.landmark] !== here.word };
     const event = EVENTS[here.landmark]?.(r, book, talesView(), seen) ?? { title: t('nobody home'), text: t('The place is quiet, and nobody answers.'), options: [] };
     // Every building but home and the Edge can spare some lamp oil, and things cost more the higher you go.
-    const dear = reachOf(run.leagues) + run.rough - (here.trait === 'festival' ? 1 : 0) - (run.omen === 'lean' ? 1 : 0);
+    const dear = reachHere() + run.rough - (here.trait === 'festival' ? 1 : 0) - (run.omen === 'lean' ? 1 : 0);
     if (run.flags.leak && ['village', 'workshop', 'campsite'].includes(here.landmark)) event.options.push({ label: t('mend the burner'), mend: 'leak', note: t('an hour, and the leak is gone') });
     if (!['village', 'town', 'edge'].includes(here.landmark)) event.options.push({ label: t('buy lamp oil'), pay: 3, gain: { fuel: 4 }, once: 'oil' });
     for (const o of event.options) if (o.pay) o.pay = Math.max(1, o.pay + dear);
@@ -2122,9 +2356,13 @@ export function createVoyage(api) {
       if (land.biomeKey === race.biome) {
         run.flags.race = null;
         lines.push(`🏁 ${t('You land first! Ga comes down a minute later, laughing. “Wa’s grandchild, all right.” {keepsake}', { keepsake: giveKeepsake() })}`);
+        const ga = gaTale();
+        if (ga) lines.push(`🎈 ${ga}`);
       } else if (run.words.length > race.by) {
         run.flags.race = null;
         lines.push(`🏁 ${t('A message flaps down on a pigeon: “Won! Better luck next time. G.” {got}', { got: gainText(give({ glimmer: -3 })) })}`);
+        const ga = gaTale();
+        if (ga) lines.push(`🎈 ${ga}`);
       }
     }
     if (run.flags.scatter?.includes(land.biomeKey)) {
@@ -2274,6 +2512,7 @@ export function createVoyage(api) {
     else if (cost.free === 'whale') notes.push(t('the whale’s song: free'));
     else {
       if (reading.rules.includes('chain')) notes.push(!book.rules.chain ? t('something about this word makes it cheaper…') : has('compass') ? t('tailwind and compass: a quarter of the fuel') : t('tailwind: half the fuel'));
+      if (reading.rules.includes('ladder')) notes.push(book.rules.ladder ? t('a word ladder: −2 🔥') : t('something about this word makes it cheaper…'));
       const heavy = run.omen === 'vowels' ? Math.max(0, (reading.word.match(/[aeiou]/g) ?? []).length - 1) : 0;
       if (heavy) notes.push(t('heavy vowels: +{n} 🔥', { n: heavy }));
       if (has('lodestone') && /[jqxz]/.test(reading.word)) notes.push(t('lodestone: J, Q, X and Z are free'));
@@ -2290,6 +2529,12 @@ export function createVoyage(api) {
       if (reading.effect.light) notes.push(knows('small') ? t('a tiny thing: no food for this flight') : t('something about this word weighs less…'));
     }
     notes.push(...told('note', reading));
+    if (run.silence && run.hush !== null && SILENCES[run.silence].words.includes(reading.word)) notes.push(SILENCE.hint(SILENCES[run.silence].who));
+    if (reading.rules.includes('rhyme') && !book.rules.rhyme) notes.push(t('something about how this word follows the last one…'));
+    if (reading.rules.includes('opposite') && !book.rules.opposite) notes.push(t('something about how this word answers the last one…'));
+    if (run.tiles && !run.tiles.done && [...run.tiles.word].some((c, k) => c === reading.word[0] && run.tiles.got[k] === '_')) {
+      notes.push(t('🔤 its {letter} fits Wa’s card', { letter: reading.word[0].toUpperCase() }));
+    }
     if (run.flags.shadow > 0) notes.push(reading.word.length >= 9 ? t('🏴‍☠️ long enough to lose the pirates') : t('🏴‍☠️ the pirates follow (9 letters or more would lose them)'));
     const bottled = run.flags.hoarded && readWord(reading.word).meanings.some((m) => m.id === run.flags.hoarded);
     if (bottled) notes.push(t('🫙 the Hoarder has this kind of word: it means nothing to the sky'));
@@ -2317,7 +2562,7 @@ export function createVoyage(api) {
     else if (gate && !reading.real) warnings.push(`🚪 ${t('{gate} only opens for real English words: −1 ❤️, and you stop short', { gate: gate.name })}`);
     else if (gate) warnings.push(`🚪 ${t('{gate} won’t open for this word: it wants {riddle}. −1 ❤️, and you stop short', { gate: gate.name, riddle: riddleOf(gate).ask })}`);
     if (run.flags.front && run.flags.front.at + 6 >= run.leagues + go) warnings.push(`⛈️ ${t('the storm front would catch you: −1 ❤️ (a longer word stays ahead)')}`);
-    if (run.sighting && reading.meanings.some((m) => m.id === run.sighting.word) && run.leagues + go < GOAL) {
+    if (run.sighting && reading.meanings.some((m) => m.id === run.sighting.word) && run.leagues + go < goalOf()) {
       good.push(`🔭 ${t('to the island you saw: {island}, with {building}', { island: t(BIOMES[run.sighting.biome].label), building: LANDMARK_LABEL[run.sighting.landmark] })}`);
     }
     if (run.dare) {
@@ -2344,7 +2589,7 @@ export function createVoyage(api) {
       - (aboard('balloonist') ? 1 : 0));
     if (wear >= run.hull) warnings.unshift(t('the balloon won’t survive this flight'));
     if (cost.fuel > run.fuel) warnings.push(t('not enough fuel: you have {n}', { n: run.fuel }));
-    if (run.leagues + go >= GOAL && (!gate || answers(gate, reading))) warnings.push(t('this word reaches the Edge of the Sky!'));
+    if (run.leagues + go >= goalOf() && (!gate || answers(gate, reading))) warnings.push(run.far ? t('this word reaches Ha’s kite!') : t('this word reaches the Edge of the Sky!'));
     if (dark() && !run.lanterns && !has('feather') && run.omen !== 'fullmoon' && !bend('darkSafe', false)) warnings.push(book.rules.mishear ? t('it’s dark and you have no lantern: the sky may change a letter of your word') : t('it’s dark: without a lantern, the sky may mishear you'));
     if (stormy()) warnings.push(t('a storm: leaving now tears the balloon (−1 ❤️)'));
     if (cost.food > run.food) warnings.push(t('not enough food: −1 ❤️'));
@@ -2381,6 +2626,9 @@ export function createVoyage(api) {
     if (e.gift) items.push(t('a present'));
     if (reading.rules.includes('odd') && book.rules.odd) items.push(t('rare letters: +🪙'));
     if (reading.rules.includes('mirror') && book.rules.mirror) items.push(t('everything doubled'));
+    if (reading.rules.includes('rhyme') && book.rules.rhyme) items.push(run.hush !== null ? t('a rhyme: the Hush falls back') : t('a rhyme: +🪙'));
+    if (reading.rules.includes('opposite') && book.rules.opposite) items.push(t('opposites: clear skies'));
+    if (reading.halves && book.rules.compound) items.push(t('joined words: {a} + {b}', { a: reading.halves[0], b: reading.halves[1] }));
     return { items, unknown: known.length < reading.meanings.length };
   }
 
@@ -2441,6 +2689,13 @@ export function createVoyage(api) {
       }
       for (const id of run.crew) parts.push(el('p', 'book-entry', `${CREW[id].icon} ${crewLine(id)}`));
       for (const id of run.dogs) parts.push(el('p', 'book-entry', `${DOGS[id].icon} ${DOGS[id].name}${COLON}${DOGS[id].help}`));
+      if (run.wa) parts.push(el('p', 'book-entry', `${WA.icon} ${WA.name}${COLON}${WA.help}`));
+      if (run.silence && run.hush !== null) parts.push(el('p', 'book-entry', `🤫 ${SILENCE.book(SILENCES[run.silence].who, SILENCES[run.silence].clue)}`));
+      if (run.far) parts.push(el('p', 'book-entry', `🪁 ${t('past the Edge, on Ha’s wind: {miles} to his kite.', { miles: miles(Math.max(0, FAR - run.leagues)) })}`));
+      if (run.tiles) {
+        parts.push(el('p', 'book-entry', `🔤 ${run.tiles.done ? t('Wa’s letter card is full: {word}.', { word: run.tiles.word.toUpperCase() })
+          : t('Wa’s letter card: {card}. Each word you fly leaves its first letter; fill the card and the word is yours.', { card: tileCard() })}`));
+      }
       for (const id of run.keepsakes) parts.push(el('p', 'book-entry', `${KEEPSAKES[id].icon} ${KEEPSAKES[id].name}${COLON}${KEEPSAKES[id].line}`));
       if (run.hush !== null) parts.push(el('p', 'book-entry', `🤫 ${t('{gap}. {line}', { gap: cap(hushText()), line: hushLine() })}`));
       if (run.banned.length) parts.push(el('p', 'book-entry', `🤐 ${t('swallowed letters: {letters}. Win them back at a wizard’s tower or a shrine.', { letters: run.banned.join(' ').toUpperCase() })}`));
@@ -2469,6 +2724,19 @@ export function createVoyage(api) {
     if (pages.length) {
       parts.push(el('h3', '', t('Wa’s pages')));
       for (const id of pages) parts.push(el('p', 'book-entry', STORY.pages[id](book.pages[id])));
+    }
+
+    const kept = BOTTLES.filter((b) => book.bottles[b.id]);
+    if (kept.length) {
+      parts.push(el('h3', '', t('messages in bottles')));
+      for (const b of kept) parts.push(el('p', 'book-entry', `${b.from === 'ha' ? '🍾' : '✉️'} ${b.text}`));
+    }
+    const lifted = Object.keys(SILENCES).filter((id) => book.silences[id]);
+    if (lifted.length || book.haKite) {
+      parts.push(el('h3', '', t('silences lifted')));
+      for (const id of lifted) parts.push(el('p', 'book-entry', `🤫 ${SILENCES[id].who}${COLON}${SILENCES[id].lifted}`));
+      if (lifted.length) parts.push(el('p', 'book-entry', SILENCE.perk));
+      if (book.haKite) parts.push(el('p', 'book-entry', `🪁 ${HA_KITE.title}${COLON}${HA_KITE.perk}`));
     }
 
     const begun = Object.keys(ARCS).filter((id) => book.arcs[id]);
@@ -2554,7 +2822,7 @@ export function createVoyage(api) {
   }
 
   // You know what a gate wants once it's near, or once someone has told you.
-  const gateKnown = () => nextGate() && (nextGate().at - run.leagues <= 15 || run.flags.gossip === run.gates
+  const gateKnown = () => nextGate() && (run.wa || nextGate().at - run.leagues <= 15 || run.flags.gossip === run.gates
     || (run.riddles[GATES.indexOf(nextGate())] === 'wa' && run.events.includes('camp')));
   const hushText = () => {
     const gap = Math.max(0, Math.round(run.leagues - run.hush));
@@ -2621,11 +2889,13 @@ export function createVoyage(api) {
     }
     for (const id of run.keepsakes) aboardBits.push([`keepsake:${id}`, KEEPSAKES[id].icon, `${KEEPSAKES[id].icon} ${KEEPSAKES[id].name}`, '', KEEPSAKES[id].line]);
     for (const id of run.dogs) aboardBits.push([`dog:${id}`, DOGS[id].icon, `${DOGS[id].icon} ${DOGS[id].name}`, '', DOGS[id].help]);
+    if (run.wa) aboardBits.push(['wa', WA.icon, `${WA.icon} ${WA.name}`, '', WA.help]);
     aboardRow.replaceChildren(...aboardBits.map(gauge));
     // A tip that's showing follows the numbers (or goes, if its gauge has).
     if (tipFor) showTip(tipFor);
 
-    progressFill.style.width = `${Math.min(100, (run.leagues / GOAL) * 100)}%`;
+    progressFill.style.width = `${Math.min(100, (run.leagues / goalOf()) * 100)}%`;
+    progress.classList.toggle('far', Boolean(run.far));
     // Others on the way to the Edge (Ga, on her race), as little flags on the line.
     for (const old of progress.querySelectorAll('.voyage-marker')) old.remove();
     for (const m of told('marker')) {
@@ -2634,14 +2904,14 @@ export function createVoyage(api) {
       mark.title = m.title;
       progress.append(mark);
     }
-    progress.title = t('{done} of {goal} miles', { done: run.leagues, goal: GOAL });
-    progress.dataset.label = t('{done} / {goal} miles', { done: run.leagues, goal: GOAL });
+    progress.title = t('{done} of {goal} miles', { done: run.leagues, goal: goalOf() });
+    progress.dataset.label = t('{done} / {goal} miles', { done: run.leagues, goal: goalOf() });
 
     const parts = [];
     if (lingering) parts.push(el('span', '', t('the Edge of the Sky')), chip(lingering === 'wa' ? t('⛵ fly Wa home') : t('⛵ fly home'), end));
     else if (state === 'flying') parts.push(el('span', '', t('flying…')));
     else if (state === 'land' || state === 'event') {
-      const taps = [t('trees'), run.here?.lake && t('water'), ISLANDS[run.here?.biome]?.tapLabel, LANDMARK_LABEL[run.here?.landmark]].filter(Boolean);
+      const taps = [t('trees'), run.here?.lake && t('water'), run.here?.bottle && t('the bottle'), ISLANDS[run.here?.biome]?.tapLabel, LANDMARK_LABEL[run.here?.landmark]].filter(Boolean);
       parts.push(el('span', '', run.stay > 0
         ? t('{hours} here · tap {where}', { hours: hoursOf(run.stay), where: orList(taps) })
         : t('time to go · type a word to fly on')));
@@ -2655,6 +2925,7 @@ export function createVoyage(api) {
       if (run.flags.fray && state === 'land') parts.push(chip(t('🪢 mend the rope · 1 hour'), mendRope));
       if (run.pack.length && state === 'land') parts.push(chip(`🎒 ${run.pack.map((id) => ITEMS[id].icon).join('')}`, openPack));
       if (TRAITS[run.here?.trait]) parts.push(el('span', 'status-gate', `${TRAITS[run.here.trait].icon} ${TRAITS[run.here.trait].name}`));
+      if (run.tiles && !run.tiles.done) parts.push(el('span', 'status-gate', `🔤 ${tileCard()}`));
       // What a content pack is keeping track of for you (a seedling, a lens).
       const g = talesView();
       for (const p of [ISLANDS[run.here?.biome], ...Object.values(PACK_BUILDINGS), ...mods()]) {
@@ -2667,7 +2938,20 @@ export function createVoyage(api) {
         parts.push(chip(t('low on fuel: drift a few miles on the wind (it picks the word) · {cost}', { cost: fatal ? t('it would end your voyage') : '−1 ❤️' }), drift));
       }
     }
-    status.replaceChildren(...parts);
+    // On a phone, the notes (the gate, Wa's card, the island's trait…) fold behind one
+    // chip, so the island stays in view; what you can do (wait, mend, the pack) stays out.
+    const notes = parts.filter((p) => p.classList?.contains('status-gate'));
+    const phone = matchMedia('(max-width: 520px), (max-height: 500px) and (orientation: landscape)').matches;
+    if (phone && notes.length > 1) {
+      const shown = statusOpen ? parts : parts.filter((p) => !notes.includes(p));
+      shown.push(chip(statusOpen ? t('less') : t('ⓘ {n} more', { n: notes.length }), () => {
+        statusOpen = !statusOpen;
+        hud();
+      }));
+      status.replaceChildren(...shown);
+    } else {
+      status.replaceChildren(...parts);
+    }
   }
 
   // Hovering shows a gauge's tip; a tap (or click) pins it until you tap

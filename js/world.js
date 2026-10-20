@@ -10,7 +10,7 @@ import { createBursts } from './interact.js';
 import { planMaze, buildMaze, planRows, buildRows } from './grounds.js';
 import {
   makeMaterials, updateMaterials, buildLandmark, planPath, buildLanterns, planFields,
-  buildDock, buildProps, buildLightPools, buildBalloon,
+  buildDock, buildProps, buildLightPools, buildBalloon, buildBottle,
 } from './landmarks.js';
 import { ISLANDS, BUILDINGS, DRESSINGS } from './packs/index.js';
 
@@ -2000,6 +2000,10 @@ export function generateLand(seed, want = {}) {
   const rollBalloon = xr.chance(0.15);
   const balloon = (want.balloon ?? rollBalloon) ? buildBalloon(xr, mats) : null;
   add(balloon);
+  // A message in a bottle, only when asked for (a voyage's story, or a note in the
+  // link), from its own stream.
+  const bottle = want.bottle ? buildBottle(shape, makeRandom(seed, 'bottle'), blocked) : null;
+  add(bottle);
 
   // Wildlife: birds, butterflies, bats and dragonflies in the air; rabbits and
   // deer on the ground; ducks and fish in the lake.
@@ -2087,9 +2091,16 @@ export function generateLand(seed, want = {}) {
       });
     };
   }
+  if (bottle) {
+    bottle.object.userData.onClick = () => {
+      bottle.tap();
+      hooks.sound('chime');
+      hooks.note('bottle');
+    };
+  }
   // The maze's fountain starts the ball game (mazeball.js, via main.js).
   if (hedgeMaze) hedgeMaze.fountain.userData.onClick = () => hooks.play?.('maze');
-  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, ...life.clickables, ...(furniture?.clickables ?? [])].filter(Boolean);
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, bottle?.object, ...life.clickables, ...(furniture?.clickables ?? [])].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {
@@ -2105,6 +2116,8 @@ export function generateLand(seed, want = {}) {
     hasLake: Boolean(shape.lake),
     hasWaterfall: Boolean(shape.river),
     hasBalloon: Boolean(balloon),
+    // The note in the bottle, if it came in the link (true for a voyage's story bottle).
+    bottle: bottle ? want.bottle : null,
     dog,
     mooring: pickMooring(shape, islets, landmark),
     // The hedge maze, for its ball game: its walls in the maze's own frame, the ground under it, and the fountain at its heart.

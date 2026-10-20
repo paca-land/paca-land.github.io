@@ -15,7 +15,7 @@
     #kinds button.off { background: #fff5; color: #2337; }
   </style>
   <script type="importmap">
-    { "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/" } }
+    { "imports": { "three": "../vendor/three/build/three.module.js", "three/addons/": "../vendor/three/examples/jsm/" } }
   </script>
 </head>
 <body>
@@ -23,7 +23,7 @@
 <script type="module">
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { CRITTER_KINDS, critterModel } from './js/life.js';
+  import { CRITTER_KINDS, critterModel } from '../js/life.js';
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(devicePixelRatio);

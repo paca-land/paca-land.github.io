@@ -34,6 +34,7 @@ export const STORY = {
     ...(found ? [
       t('You found Wa at the Edge of the Sky and flew her home. Her knees aren’t up to the basket any more, so she sits by the window and sends you up instead.'),
       t('“Bring me words I don’t know,” she says, and puts the book in your hands.'),
+      t('Some afternoons she sets out a cup for Ha too, and doesn’t say anything about it.'),
     ] : [
       t('Above the clouds, the sky has a language. Say a word, and an island of that name rises out of the clouds for you to fly to. The people who fly that way are called sky-sailors, and your grandmother Wa was the best of them.'),
       t('Twenty years ago she flew off toward the Edge of the Sky, the farthest island of all, where nobody had ever been, and she never came back. Your mother won’t say why. At home, nobody even says Wa’s name. This morning Wa’s balloon came drifting home, empty, with her book in the basket. On the last page, in her big loopy writing: “Come and find me, Ca. Bring words.” Ca is what she used to call you.'),
@@ -68,11 +69,12 @@ export const STORY = {
   // The last card. `said`: the word of hers that opened the Edge; `words`: some of
   // yours; `name`: what you signed (empty if you kept "Ca"); `tobias` and
   // `letters`: what the hermit's and the postmistress's stories left you (stories.js).
-  edge: ({ said, words, found, name, tobias, letters }) => (found ? [
+  edge: ({ said, words, found, name, tobias, letters, haNotes, gaWord }) => (found ? [
     t('Past the last gate the clouds stop. On the last island is the flat stone where Wa waited all those years.'),
     t('The Hush behind you stops at the last gate. It was never yours to answer.'),
     t('You write your words into her book: {words}. Back home, Wa reads them aloud by the window, one by one, and wants to know what every island was like.', { words }),
     ...(letters ? [t('You put your mother’s twenty letters into Wa’s hands, too. She reads them at the kitchen table, one a day, and your mother pretends not to notice.')] : []),
+    ...(gaWord ? [GA_REPLY.wa] : []),
     t('Then your mother calls from the kitchen that the pancakes are ready. Wa says they’re burnt, and the two of them argue about it all through breakfast, out loud, the way they used to.'),
   ] : [
     t('Past the last gate the clouds stop. On the last island, beside a lantern that went out long ago, sits Wa.'),
@@ -88,6 +90,9 @@ export const STORY = {
     ...(tobias === 'goggles' ? [t('You hand her the old flying goggles. “Tobias!” she says. “Twenty years he took to give these back.”')]
       : tobias === 'waiting' ? [t('You tell her Tobias is still waiting to say sorry. Wa snorts. “He still owes me a pair of goggles.”')] : []),
     ...(letters ? [t('Last of all, you give her the bundle from the post office: twenty letters in your mother’s handwriting, one for every year. Wa opens the top one and reads it with her hand over her mouth. “She wrote,” she says. “All this time, she wrote.”')] : []),
+    // Ha's notes from the bottles (BOTTLES), and Ga's word (GA_TALES), if you have them.
+    ...(haNotes ? [t('You give her Ha’s notes from the bottles. She reads every one and smooths it flat on her knee. “He kept the kettle on,” she says. “Of course he did.”')] : []),
+    ...(gaWord ? [GA_REPLY.wa] : []),
     t('“Your mother,” Wa says, as you fly her home along that road of islands. “What if she won’t talk to me?” “Then you talk first,” you say. When you come down over Harbour, your mother is already on the quay, holding her basket in both hands. Neither of them moves. Then they both say sorry at once, and laugh, and argue about who said it first.'),
   ]),
   // The line before the poem of your words.
@@ -193,6 +198,11 @@ export const REACHES = [
   {
     at: 65, name: t('the Thin Air'), line: t('You’ve reached the Thin Air. It’s cold enough to see your breath, so every flight up here eats one more food. The islands turn strange: glass, fire, cloud and gold.'),
     islands: [['glass', 3], ['ember', 3], ['moon', 3], ['cloudisle', 2], ['gilded', 2], ['stormcrag', 1], ['icefall', 2], ['stormeye', 1]], chance: 0.65,
+  },
+  // Past the Edge, on a voyage to Ha's kite (voyage.js keeps other voyages out of it).
+  {
+    at: 101, name: t('the far side'), line: '',
+    islands: [['cloudisle', 3], ['dream', 2], ['moon', 2], ['meadow', 1], ['lotus', 1]], chance: 1,
   },
 ];
 // Content packs' islands join the reaches they name ([reach, weight], packs/*.js).
@@ -386,9 +396,10 @@ export const HUSH = {
   knock: 14, // how far back it falls after catching you
   light: 6, // how far a sunny, morning or evening word drives it back
   music: 5, // and a music word
-  arrive: (found) => ({
+  arrive: (found, silence, wa) => ({
     title: found ? t('the Hush') : t('a page on the wall'),
-    text: found ? t('Wa said her word, but the sky is full of other people’s. Something slips through the wall behind you: a Hush, like the one that followed Wa.')
+    text: found ? [t('Wa said her word, but the sky is full of other people’s. Something slips through the wall behind you: a Hush, like the one that followed Wa.'),
+      ...(silence ? [SILENCE.arrive(silence.who, silence.clue)] : []), ...(silence && wa ? [SILENCE.wa(silence.who)] : [])].join(lang === 'zh' ? '' : ' ')
       : t('Pinned to the far side of the wall is a page in Wa’s handwriting: {page}', { page: STORY.pages.wall() }),
     options: [{ label: found ? t('keep moving') : t('keep the page'), act: () => t('Behind you, the birds have gone quiet. It’s coming.') }],
   }),
@@ -408,6 +419,157 @@ export const HUSH = {
       ],
     };
   },
+};
+
+// --- Bottles, Ha, Ga, Wa aboard and other people's silences (October 20) ----------
+// Ha, Wa's husband and your mother's father, kept the kettle on for twenty years and
+// died the spring before the balloon came home; nobody could tell Wa. Every year on her
+// birthday he sent a note up off the quay in a bottle. Your mother sent bottles too:
+// the letters she couldn't bring herself to post (the twenty she did post are the
+// postmistress's, stories.js). They drift through the sky and wash up on islands, one
+// at a time, in this order, across voyages (book.bottles). Ha's last note asks Wa to
+// find his kite "where the wind goes": once you've found her, she flies with you past
+// the Edge to say goodbye (HA_FAR, HA_KITE).
+export const BOTTLES = [
+  { id: 'mum1', from: 'mum', text: t('“Mum. It’s been a year. I still lay a place for you and put the plate back. Dad says you’ll come home when the wind turns. I told him that isn’t how wind works. He laughed. I didn’t.”') },
+  { id: 'ha1', from: 'ha', text: t('“Happy birthday, Wa. Year one. The kettle’s on. I’ll keep it on. Ha”') },
+  { id: 'mum2', from: 'mum', text: t('“I didn’t mean it. You know I didn’t. ‘Don’t come back’ meant ‘stay’. It meant ‘pick us, just this once’. I said the worst thing I could think of because you already had your coat on.”') },
+  { id: 'ha2', from: 'ha', text: t('“Year three. Ca can say ‘balloon’ now, and points at every cloud. Our girl still won’t say your name, but on your birthday she put your cup out on the table. Didn’t pour anything in it. Still, she put it out. Ha”') },
+  { id: 'mum3', from: 'mum', text: t('“Ca asked where you’d gone. I said ‘far away’, and now that’s a place in this house: Faraway, where Grandma lives. I can’t bring myself to correct it.”') },
+  { id: 'ha3', from: 'ha', text: t('“Year seven. I flew our big red kite off the quay today, the one we made the summer we met. The wind took it out toward the Edge, so I let go of the string. Maybe you’ll see it go by. Ha”') },
+  { id: 'mum4', from: 'mum', text: t('“Dad isn’t well. He won’t let me put it in the proper letters, so I’m putting it here, where you won’t read it. He still puts the kettle on at four, for you.”') },
+  { id: 'ha4', from: 'ha', text: t('“Year twelve. The doctor says my heart is tired. I told her it’s had a lot of waiting to do. Don’t you dare feel bad, Wa. I’d wait twenty more. Ha”') },
+  { id: 'mum5', from: 'mum', text: t('“Dad died in the spring. I couldn’t post this one either. He made me promise to tell you he never once blamed you. I’m still deciding whether I do.”') },
+  { id: 'ha5', from: 'ha', text: t('“Wa. If this one finds you, I won’t be on the quay. That’s all right: our girl will be. Go to her first. Then, when you’ve said what you need to say, come and find my kite. I’ll be where the wind goes. Ha”') },
+];
+export const BOTTLE = {
+  title: t('a message in a bottle'),
+  there: t('Something glints by the water: a bottle, corked, with paper inside. Tap it.'),
+  open: { mum: t('A bottle sealed with wax. Inside is a letter in your mother’s handwriting, never posted:'), ha: t('A green bottle with a twist of string round its neck. Inside is a note in a big, careful hand:') },
+  keep: t('keep it in Wa’s book'),
+  kept: t('You fold it into Wa’s book, with the others.'),
+};
+
+// Wa, once you've found her, can fly with you. She takes no seat and brought her own
+// sandwiches (Ha always packed two lunches). She knows every gate's riddle, and has
+// something to say about islands she knows (once each a voyage).
+export const WA = {
+  icon: '👵', name: t('Wa'),
+  help: t('Wa knows every gate’s riddle before you get there, and has something to say about the islands she remembers. She brought her own sandwiches.'),
+  ask: t('Wa is on the quay in her flying coat, with a paper bag of sandwiches. “Room for one more?”'),
+  insists: t('Wa is on the quay in her flying coat, with Ha’s last note in her pocket. “I’m coming,” she says, before you can ask. “He said to find his kite.”'),
+  yes: t('of course'),
+  no: t('not this time'),
+  came: t('She climbs in, slower than she used to, and sits on the sandbag as if it were a throne. “Wake me for the interesting bits.”'),
+  stayed: t('“Bring me back a good word, then,” she says, and goes home to put the kettle on.'),
+};
+export const WA_ABOARD = {
+  meadow: t('“Ha proposed to me in a field like this,” Wa says. “I said no twice. The third time he brought sandwiches.”'),
+  highlands: t('“Ha got a pinecone in his boot up here once,” Wa says, “and never forgave the mountains.”'),
+  autumn: t('“Your mother used to jump in leaf piles like these,” Wa says. “I missed most of it. Tell me about the rest some time.”'),
+  snowfield: t('“Ha knitted me a scarf once, so long I could have flown home on it,” Wa says, and tucks her chin into her collar.'),
+  desert: t('“I got lost out here for three days once,” Wa says, pleased. “Best three days of my life. Don’t tell your mother.”'),
+  blossom: t('“Ha planted a blossom tree the year you were born,” Wa says. “Is it still there?” You tell her it is. She doesn’t say anything for a while.'),
+  dream: t('Wa leans over the side. “I dreamed about a place like this every night for twenty years,” she says. “Your mother was always standing in it.”'),
+  cloudisle: t('“Ha always said clouds were just the sky having a lie-in,” Wa says.'),
+  coral: t('“I taught your mother to swim off an island like this,” Wa says. “She hated it. She was very good at it.”'),
+  orchard: t('“Ha made apple cake every autumn,” Wa says. “Burnt, every time. Same as my pancakes. That’s why we got on.”'),
+  lotus: t('Wa trails a hand toward the water. “Ha would have counted every one of those fish and named them,” she says.'),
+  moon: t('“The moon looks closer from up here,” Wa says. “Ha used to say it was leaning in to listen.”'),
+};
+
+// Past the Edge (once you've found Wa and read Ha's last note): the far side, where a
+// warm wind carries you to Ha's kite. A far-side island tells the next of these.
+export const HA_FAR = [
+  t('Wa holds her hat on with one hand. “That’s Ha’s wind,” she says. “He always did like to push.”'),
+  t('On the island, a tangle of red string is caught in a bush. Wa winds it round her fingers without a word.'),
+  t('“He used to say the wind always comes back,” Wa says. “I said that was a very Ha thing to say. It was true, though.”'),
+  t('Far ahead, very small and very high, something red is dancing. Wa sees it first and doesn’t point. She just watches it.'),
+  t('“I’m going to tell him I’m sorry I wasn’t there,” Wa says. “And then I’m going to tell him off for not waiting.” She laughs, and it comes out wobbly.'),
+];
+export const HA_KITE = {
+  // At the Edge, the first time it's possible.
+  edge: {
+    title: t('past the Edge'),
+    text: [
+      t('Past the last gate the clouds stop, but this time the sky doesn’t: beyond Wa’s old stone it goes on, blue and empty, and a warm wind is blowing out of it.'),
+      t('Wa unfolds Ha’s last note and reads it again. “‘I’ll be where the wind goes,’” she says. “Well. That’s that way.”'),
+    ],
+    on: t('fly on, past the Edge'),
+    onNote: (n) => t('another {n}, on Ha’s wind', { n }),
+    home: t('take Wa home for now'),
+    homeNote: t('you can fly on from the Edge on another voyage'),
+  },
+  wind: t('Ha’s wind'),
+  reach: t('You’re past the Edge, where nobody has a name for the sky. There’s no Hush here, and no gates: only a warm wind at your back, steady as a hand.'),
+  // The last card.
+  end: [
+    t('The last island is a small green hill with one post on top, and tied to the post is a string that goes up and up into the blue, to a red kite with a tail of paper bows.'),
+    t('Wa unties the string and holds it in both hands. The kite tugs, the way a dog pulls toward home.'),
+    t('“I’m sorry I wasn’t there,” she says to it. “You kept the kettle on for twenty years, and I never once came home to drink it. Thank you for that. Thank you for her.” She swallows. “Goodbye, Ha.”'),
+    t('She opens her hands. The kite climbs, and keeps climbing, until it’s a red dot, and then just sky. The wind stays warm on your faces all the way home.'),
+    t('That night Wa sets four cups out on the kitchen table and pours tea into all of them, and nobody says a word about it, because nobody needs to.'),
+  ],
+  title: t('Ha’s kite'),
+  perk: t('From now on, Ha’s wind carries the first flight of every voyage 3 miles further.'),
+};
+
+// Ga's own story, a chapter each time a race with her ends (and on her race omen, at
+// the Edge). She was to fly for the Edge alongside Wa twenty years ago, and didn't.
+export const GA_TALES = [
+  t('Afterwards, Ga brings her basket alongside for tea. “Your gran never once beat me fair,” she says. “She cheated with the wind.” Then, more quietly: “We were going to fly to the Edge together, you know. Did she ever say?”'),
+  t('Ga brings her basket alongside again, and turns her cup round and round. “Two balloons, one route,” she says. “Wa and Tobias in hers, me in mine. We were to meet on the quay at dawn.” She drinks. “I didn’t come.”'),
+  t('“I got as far as the end of my street,” Ga says, not looking at you. “Then I turned round and went back to bed. I was scared, that’s all. I let her think I’d stayed home in a sulk because she was the better flier. It was easier than saying I was scared.”'),
+  t('“When you find her,” Ga says, “tell her I was scared, not cross. Tell her I’ve been racing her shadow for twenty years.” She presses her old compass into your hand.'),
+];
+// Wa's answer (at the Edge, or at home once she's found), and Ga's when you bring it.
+export const GA_REPLY = {
+  wa: t('You tell Wa what Ga said. “Scared? Ga?” Wa laughs until she has to sit down. “I was terrified. I’d have turned back too, if anyone had been watching.” She writes something on a page of her book, tears it out and gives it to you. “For Ga, next time you see her.”'),
+  ga: t('Ga reads Wa’s page twice. Then she laughs until she has to hold on to the basket. “Terrified, she says! The old goose was terrified too!” She wipes her eyes. “Tell her she owes me a race.”'),
+};
+
+// Once you've found Wa, the Hush behind you is someone else's each voyage: words
+// they never said, in their voice. Fly the word, and it lets go of them for good (a
+// page in the book, and every Hush after is a little slower).
+export const SILENCES = {
+  tobias: {
+    who: t('Tobias the hermit'), words: ['sorry', 'apology', 'apologise', 'apologize'],
+    clue: t('It mutters like a man practising something to a pot of soup, and never gets to the end of it.'),
+    lifted: t('Far below, a hermit stops stirring and says it out loud, to nobody, for practice: “Sorry.”'),
+  },
+  hester: {
+    who: t('Hester the miller'), words: ['proud', 'pride'],
+    clue: t('Over and over it starts a letter, “Rowan, I never told you…”, and stops. It’s the word you hope to hear from your mother after you’ve done something brave.'),
+    lifted: t('In a windmill far below, a floury woman sits down and writes it at last: “I’m proud of you.”'),
+  },
+  ga: {
+    who: t('Captain Ga'), words: ['scared', 'afraid', 'frightened', 'fear', 'fearful'],
+    clue: t('It sounds like someone pretending to be cross, to cover up something smaller: how you feel at the end of your street at dawn, with a long flight ahead.'),
+    lifted: t('Somewhere a purple balloon bobs, and an old woman says it to the wind: “I was scared.” She sounds surprised at how easy it was.'),
+  },
+  marigold: {
+    who: t('Queen Marigold'), words: ['lonely', 'alone', 'lonesome'],
+    clue: t('It echoes like an empty throne room: someone with a whole court round her who never once said how she felt in it.'),
+    lifted: t('In a castle far below, a queen tells her jester she’s been lonely for years. He sits down beside her on the throne steps, and neither of them says anything for a while. It’s a good kind of quiet.'),
+  },
+  crier: {
+    who: t('the town crier'), words: ['help'],
+    clue: t('It shouts everyone’s news but its own. There’s one word a proud man never shouts: the one you call out when you’re stuck.'),
+    lifted: t('In a square far below, the town crier rings his bell and shouts the news he never shouted: “HELP! I could do with some HELP!” Half the town comes running.'),
+  },
+  rowan: {
+    who: t('Rowan'), words: ['home', 'homeward', 'homesick'],
+    clue: t('A young man’s voice on a lighthouse gallery, facing the wrong way: inland, toward a windmill. Nine years, and he never wrote down the word for where he wants to be.'),
+    lifted: t('On a lighthouse far below, an apprentice writes one word on a postcard to a windmill: “Home?”'),
+  },
+};
+export const SILENCE = {
+  arrive: (who, clue) => t('This one speaks in {who}’s voice. {clue} Say the word they never said, and it will let go.', { who, clue }),
+  wa: (who) => t('“That’s {who},” Wa says quietly.', { who }),
+  book: (who, clue) => t('the Hush following you is {who}’s. {clue} Say the word they never said, and it lets go.', { who, clue }),
+  hint: (who) => t('🤫 this might be the word {who} never said', { who }),
+  gone: t('The Hush behind you lets go of the voice and is gone, for the rest of the voyage.'),
+  perk: t('Every silence you lift makes every Hush after it a little slower.'),
 };
 
 // --- In the air -------------------------------------------------------------------

@@ -276,6 +276,12 @@ export const RULES = {
   mirror: { name: 'mirror words', line: 'A word that reads the same backwards (level, noon…) doubles everything you gather on its island.', hint: 'words that read the same backwards' },
   echo: { name: 'echoes', line: 'Shuffle the letters of a word you already said, and you return to an echo of that land, with an extra hour to spend.', hint: 'an old word, rearranged' },
   mishear: { name: 'the night mishears', line: 'In the dark, the sky changes one letter of your word (never the first), which can change where you land. A lantern stops it.', hint: 'speaking in the dark' },
+  // Word play (October 20): how a word follows the ones before it. Only real words count.
+  rhyme: { name: 'rhymes', line: 'A word that rhymes with the last one (moon, then spoon) sets the sky humming: the Hush falls back 2 miles, or, if nothing’s following you, you get a coin.', hint: 'words that sound alike at the end' },
+  alliteration: { name: 'alliteration', line: 'Three words in a row that start with the same letter (sun, sail, sea) raise a gust: +3 miles. It takes three more for the next one.', hint: 'the same sound, three times over' },
+  ladder: { name: 'word ladders', line: 'Each word one letter longer than the one before, three in a row (sky, rain, cloud): you’re climbing, and the flight costs 2 🔥 less. Keep climbing and it keeps paying.', hint: 'words that grow as you go' },
+  opposite: { name: 'opposites', line: 'A word that’s the opposite of the last one (day, then night) balances the sky: clear skies on the island it takes you to.', hint: 'a word that answers the last' },
+  compound: { name: 'joined words', line: 'A word made of two others (sun + flower, light + house) means both: the island takes after each half as well as the whole.', hint: 'two words hiding in one' },
 };
 for (const rule of Object.values(RULES)) Object.assign(rule, { name: t(rule.name), line: t(rule.line), hint: t(rule.hint) });
 
@@ -310,6 +316,26 @@ const forms = (w) => [w, w.endsWith('ies') && `${w.slice(0, -3)}y`, w.endsWith('
   w.endsWith('ing') && w.slice(0, -3), w.endsWith('ing') && `${w.slice(0, -3)}e`, w.endsWith('ed') && w.slice(0, -2), w.endsWith('ed') && w.slice(0, -1),
   w.endsWith('ly') && w.slice(0, -2)].filter((f) => f && f.length >= 2);
 
+// Pairs of opposites, for the opposites rule (either way round).
+const OPPOSITES = new Map();
+for (const pair of `hot cold, day night, up down, sun moon, light dark, black white, big small, high low, fast slow, old new, old young,
+  early late, happy sad, open shut, wet dry, east west, north south, summer winter, spring autumn, sweet sour, hello goodbye, yes no,
+  in out, left right, near far, full empty, rich poor, loud quiet, laugh cry, first last, begin end, start finish, lost found, sink float,
+  top bottom, front back, give take, push pull, buy sell, win lose, hard soft, heavy light, tall short, long short, thick thin, wide narrow,
+  sunrise sunset, dawn dusk, morning evening, land sea, sky ground, fire ice, stop go, come go, here there, always never, before after,
+  above below, inside outside, love hate, friend enemy, war peace, noise silence, question answer, arrive leave, catch throw, true false,
+  asleep awake, whisper shout, alive dead, find lose, remember forget, sorry welcome`.split(',')) {
+  const [a, b] = pair.trim().split(' ');
+  for (const [x, y] of [[a, b], [b, a]]) OPPOSITES.set(x, new Set([...(OPPOSITES.get(x) ?? []), y]));
+}
+
+// Do two words rhyme? Near enough: the same last three letters (two for short words).
+function rhymes(a, b) {
+  if (a === b || a.length < 2 || b.length < 2) return false;
+  const k = Math.min(a.length, b.length) >= 4 ? 3 : 2;
+  return a.slice(-k) === b.slice(-k);
+}
+
 // Real English words. Anything with a vowel flies (the sky makes something up),
 // but what asks for a kind of word (a gate's riddle, the pirates' dare, the
 // queen's quest) takes only a real one, or "abcdefg" would open a gate. The list
@@ -335,6 +361,16 @@ export function loadWords() {
 
 export const isWord = (word) => !dictionary || forms(word).some((f) => dictionary.has(f) || OWN_WORDS.has(f));
 
+// A word made of two everyday ones (sun + flower): both halves from Drift's own lists,
+// which are common words, so "together" isn't "tog" + "ether".
+function halvesOf(word) {
+  for (let i = 3; i <= word.length - 3; i++) {
+    const a = word.slice(0, i), b = word.slice(i);
+    if (OWN_WORDS.has(a) && forms(b).some((f) => OWN_WORDS.has(f))) return [a, b];
+  }
+  return null;
+}
+
 // Which meanings a word has: for each kind of effect, the listed word wins
 // over a root, and an earlier root over a later one.
 function meaningsOf(word) {
@@ -358,7 +394,8 @@ export const clean = (raw) => raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
 // { word, problem, real, leagues, fuel, meanings, effect, rules, wonder, secret, echoOf }.
 // `leagues` is the distance, shown as miles; `problem` is 'empty' or what to tell you.
 // `muted`: kinds of words that mean nothing to the sky right now (the Hoarder has them).
-export function readWord(raw, { used = [], last = null, muted = [] } = {}) {
+// `recent`: the words said before this one, oldest first (for rhymes, ladders and the like).
+export function readWord(raw, { used = [], last = null, muted = [], recent = [] } = {}) {
   const word = clean(raw);
   const reading = { word, problem: null, leagues: word.length, fuel: word.length, meanings: [], effect: {}, rules: [], wonder: 0, secret: null, echoOf: null };
   if (!word) return { ...reading, problem: 'empty' };
@@ -378,6 +415,16 @@ export function readWord(raw, { used = [], last = null, muted = [] } = {}) {
     reading.meanings.push(m);
   }
   if (HOURS[word] !== undefined) effect.hour = HOURS[word];
+  // A word made of two means both halves too (after its own meanings, which come first).
+  reading.halves = reading.real ? halvesOf(word) : null;
+  for (const part of reading.halves ?? []) {
+    for (const m of meaningsOf(part).filter((m) => !muted.includes(m.id) && !reading.meanings.includes(m))) {
+      for (const [key, value] of Object.entries(m.effect)) {
+        if (effect[key] === undefined) effect[key] = value;
+      }
+      reading.meanings.push(m);
+    }
+  }
 
   // Form.
   const rules = reading.rules;
@@ -392,6 +439,21 @@ export function readWord(raw, { used = [], last = null, muted = [] } = {}) {
   const sorted = [...word].sort().join('');
   reading.echoOf = used.find((u) => u !== word && [...u].sort().join('') === sorted) ?? null;
   if (reading.echoOf) rules.push('echo');
+  // Word play with the words before it (real words only, so nonsense can't farm it).
+  const [prev2, prev] = recent.slice(-2).length === 2 ? recent.slice(-2) : [null, recent[recent.length - 1] ?? null];
+  if (reading.real && prev) {
+    if (rhymes(word, prev)) rules.push('rhyme');
+    // Every third word in a row on the same letter (so a long run of S words pays now and then).
+    let streak = 1;
+    for (let i = recent.length - 1; i >= 0 && recent[i][0] === word[0]; i--) streak++;
+    if (streak % 3 === 0) rules.push('alliteration');
+    if (prev2 && word.length === prev.length + 1 && prev.length === prev2.length + 1) rules.push('ladder');
+    if (OPPOSITES.get(prev)?.has(word)) {
+      rules.push('opposite');
+      if (effect.weather === undefined) effect.weather = 'clear';
+    }
+  }
+  if (reading.halves) rules.push('compound');
 
   // Secret words.
   if (SECRETS[word]) {

@@ -1401,3 +1401,92 @@ body.photo .voyage-progress {
 }
 /* The island's title steps aside while the maze game plays. */
 body.maze-playing .hud-top { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+
+/* A message in a bottle (main.js): read one from a link, or write one into a link.
+   It sits in the bottom stack like the panels, full width on a phone. */
+.bottle-offer {
+  align-self: center;
+}
+
+.bottle-offer[hidden],
+.bottle-sheet[hidden],
+.bottle-write[hidden] {
+  display: none;
+}
+
+.bottle-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  color: var(--ink);
+}
+
+.bottle-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.bottle-text {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bottle-text:empty {
+  display: none;
+}
+
+.bottle-write textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 5.5em;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.bottle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.bottle-count {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.bottle-close {
+  align-self: flex-end;
+}
+
+/* Past the Edge, the gates are behind you: their marks would sit in the wrong places. */
+.voyage-progress.far .voyage-gate-mark {
+  display: none;
+}
+
+.bottle-row .primary {
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  color: #f6f3ec;
+  font: inherit;
+  font-weight: 600;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.bottle-row .primary:hover {
+  background: #3aa0ff;
+}

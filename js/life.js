@@ -490,7 +490,7 @@ const COATS = { snowfield: '#f4f4f2', desert: '#c8a47a', highlands: '#8a8478' };
 
 // Parts that overlap must stand clear of each other by 0.01 or more: two faces of
 // different colours closer than that flicker (z-fighting) at the default camera.
-// .claude/zfight-check.js finds them.
+// tools/zfight-check.js finds them.
 // More creatures. Each is a little model and a way of getting about: hoppers
 // hop from spot to spot, walkers amble and stop to graze (a waddle rocks them
 // side to side), and scuttlers go sideways. Tap one and it scampers off.

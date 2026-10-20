@@ -8,7 +8,7 @@
 // Pack islands are voyage-only (world.js forces `weight: 0`), and buildings only
 // stand on voyage-only islands, so ordinary lands and the rarity tables never
 // change. To add one: write the module, add it below and in packs/zh.js, give
-// both an import-map line in index.html, and run .claude/pack-check.js.
+// both an import-map line in index.html, and run tools/pack-check.js.
 //
 // An island pack: { id, island: { biome, species, grass, neighbours, furniture,
 //   word, note, journal, trees, reach, air, vibe, arrive, hop, gather, taps, tapLabel, status } }

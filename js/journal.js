@@ -67,6 +67,7 @@ export const SECTIONS = [
     ['odd:waterfall', '💧', 'waterfall', 'a river running off the edge'],
     ['odd:oasis', '🌴', 'oasis', 'water in the desert'],
     ['odd:ice', '🧊', 'frozen lake', 'a snowfield, or snow that lasts'],
+    ['odd:bottle', '🍾', 'message in a bottle', 'someone has to send you one'],
   ]],
   // Islands only a voyage reaches (Drift: they never turn up on an ordinary land).
   ['voyage islands', [
@@ -109,6 +110,7 @@ export const SECTIONS = [
     ['landmark:shipwright', '🪚', 'shipwright', 'say something about shipyards on a voyage'],
     ['landmark:bathhouse', '♨️', 'bathhouse', 'say something about baths on a voyage'],
     ['landmark:clocktower', '🕰️', 'clock tower', 'say something about pendulums on a voyage'],
+    ['landmark:kite', '🪁', 'Ha’s kite', 'past the Edge, on a voyage'],
     ['landmark:edge', '🏮', 'Wa’s stone', 'reach the Edge of the Sky'],
   ]],
   ['voyage wildlife', [
@@ -134,7 +136,8 @@ for (const [title, kind, packs] of [['voyage islands', 'land', ISLANDS], ['voyag
 const ENTRIES = new Map(SECTIONS.flatMap(([, items]) => items.map((item) => [item[0], item])));
 // Voyage islands and animals are a bonus: Drift is behind a password, so the naturalist
 // badge asks only for what ordinary lands hold.
-const VOYAGE_ONLY = new Set(SECTIONS.filter(([title]) => title.startsWith('voyage ') || title === 'legendary friends').flatMap(([, items]) => items.map(([id]) => id)));
+// (A bottle needs someone to send you one, so it isn't asked for either.)
+const VOYAGE_ONLY = new Set([...SECTIONS.filter(([title]) => title.startsWith('voyage ') || title === 'legendary friends').flatMap(([, items]) => items.map(([id]) => id)), 'odd:bottle']);
 
 // [id, emoji, name, what to do, counter, goal]
 export const BADGES = [
@@ -152,6 +155,7 @@ export const BADGES = [
 
 // What the land's hooks report, and what each one counts toward.
 const NOTES = {
+  bottle: { find: 'odd:bottle' },
   flower: { count: 'flowers' },
   tree: { count: 'trees' },
   duck: { find: 'life:duck', count: 'ducks' },

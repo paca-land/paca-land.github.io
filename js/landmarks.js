@@ -987,6 +987,72 @@ const LANDMARKS = {
       };
     },
   },
+  // Ha's kite (voyage.js), past the Edge: a post on a hill, and a long string up to a
+  // red kite with a tail of paper bows, dancing in a warm wind. No biome lists it.
+  kite: {
+    find: { radius: 1.2, rn: [0.1, 0.6], slope: 0.3, wet: 1.4, prefer: 'high' },
+    build(kit, ctx, place) {
+      const g = place.ground(0, 0);
+      kit.add('stone', box(0.5, 0.3, 0.5), [0, g - 0.22, 0], { ry: 0.3 });
+      kit.add('darkWood', cyl(0.05, 0.07, 1.1, 6), [0, g - 0.05, 0]);
+      kit.add('darkWood', box(0.24, 0.05, 0.05), [0, g + 0.82, 0]);
+      const top = new THREE.Vector3(0, g + 1.0, 0);
+      // The kite: a diamond, red and darker red, seen from both sides.
+      const sail = new THREE.BufferGeometry();
+      const [a, b, c, d] = [[0, 0.55, 0], [0.38, 0.05, 0], [0, -0.75, 0], [-0.38, 0.05, 0]];
+      sail.setAttribute('position', new THREE.Float32BufferAttribute([...a, ...d, ...b, ...b, ...d, ...c], 3));
+      const red = new THREE.Color('#d8352a'), dark = new THREE.Color('#9e2219');
+      sail.setAttribute('color', new THREE.Float32BufferAttribute([...red.toArray(), ...red.toArray(), ...red.toArray(), ...dark.toArray(), ...dark.toArray(), ...dark.toArray()], 3));
+      sail.computeVertexNormals();
+      const kiteMesh = new THREE.Mesh(sail, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.7 }));
+      const cross = new THREE.Mesh(mergeGeometries([new THREE.BoxGeometry(0.02, 1.3, 0.02).translate(0, -0.1, 0.012), new THREE.BoxGeometry(0.76, 0.02, 0.02).translate(0, 0.05, 0.012)]), ctx.mats.darkWood);
+      const bows = Array.from({ length: 6 }, () => {
+        const bow = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.02), new THREE.MeshStandardMaterial({ color: '#f4ecd8', roughness: 0.9 }));
+        return bow;
+      });
+      const kiteGroup = new THREE.Group();
+      kiteGroup.add(kiteMesh, cross);
+      // The string sags a little on its way up.
+      const N = 16;
+      const stringGeo = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(new Array(N * 3).fill(0), 3));
+      const tailGeo = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(new Array(7 * 3).fill(0), 3));
+      const line = new THREE.LineBasicMaterial({ color: '#f4ecd8' });
+      const string = new THREE.Line(stringGeo, line), tail = new THREE.Line(tailGeo, line);
+      string.frustumCulled = tail.frustumCulled = false;
+      const p = new THREE.Vector3(), q = new THREE.Vector3();
+      let sway = 0;
+      return {
+        radius: 1.2, door: [0, 0.8], extras: [kiteGroup, string, tail, ...bows],
+        update(t, dt, env) {
+          sway += dt * (0.8 + (env.wind ?? 1) * 0.3);
+          // Up and away downwind, bobbing.
+          const kx = 1.6 + Math.sin(sway * 0.7) * 0.5, ky = g + 5.2 + Math.sin(sway * 1.1) * 0.35, kz = -1.0 + Math.sin(sway * 0.5) * 0.4;
+          kiteGroup.position.set(kx, ky, kz);
+          kiteGroup.rotation.set(-0.35, 0.5 + Math.sin(sway * 0.8) * 0.25, Math.sin(sway * 1.3) * 0.3);
+          const pos = stringGeo.attributes.position;
+          for (let i = 0; i < N; i++) {
+            const f = i / (N - 1);
+            p.lerpVectors(top, kiteGroup.position, f);
+            p.y -= Math.sin(f * Math.PI) * 0.6;
+            pos.setXYZ(i, p.x, p.y, p.z);
+          }
+          pos.needsUpdate = true;
+          // The tail hangs from the bottom tip and flutters.
+          q.set(0, -0.75, 0).applyEuler(kiteGroup.rotation).add(kiteGroup.position);
+          const tp = tailGeo.attributes.position;
+          for (let i = 0; i < 7; i++) {
+            const x = q.x - i * 0.08 + Math.sin(sway * 3 + i * 0.9) * 0.1 * i * 0.3, y = q.y - i * 0.26, z = q.z + Math.cos(sway * 2.6 + i) * 0.06 * i;
+            tp.setXYZ(i, x, y, z);
+            if (i > 0) {
+              bows[i - 1].position.set(x, y, z);
+              bows[i - 1].rotation.z = Math.sin(sway * 3 + i) * 0.6;
+            }
+          }
+          tp.needsUpdate = true;
+        },
+      };
+    },
+  },
 };
 
 // Look for ground that suits the landmark; on rugged lands, gradually accept
@@ -1336,6 +1402,69 @@ export function buildLightPools(lights, shape) {
 }
 
 // --- Sky life ------------------------------------------------------------------
+
+// A message in a bottle, lying where the water meets the land (or near the rim, on an
+// island with no lake), with a glint so it can be spotted from afar. `r` is its own
+// stream, so nothing else on the land moves. Its group carries the tap (world.js).
+export function buildBottle(shape, r, blocked) {
+  const ok = (x, z) => !shape.isWet(x, z, 0.05) && !blocked(x, z) && shape.slopeAt(x, z) < 0.6 && shape.radial(x, z) < 0.88;
+  const start = r.range(0, TAU);
+  let at = null;
+  for (let k = 0; k < 48 && !at; k++) {
+    const a = start + k * 0.37;
+    if (shape.lake) {
+      // Out from the lake until the ground is dry (the real shore wanders round its radius).
+      for (let step = 1; step <= 8 && !at; step++) {
+        const d = shape.shoreDistance(shape.lake, a) + step * 0.25;
+        const x = shape.lake.x + Math.cos(a) * d, z = shape.lake.z + Math.sin(a) * d;
+        if (ok(x, z)) at = [x, z, a];
+      }
+    } else {
+      for (const d of [6.2, 5.4, 4.6, 3.8]) {
+        const x = Math.cos(a) * d, z = Math.sin(a) * d;
+        if (shape.radial(x, z) > 0.5 && ok(x, z)) {
+          at = [x, z, a];
+          break;
+        }
+      }
+    }
+  }
+  if (!at) return null;
+  const [x, z, a] = at;
+  const group = new THREE.Group();
+  group.position.set(x, shape.heightAt(x, z) + 0.08, z);
+  group.rotation.y = -a + r.range(-0.6, 0.6);
+  // Lying on its side, the neck up the beach a little.
+  const bottle = new THREE.Group();
+  bottle.rotation.z = Math.PI / 2 - 0.12;
+  const glass = new THREE.MeshStandardMaterial({ color: '#6fbf9a', roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.6, emissive: '#2f6b55', emissiveIntensity: 0.25 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.34, 12), glass);
+  const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.1, 0.08, 12).translate(0, 0.21, 0), glass);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.1, 10).translate(0, 0.3, 0), glass);
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.026, 0.06, 8).translate(0, 0.37, 0), new THREE.MeshStandardMaterial({ color: '#a87a4a', roughness: 0.9 }));
+  const note = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.24, 10), new THREE.MeshStandardMaterial({ color: '#f4ecd8', roughness: 0.9 }));
+  bottle.add(note, body, shoulder, neck, cork);
+  group.add(bottle);
+  // The glint: a soft star that pulses, so the eye finds it.
+  const glint = new THREE.Sprite(new THREE.SpriteMaterial({ map: softDot(), color: '#ffffff', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  glint.position.set(0.12, 0.12, 0);
+  group.add(glint);
+  let hop = 0;
+  return {
+    object: group,
+    tap() {
+      hop = 1;
+    },
+    update(t, dt) {
+      hop = Math.max(0, hop - dt * 2.5);
+      bottle.position.y = Math.sin(hop * Math.PI) * 0.12;
+      bottle.rotation.x = Math.sin(t * 0.8) * 0.05 + hop * 0.6;
+      const pulse = Math.max(0, Math.sin(t * 1.7)) ** 6;
+      glint.scale.setScalar(0.2 + pulse * 0.7);
+      glint.material.opacity = 0.35 + pulse * 0.65;
+    },
+  };
+}
 
 export function buildBalloon(r, mats) {
   const group = new THREE.Group();
