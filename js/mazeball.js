@@ -36,10 +36,14 @@ export function createMazeBall({ onWin, onEnd }) {
   close.setAttribute('aria-label', t('stop playing'));
   close.addEventListener('click', () => stop());
   ui.append(line, close);
-  document.body.append(ui);
+  // Just above the bar, in the bottom stack.
+  const stack = document.querySelector('.hud-bottom');
+  if (stack) stack.insertBefore(ui, stack.querySelector('.bar'));
+  else document.body.append(ui);
 
   addEventListener('keydown', (event) => {
-    if (!game || !KEYS[event.code]) return;
+    // (Keys typed into a text box, like a voyage's word, are the box's.)
+    if (!game || !KEYS[event.code] || event.target.closest?.('input, textarea, [contenteditable]')) return;
     held.add(event.code);
     event.preventDefault();
   });

@@ -24,7 +24,7 @@ const PASSWORD = 'family';
 const GOAL = 100; // miles to the Edge of the Sky (the last gate); the code calls them leagues
 const STAY = 3; // hours to spend on each land
 const STORM_WAIT = 2; // hours a storm takes to blow itself out (what's left of your stay first, then the clock)
-const START = { fuel: 14, food: 6, hull: 5, glimmer: 0, lanterns: 1 };
+const START = { fuel: 12, food: 6, hull: 5, glimmer: 0, lanterns: 1 };
 const MAX = { fuel: 30, food: 10, hull: 5, lanterns: 3 };
 const ICON = { fuel: '🔥', food: '🍞', hull: '❤️', glimmer: '🪙', lanterns: '🏮' };
 const ROOM = 2; // passengers in the basket at once
@@ -37,6 +37,28 @@ const DOG_CHANCE = 0.04; // that a dog you haven't met yet is on the next island
 const BOTTLE_CHANCE = 0.2; // that an island has the next message in a bottle (two a voyage at most)
 const FAR = 135; // miles to Ha's kite, past the Edge (tales.js, HA_KITE)
 const LIGHT = ['sun', 'dawn', 'golden']; // meanings that drive the Hush back
+// The little games (games.js): what each pays for its score, once an island, for an
+// hour win or lose (a fish is 1 🍞, a kite that stays up is wind for the next flight).
+const GAME_PRIZE = {
+  stones: (n) => (n >= 12 ? { glimmer: 3 } : n >= 8 ? { glimmer: 2 } : n >= 4 ? { glimmer: 1 } : null),
+  fish: (n) => (n ? { food: n } : null),
+  fireflies: (n) => (n >= 10 ? { lanterns: 1 } : null),
+  kite: (n) => (n >= 20 ? { wind: 2 } : null),
+};
+const GAME_STAKES = {
+  stones: () => t('an hour, win or lose · the best of 3 stones: 4 skips +1 🪙, 8 skips +2 🪙, 12 skips +3 🪙'),
+  fish: () => t('an hour, win or lose · 4 casts, +1 🍞 a fish'),
+  fireflies: () => t('an hour, win or lose · 10 fireflies in 25 seconds: +1 🏮'),
+  kite: () => t('an hour, win or lose · 20 seconds up: +2 miles on your next flight'),
+};
+const GAME_ICON = { stones: '🪨', fish: '🎣', fireflies: '✨', kite: '🪁' };
+// How it went, said on a toast (`got` is what it paid, if anything).
+const GAME_RESULT = {
+  stones: (n, got) => (got ? t('{n} skips: {got}', { n, got }) : n === 1 ? t('only 1 skip: no coin this time') : t('only {n} skips: no coin this time', { n })),
+  fish: (n, got) => (!got ? t('no fish this time') : n === 1 ? t('a fish: {got}', { got }) : t('{n} fish: {got}', { n, got })),
+  fireflies: (n, got) => (got ? t('a jar of fireflies to light the dark: {got}', { got }) : n === 1 ? t('1 firefly: not enough to light a lantern') : t('{n} fireflies: not enough to light a lantern', { n })),
+  kite: (n, got) => (got ? t('the kite found the wind: +{miles} on your next flight', { miles: got }) : t('the kite wouldn’t stay up: no wind for your next flight')),
+};
 
 // An hour spent shaking the trees, by kind of land.
 const TREES = {
@@ -1056,6 +1078,7 @@ export function createVoyage(api) {
     if (reading.rules.includes('alliteration')) parts.push([3, book.rules.alliteration ? RULES.alliteration.name : t('something you haven’t learned yet')]);
     if (run.here?.trait === 'windswept') parts.push([2, TRAITS.windswept.name]);
     if (run.flags.sandbag) parts.push([3, ITEMS.sandbag.name]);
+    if (run.flags.kitewind) parts.push([run.flags.kitewind, t('the kite’s wind')]);
     if (run.omen === 'short' && reading.word.length <= 4) parts.push([1, OMENS.short.name]);
     // A pack island's own pull on a hop (packs/*.js): [miles, why], or nothing.
     const own = run.here && ISLANDS[run.here.biome]?.hop?.(reading, talesView());
@@ -1379,6 +1402,7 @@ export function createVoyage(api) {
       run.leagues += go;
       advance(Math.max(1, Math.ceil(go / 3)));
       run.flags.sandbag = false;
+      run.flags.kitewind = 0;
       // The storm front gains six miles a flight; a long word stays ahead of it.
       const front = run.flags.front;
       if (front) {
@@ -1536,6 +1560,7 @@ export function createVoyage(api) {
     here.biome = land.biomeKey;
     here.landmark = land.landmark;
     here.lake = land.hasLake;
+    here.games = Object.keys(land.games ?? {}).filter((kind) => land.games[kind]);
     // (Before this island counts, for wanderlust: have you landed on its kind already?)
     const again = Object.entries(run.lands).some(([word, l]) => word !== here.word && l.biome === land.biomeKey);
     run.lands[here.word] = { biome: land.biomeKey, landmark: land.landmark };
@@ -2924,6 +2949,10 @@ export function createVoyage(api) {
       if (stormy()) parts.push(chip(stormWait() === 1 ? t('wait out the storm with Chel · 1 hour') : t('wait out the storm · {n} hours', { n: stormWait() }), waitOutStorm));
       if (run.flags.fray && state === 'land') parts.push(chip(t('🪢 mend the rope · 1 hour'), mendRope));
       if (run.pack.length && state === 'land') parts.push(chip(`🎒 ${run.pack.map((id) => ITEMS[id].icon).join('')}`, openPack));
+      // The little games here (games.js).
+      const games = { stones: t('the flat stones'), fish: t('the dock'), fireflies: t('the fireflies’ jar'), kite: t('the kite') };
+      const playthings = (run.here?.games ?? []).map((kind) => games[kind]);
+      if (playthings.length) parts.push(el('span', 'status-gate', t('🎮 little games: tap {what}', { what: orList(playthings) })));
       if (TRAITS[run.here?.trait]) parts.push(el('span', 'status-gate', `${TRAITS[run.here.trait].icon} ${TRAITS[run.here.trait].name}`));
       if (run.tiles && !run.tiles.done) parts.push(el('span', 'status-gate', `🔤 ${tileCard()}`));
       // What a content pack is keeping track of for you (a seedling, a lens).
@@ -3011,9 +3040,55 @@ export function createVoyage(api) {
     get active() {
       return active;
     },
+    // A card is open or you're in the air: taps on the island wait (main.js won't start a game).
+    get busy() {
+      return active && (state === 'event' || state === 'flying');
+    },
     // On the last land: an aurora night at the Edge of the Sky.
     get finale() {
       return active && finale;
+    },
+    // A little game starts (games.js): what it's worth here, or why it's just for fun.
+    // Once it's under way it counts as played here, even if you stop halfway.
+    gameStakes(kind) {
+      if (!active || !run?.here || state !== 'land' || !GAME_PRIZE[kind]) return null;
+      const played = run.flags.played?.word === run.here.word ? run.flags.played.kinds : [];
+      if (played.includes(kind)) return t('played here already · just for fun');
+      if (run.stay <= 0) return t('no time left here · just for fun');
+      const store = { fish: 'food', fireflies: 'lanterns' }[kind];
+      if (store && run[store] >= holds(store)) return t('your {icon} is full · just for fun', { icon: ICON[store] });
+      run.flags.played = { word: run.here.word, kinds: [...played, kind], live: kind };
+      save();
+      return GAME_STAKES[kind]();
+    },
+    // How it went: the hour goes, and the prize (if any) comes.
+    gamePlayed(kind, score) {
+      const live = run?.flags.played;
+      if (!active || !run?.here || live?.live !== kind || live.word !== run.here.word) return;
+      live.live = null;
+      spend(1);
+      const prize = GAME_PRIZE[kind](score);
+      let got = '';
+      if (prize?.wind) {
+        run.flags.kitewind = prize.wind;
+        got = miles(prize.wind);
+      } else if (prize) {
+        // (Saying so when a store was too full to take it all.)
+        const given = give(prize);
+        got = `${gainText(given)}${Object.keys(prize).filter((k) => (given[k] ?? 0) < prize[k]).map((k) => ` · ${t('{icon} full ({max})', { icon: ICON[k], max: holds(k) })}`).join('')}`.replace(/^ · /, '');
+      }
+      toast(GAME_ICON[kind], GAME_RESULT[kind](score, got));
+      hud();
+      save();
+      forced();
+    },
+    // Closed before it got going: it doesn't count.
+    gameLeft(kind) {
+      const live = run?.flags.played;
+      if (!active || live?.live !== kind || live.word !== run.here?.word) return;
+      live.kinds = live.kinds.filter((k) => k !== kind);
+      live.live = null;
+      save();
     },
     // Rolling the ball out of a hedge maze pays, once per island.
     mazeWon() {

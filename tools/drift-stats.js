@@ -6,8 +6,9 @@ window.__log = (land) => window.__isles.push({ biome: land.biomeKey, rare: land.
 // Drift balance-and-text bot. On an origin of your own (e.g. http://bot-en.localhost:8417/),
 // set localStorage paca-alpha = 'true' and paca-lang = 'en' or 'zh', reload, then run
 //   await import(`/tools/drift-stats.js?${Date.now()}`)
-// in the console. await __bot(n, { landmark, story }) plays n voyages (landmark: how often
-// it taps the building on an island; story: how often it picks a story option);
+// in the console. await __bot(n, { landmark, story, games }) plays n voyages (landmark: how often
+// it taps the building on an island; story: how often it picks a story option; games: how
+// often it plays a little game the island has);
 // __scan() reports the text it saw (anything broken, untranslated, thrown) and the book;
 // __why lists how each voyage ended.
 {
@@ -40,7 +41,8 @@ window.__log = (land) => window.__isles.push({ biome: land.biomeKey, rare: land.
   }
   window.__why ??= [];
   window.__harm ??= {}; // what tore the balloon, by reason
-  window.__bot = async (runs, { landmark = 0.6, story: storyP = 0.8 } = {}) => {
+  window.__games ??= {}; // little games played, by kind
+  window.__bot = async (runs, { landmark = 0.6, story: storyP = 0.8, games = 0.7 } = {}) => {
     const results = [];
     for (let k = 0; k < runs; k++) {
       localStorage.removeItem('paca-voyage');
@@ -76,6 +78,21 @@ window.__log = (land) => window.__isles.push({ biome: land.biomeKey, rare: land.
           continue;
         }
         if (step % 5 === 0) { v.toggleBook(); seen.add(book.innerText); v.toggleBook(); }
+        // The little games here (games.js), played as a fair hand would, not a perfect one:
+        // 3 to 12 skips, a fish on three casts in five, the jar and the kite more often than not.
+        // (One an island, and only with fuel to spare: a game's hour is a tree's, and trees are
+        // where fuel comes from.)
+        const spare = (() => { try { return JSON.parse(localStorage.getItem('paca-voyage')).fuel >= 12; } catch { return false; } })();
+        const playable = Object.keys(here?.games ?? {}).filter((k) => here.games[k]);
+        for (const kind of spare && Math.random() < games && playable.length ? [playable[Math.floor(Math.random() * playable.length)]] : []) {
+          if (kind === 'fireflies' && !(hours % 24 >= 20.5 || hours % 24 < 5.5)) continue;
+          // (Only when it counts: not played here yet, hours left, room for the prize.)
+          v.gameStakes(kind);
+          if (JSON.parse(localStorage.getItem('paca-voyage') ?? '{}').flags?.played?.live !== kind) continue;
+          const score = { stones: 3 + Math.floor(Math.random() * 10), fish: [0, 1, 2, 3].filter(() => Math.random() < 0.6).length, fireflies: Math.random() < 0.6 ? 10 : 7, kite: Math.random() < 0.55 ? 20 : 8 }[kind];
+          v.gamePlayed(kind, score);
+          window.__games[kind] = (window.__games[kind] ?? 0) + 1;
+        }
         // Trees and water for supplies (as a player would), and one creature to say hello to.
         // (And whatever a pack island has to tap: geysers, fallen stars, jellyfish, the glass.)
         for (const kind of ['tree', 'splash', 'tree', TAPS[Math.floor(Math.random() * TAPS.length)], ...(here?.dog ? [here.dog] : []), ...(here?.bottle ? ['bottle'] : []), ...['geyser', 'star', 'jelly', 'globe'].filter(() => Math.random() < 0.5)]) { v.note(kind); v.tapped({ clientX: 0, clientY: 0 }); }

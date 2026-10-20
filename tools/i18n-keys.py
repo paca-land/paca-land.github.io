@@ -18,7 +18,7 @@ def add(k):
         keys.append(k)
 
 
-for f in ['js/tales.js', 'js/stories.js', 'js/voyage.js', 'js/lexicon.js', 'js/main.js', 'js/journal.js', 'js/rarity.js', 'js/mazeball.js']:
+for f in ['js/tales.js', 'js/stories.js', 'js/voyage.js', 'js/lexicon.js', 'js/main.js', 'js/journal.js', 'js/rarity.js', 'js/mazeball.js', 'js/games.js']:
     for m in re.finditer(r"\bt\('((?:[^'\\]|\\.)*)'", read(f)):
         add(m.group(1).replace("\\'", "'"))
 

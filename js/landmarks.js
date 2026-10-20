@@ -1289,8 +1289,11 @@ export function buildDock(ctx, r, toward) {
   boat.rotation.y = yaw + r.range(-0.4, 0.4);
   group.add(boat);
   const baseYaw = boat.rotation.y;
+  const tip = mid - 0.7;
   return {
     object: group,
+    // The deck's end out over the water, and which way is out (games.js fishes from it).
+    end: { x: lake.x + dx * tip, y: W + 0.13, z: lake.z + dz * tip, dx: -dx, dz: -dz },
     update(t) {
       boat.position.y = W - 0.03 + Math.sin(t * 1.3) * 0.02;
       boat.rotation.z = Math.sin(t * 1.1) * 0.04;

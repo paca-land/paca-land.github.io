@@ -392,7 +392,7 @@ export const pickLetter = (r, avoid = []) => {
 // words drive it back.
 export const HUSH = {
   start: 10, // miles behind you when it comes through the wall
-  speed: 1.5, // miles an hour (1.3 until the omens round: careful players outran it too easily)
+  speed: 1.7, // miles an hour (1.3 until the omens round, 1.5 until the little games: careful players outran it too easily)
   knock: 14, // how far back it falls after catching you
   light: 6, // how far a sunny, morning or evening word drives it back
   music: 5, // and a music word
@@ -413,7 +413,7 @@ export const HUSH = {
           label: t('let it take the letter {letter}', { letter: letter.toUpperCase() }), note: t('no word with it will fly until a shrine or a wizard wins it back'),
           disabled: g.run.banned.length >= 3, act: () => g.ban(letter),
         },
-        { label: t('feed it coins'), note: '−8 🪙', disabled: g.run.glimmer < 8, act: () => t('It swallows the coins, and lets go. {got}', { got: g.give({ glimmer: -8 }) }) },
+        { label: t('feed it coins'), note: '−10 🪙', disabled: g.run.glimmer < 10, act: () => t('It swallows the coins, and lets go. {got}', { got: g.give({ glimmer: -10 }) }) },
         { label: t('blind it with a lantern'), note: '−1 🏮', disabled: g.run.lanterns < 1, act: () => t('The lantern flares, and the Hush recoils. {got}', { got: g.give({ lanterns: -1 }) }) },
         { label: t('tear free'), note: g.run.hull <= 1 ? t('it would end your voyage') : '−1 ❤️', act: () => t('You rip the basket out of the silence. {hurt}', { hurt: g.hurt(1) }) },
       ],

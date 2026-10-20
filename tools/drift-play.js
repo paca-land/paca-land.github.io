@@ -13,6 +13,9 @@
 //                             you can see there (look() lists them under scene)
 //   __play.book()             open the book (the book button), read it, close it
 //   __play.chip(n)            press status-line button n (e.g. "wait out the storm")
+//   __play.game('stones')     play one of the island's little games ('stones', 'fish',
+//                             'fireflies', 'kite': look() lists them under scene), as a fair
+//                             player would; returns what it was worth and how it went
 //
 // look() returns: scene (time, weather, the island you're on and what you can see on it),
 // card (title, text, numbered options with their notes), story (the arrival text or the
@@ -107,6 +110,9 @@ window.__play = await (async () => {
     if (land.hasLake) seen.push(t('a lake'));
     if (land.hasWaterfall) seen.push(t('a waterfall'));
     if (land.hasBalloon) seen.push(t('a hot-air balloon'));
+    // The little games (games.js), by what you'd see: game('stones') and so on.
+    const games = { stones: 'a pile of flat stones by the lake (game: stones)', fish: 'a dock (game: fish)', fireflies: 'a jar on a stump (game: fireflies)', kite: 'a kite tied to a post (game: kite)' };
+    for (const [kind, what] of Object.entries(games)) if (land.games?.[kind]) seen.push(what);
     const here = animals();
     if (here.length) seen.push(`animals: ${here.join(', ')}`);
     return seen.join(', ');
@@ -188,6 +194,17 @@ window.__play = await (async () => {
       voyage.tapped({ clientX: 0, clientY: 0 });
       const pops = [...document.querySelectorAll('.voyage-popup')];
       return { popup: pops.length > before ? pops[pops.length - 1].textContent : null, ...look() };
+    },
+    // A little game, played as a fair hand would (the real one is played on screen).
+    game(kind) {
+      if (!land?.games?.[kind]) return { error: `there is no ${kind} game on this island` };
+      if (voyage.busy) return { error: 'a card is open: answer it first', ...look() };
+      if (kind === 'fireflies' && !(hours % 24 >= 20.5 || hours % 24 < 5.5)) return { said: 'The fireflies come out after dark.', ...look() };
+      const stakes = voyage.gameStakes(kind);
+      const score = { stones: 3 + Math.floor(Math.random() * 10), fish: [0, 1, 2, 3].filter(() => Math.random() < 0.6).length, fireflies: Math.random() < 0.6 ? 10 : 7, kite: Math.random() < 0.55 ? 20 : 8 }[kind];
+      const how = { stones: `best of three stones: ${score} skips`, fish: `${score} fish of four casts`, fireflies: `${score} fireflies caught`, kite: score >= 20 ? 'the kite stayed up for 20 seconds' : 'the kite came down a third time' }[kind];
+      voyage.gamePlayed(kind, score);
+      return { stakes, played: how, ...look() };
     },
     book() {
       voyage.toggleBook();

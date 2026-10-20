@@ -15,6 +15,7 @@ import { createJournal, tierTag, showToast } from './journal.js';
 import { createVoyage } from './voyage.js';
 import { createWaBalloon } from './balloon.js';
 import { createMazeBall } from './mazeball.js';
+import { createGames } from './games.js';
 import { landRarity } from './rarity.js';
 import { homePlace, placeHours, realSky, syntheticSky, newSkyState, landVibe, fetchWeather } from './conditions.js';
 import { makeRandom, randomSeed } from './random.js';
@@ -240,6 +241,7 @@ let flight = false; // the change of land under way is a voyage's flight
 function visit(next) {
   if (next === (leaving?.next ?? seed)) return;
   mazeBall.stop();
+  games.stop();
   if (zoomedIn()) focusOn(null);
   flight = voyage.active;
   if (!flight) waBalloon.leave();
@@ -281,14 +283,19 @@ function arrive(next) {
     journal.note(kind);
     voyage.note(kind);
   };
-  // The hedge maze's fountain starts its ball game.
+  // The hedge maze's fountain starts its ball game, and the dock, the flat stones,
+  // the fireflies' jar and the kite start theirs (games.js).
   land.hooks.play = (game) => {
-    if (game === 'maze' && !leaving && !photo.on) {
-      if (zoomedIn()) focusOn(null);
-      mazeBall.start(land);
-      controls.enabled = false;
-      document.body.classList.add('maze-playing');
-    }
+    if (leaving || photo.on || mazeBall.active || games.active || voyage.busy) return;
+    if (game === 'maze') mazeBall.start(land);
+    else if (!games.start(game, land)) return;
+    if (zoomedIn()) focusOn(null);
+    // (A game takes over from the opening flight.)
+    intro = null;
+    controls.enabled = false;
+    // (The games look from closer in than you can zoom.)
+    controls.minDistance = 1.5;
+    document.body.classList.add('maze-playing');
   };
   scene.add(land.group);
   if (voyage.active) waBalloon.moorTo(land, { snap: !flying });
@@ -454,12 +461,27 @@ const mazeBall = createMazeBall({
     sound.play('chime');
     voyage.mazeWon();
   },
-  onEnd: () => {
-    controls.enabled = true;
-    document.body.classList.remove('maze-playing');
-    idleSince = performance.now();
-  },
+  onEnd: endGame,
 });
+// The little games (games.js): skipping stones, fishing, fireflies, a kite. On a
+// voyage they're worth something (voyage.js says what); elsewhere, a best to beat.
+const games = createGames({
+  canvas: renderer.domElement,
+  camera,
+  stakes: (kind) => voyage.gameStakes(kind),
+  onPlayed: (kind, score) => voyage.gamePlayed(kind, score),
+  onLeft: (kind) => voyage.gameLeft(kind),
+  onEnd: endGame,
+  sound: (kind) => sound.play(kind),
+  say: (icon, text) => showToast($('#toasts'), icon, text),
+});
+function endGame() {
+  controls.enabled = true;
+  // (Zoomed in closer than you can, the view eases back out: see the frame loop.)
+  controls.minDistance = Math.min(6, camera.position.distanceTo(controls.target));
+  document.body.classList.remove('maze-playing');
+  idleSince = performance.now();
+}
 
 const voyage = createVoyage({
   fly: (next) => visit(next),
@@ -992,8 +1014,8 @@ const interaction = createInteraction(renderer.domElement, camera, () => (leavin
 // Grab the sun (or the moon) and drag it to set the time.
 const skyGrab = createSkyGrab(renderer.domElement, camera, {
   sky, state: skyState, skyAt: skyAtHours, hours: landHours, label: formatHours,
-  // On a voyage, time is part of the game.
-  enabled: () => !voyage.active,
+  // On a voyage, time is part of the game (and a game in play has the taps).
+  enabled: () => !voyage.active && !mazeBall.active && !games.active,
   onGrab: () => {
     // Holding the sun takes over from the opening flight and from a sky still swinging over
     // (the grab stops the pointerdown that would otherwise end the flight).
@@ -1118,10 +1140,12 @@ function renderFrame() {
   // The usual slow drift once you've let go, and a voyage's flight swings it
   // round faster (unless you're holding the view).
   const swing = flightSwing();
-  controls.autoRotate = !intro && !reducedMotion && !photo.on && !mazeBall.active && (nowMs - idleSince > 8000 || (swing > 0 && idleSince !== Infinity));
+  controls.autoRotate = !intro && !reducedMotion && !photo.on && !mazeBall.active && !games.active && (nowMs - idleSince > 8000 || (swing > 0 && idleSince !== Infinity));
   controls.autoRotateSpeed = 0.35 + swing * 2.6;
-  // The maze game eases the camera round to look down on the maze.
-  const mazeView = mazeBall.update(dt, camera);
+  // The maze game eases the camera round to look down on the maze, and the other
+  // games to their own views.
+  const gameView = games.update(dt, env);
+  const mazeView = mazeBall.update(dt, camera) ?? gameView;
   if (mazeView) {
     const k = 1 - Math.exp(-dt * 3);
     controls.target.lerp(mazeView.target, k);
@@ -1129,7 +1153,8 @@ function renderFrame() {
   }
   controls.update(dt);
   // Photo mode pans freely; a glide sets its own course (and so does the maze game).
-  if (!photo.on && focus.start < 0 && !mazeBall.active) keepNearHome(dt);
+  if (!photo.on && focus.start < 0 && !mazeBall.active && !games.active) keepNearHome(dt);
+  if (!photo.on && !mazeBall.active && !games.active && controls.minDistance < 6) controls.minDistance = Math.min(6, controls.minDistance + dt * 3);
   if (tilt) camera.rotateX(tilt);
   interaction.update();
   skyGrab.update(dt);

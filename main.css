@@ -1387,18 +1387,31 @@ body.photo .voyage-progress {
 
 /* The hedge maze's ball game: a line of instructions and a close button. */
 .maze-ui {
-  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  display: flex; align-items: center; gap: 10px; z-index: 30;
-  padding: 8px 10px 8px 16px; border-radius: 999px;
+  /* In the bottom stack, just above the bar (mazeball.js, games.js). */
+  align-self: center;
+  display: flex; align-items: center; gap: 10px;
+  max-width: 100%; box-sizing: border-box;
+  padding: 8px 10px 8px 16px; border-radius: 22px;
   background: rgba(20, 24, 40, 0.72); color: #fff; font-size: 14px;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .maze-ui[hidden] { display: none; }
 .maze-ui p { margin: 0; }
 .maze-close {
+  flex: none;
   width: 30px; height: 30px; border: 0; border-radius: 50%;
   background: rgba(255, 255, 255, 0.16); color: #fff; font-size: 14px; cursor: pointer;
 }
+/* The little games (games.js) add a second line for what's at stake and a running score. */
+.game-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.game-stakes { font-size: 12px; opacity: 0.75; }
+.game-stakes:empty, .game-stakes[hidden] { display: none; }
+.game-score { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+.game-score:empty { display: none; }
+/* While a game plays, the hint and a voyage's island text give way to its own line. */
+body.maze-playing #hint,
+body.maze-playing .voyage-read,
+body.maze-playing .voyage-status { display: none; }
 /* The island's title steps aside while the maze game plays. */
 body.maze-playing .hud-top { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
 

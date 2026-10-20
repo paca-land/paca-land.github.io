@@ -13,6 +13,7 @@ import {
   buildDock, buildProps, buildLightPools, buildBalloon, buildBottle,
 } from './landmarks.js';
 import { ISLANDS, BUILDINGS, DRESSINGS } from './packs/index.js';
+import { buildSkipStones, buildFireflyJar, buildKitePost, KITE_BIOMES } from './playthings.js';
 
 const TAU = Math.PI * 2;
 const RADIUS = 10;
@@ -644,7 +645,9 @@ function makeShape(seed, biome, want = {}) {
 
   // How many terraces up a point is (whole numbers at each riser), for rows of tea.
   const terraceAt = biome.terrace ? (x, z) => rawHeight(x, z) / biome.terrace : null;
-  return { edgeScale, heightAt, isWet, waterAt, shoreDistance, slopeAt, radial, lake, pools, river, peak, terraceAt, lawn };
+  // Inside this pool itself (not the river running out of it).
+  const inPool = (pool, x, z) => poolAt(pool, x, z).q < 1;
+  return { edgeScale, heightAt, isWet, waterAt, inPool, shoreDistance, slopeAt, radial, lake, pools, river, peak, terraceAt, lawn };
 }
 
 // Stitch two closed rings of vertices into a band of triangles, walking both
@@ -1970,7 +1973,8 @@ export function generateLand(seed, want = {}) {
   add(landmark);
   const lanterns = path && buildLanterns(ctx, path);
   add(lanterns);
-  if (shape.lake && !biome.water.frozen && !biome.water.lava && (xr.chance(0.6) || landmark?.type === 'town')) add(buildDock(ctx, xr, landmark?.door ?? { x: 0, z: 0 }));
+  const dock = shape.lake && !biome.water.frozen && !biome.water.lava && (xr.chance(0.6) || landmark?.type === 'town') ? buildDock(ctx, xr, landmark?.door ?? { x: 0, z: 0 }) : null;
+  add(dock);
   if (landmark) add(buildProps(ctx, xr, landmark, trees));
   add(buildLightPools([...(landmark?.lights ?? []), ...(lanterns?.lights ?? [])], shape));
 
@@ -2004,6 +2008,16 @@ export function generateLand(seed, want = {}) {
   // link), from its own stream.
   const bottle = want.bottle ? buildBottle(shape, makeRandom(seed, 'bottle'), blocked) : null;
   add(bottle);
+  // Things for the little games (games.js, through main.js): flat stones to skip on
+  // the lake, a jar for the fireflies, a kite on a post. Each comes from its own
+  // stream, after everything else, and keeps clear of what's already here.
+  const placedThings = [bottle?.object.position, dock?.end].filter(Boolean);
+  const stones = water?.ripple && makeRandom(seed, 'stones').chance(0.5) ? buildSkipStones(shape, makeRandom(seed, 'stones place'), blocked, trees, placedThings) : null;
+  if (stones) placedThings.push(stones.spot);
+  const jar = biome.ambient.includes('fireflies') && makeRandom(seed, 'jar').chance(0.5) ? buildFireflyJar(shape, makeRandom(seed, 'jar place'), blocked, trees, placedThings) : null;
+  if (jar) placedThings.push(jar.spot);
+  const kite = KITE_BIOMES.includes(biomeKey) && makeRandom(seed, 'kite').chance(0.45) ? buildKitePost(shape, makeRandom(seed, 'kite place'), blocked, trees, placedThings) : null;
+  for (const thing of [stones, jar, kite]) add(thing);
 
   // Wildlife: birds, butterflies, bats and dragonflies in the air; rabbits and
   // deer on the ground; ducks and fish in the lake.
@@ -2098,9 +2112,12 @@ export function generateLand(seed, want = {}) {
       hooks.note('bottle');
     };
   }
-  // The maze's fountain starts the ball game (mazeball.js, via main.js).
+  // The maze's fountain starts the ball game (mazeball.js, via main.js), and the
+  // little games start from their things (games.js): the dock is for fishing.
   if (hedgeMaze) hedgeMaze.fountain.userData.onClick = () => hooks.play?.('maze');
-  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, bottle?.object, ...life.clickables, ...(furniture?.clickables ?? [])].filter(Boolean);
+  const games = { stones, fish: dock, fireflies: jar, kite };
+  for (const [kind, thing] of Object.entries(games)) if (thing) thing.object.userData.onClick = () => hooks.play?.(kind);
+  const clickables = [ground, water?.mesh ?? water, ...flora.meshes, hedgeMaze?.hedges, hedgeMaze?.fountain, rows, landmark?.object, ...islets.clickables, balloon?.object, bottle?.object, dock?.object, stones?.object, jar?.object, kite?.object, ...life.clickables, ...(furniture?.clickables ?? [])].filter(Boolean);
 
   // Every standard material learns about cloud shadows, wetness and snow.
   group.traverse((o) => {
@@ -2122,6 +2139,16 @@ export function generateLand(seed, want = {}) {
     mooring: pickMooring(shape, islets, landmark),
     // The hedge maze, for its ball game: its walls in the maze's own frame, the ground under it, and the fountain at its heart.
     maze: maze && { ...maze, ground: (x, z) => shape.heightAt(x, z), centre: [hedgeMaze.fountain, hedgeMaze.pool] },
+    // The little games' things (games.js), and what the games need to know of the land.
+    games,
+    fx: {
+      ripple: (x, z, strength) => water?.ripple?.(x, z, clock(), strength),
+      burst: (at, options) => bursts.spawn(at, options),
+      surface: () => WATER_LEVEL + (water?.ripple ? water.mesh.position.y : 0),
+      ground: (x, z) => shape.heightAt(x, z),
+      onLake: (x, z) => Boolean(shape.lake) && shape.inPool(shape.lake, x, z),
+      gust: (x, z) => sendGust(x, z, clock()),
+    },
     clickables,
     hooks,
     // What the soundscape should play here.
